@@ -29,6 +29,9 @@ export interface CouncilWorld extends OpinionWorld {
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 const round1 = (x: number) => Math.round(x * 10) / 10;
 
+/** Share of Political Capital above (or below) 35 that fades each week. */
+export const CAPITAL_FADE = 0.02;
+
 export function startCouncil(date = TERM.start): CouncilState {
   return {
     version: 1, councillors: structuredClone(COUNCIL_2010), commission: [...COMMISSION_2010], capital: 35, items: [], directions: [],
@@ -642,9 +645,10 @@ export function advanceCouncil(prev: GameState, world: CouncilWorld, ended: stri
       s.events.push(voteEvent(item, today));
     }
   }
-  // Political Capital follows approval, week by week; delivered plans earn more
+  // Political Capital follows approval, week by week, and fades back toward 35 unless it's used
+  // (unspent goodwill doesn't keep: at 47% approval it settles near 50); delivered plans earn more
   if (toDate(ended).getUTCDay() === 0) {
-    c.capital = round1(clamp(c.capital + clamp(0.15 * (approval - 45), -1.5, 1.5), 0, 100));
+    c.capital = round1(clamp(c.capital + clamp(0.15 * (approval - 45), -1.5, 1.5) - CAPITAL_FADE * (c.capital - 35), 0, 100));
     c.history.push({ date: ended, capital: c.capital });
     if (c.history.length > 260) c.history.shift();
   }

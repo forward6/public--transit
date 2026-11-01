@@ -26,6 +26,7 @@
 | Modes | Bus and BRT (Transitway), LRT/metro, commuter and regional rail, on-demand and para-transit, and the unusual modes: ferries, gondolas and streetcars. |
 | Team | Solo hobby project. Claude writes most of the code; you direct and playtest. |
 | Languages *(assumed)* | English and French from day one. Ottawa is officially bilingual and Gatineau is francophone. |
+| Council (M7) | **Only the big items go to a vote:** budgets, deficit choices, large service plans, big bus orders and garages. Routine changes are yours. The 2010 council starts **split**. **Labour talks open in 2011.** STO is a **light-touch partner with its own agenda**. |
 
 ---
 
@@ -747,7 +748,7 @@ to keep iteration fast; it expands to the full region afterwards.
 | M4 🔶 | **Design tools → FIRST PLAYABLE** | Draw and edit routes, stops and frequencies (mouse, touch and Apple Pencil); live preview; isochrones; coverage and Scorecard v1 | You can redesign the network and see riders respond, on any device | L |
 | M5 🔶 | **Money and fleet** | Budget, fares, operating costs, garages, fleet ordering, maintenance, service-change calendar | You can run out of money in an interesting way | M |
 | M6 🔶 | **Opinion and media** | Opinion grid, rider diaries, "Follow a rider", headline generator, opinion maps | The public's reaction is visible and explainable | M |
-| M7 | **Council, elections and partners** | Councillors, whip counts, votes, Political Capital, elections, STO AI, funders, NCC, labour | A full four-year term plays out with soft consequences | L |
+| M7 🔶 | **Council, elections and partners** | Councillors, whip counts, votes, Political Capital, elections, STO AI, funders, NCC, labour | A full four-year term plays out with soft consequences | L |
 | M8 | **Big projects** | LRT, commuter rail, Transitway segments, river crossings; procurement, construction disruption, opening day | You can build a rapid-transit line from proposal to opening | L |
 | M9 | **Growth** | Land-use allocation, developer proposals, TOD, urban boundary debates, ward redistribution | The 2030 city looks different depending on how you played | M |
 | M10 | **Campaign and content** | Tutorial, term goals, scenarios, achievements, 2030 legacy retrospective, sandbox options | A complete campaign from 2010 to 2030 | M |
@@ -928,11 +929,58 @@ to keep iteration fast; it expands to the full region afterwards.
      timetable is August 2011 summer service, so thin suburban routes look more crowded than in
      December.
    - **Testing it:** `pnpm --filter @otc/sim opinion-demo [fare-%] [levy-%]` plays a year in Node.
-   - **Still to do:** rider-level crowding and pass-ups, accessibility failures, opinion by ward
-     (needs the 2010 ward map, M7), town halls and press conferences, NIMBY/YIMBY reactions to
+   - **Still to do:** rider-level crowding and pass-ups, accessibility failures, the real 2010 ward
+     boundaries (M7 approximates them), town halls and press conferences, NIMBY/YIMBY reactions to
      projects (M8), and calibrating the starting mood against 2010 polling.
-9. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
-10. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
+9. 🔶 **M7 (v1):** council, elections and partners ([screenshots](screenshots/m7/)). Your choices:
+   only the big items go to a vote, a split council, labour talks in 2011, and STO as a light-touch
+   partner with its own agenda.
+   - **Wards:** the 23 wards of 2006–2014, approximated over the zones (each zone joins the nearest
+     ward centre, weighted so that populations balance). Each ward's mood is its residents' approval.
+   - **Council:** a mayor and 23 councillors, all fictional, each with a fiscal stance, a transit
+     stance, how much their ward's mood moves them, their relationship with you and a platform. Eight
+     sit on the Transit Commission with you as Chair. They start split: 8 lean your way, 9 in the
+     middle, 7 fiscal hawks.
+   - **What goes to a vote:** the budget and deficit choices (council); service plans that add or
+     remove a route (the Commission, with a staff report of each ward's gains and losses);
+     frequency changes stay yours; orders of 50 buses or more and garages (council). A vote needs a
+     majority of those present; as Chair you vote with your proposal in the Commission.
+   - **The whip count:** each member's position comes from a score with named reasons: taxes, fares,
+     service, cost, debt, their ward's gains or losses, their ward's mood, their relationship with
+     you, the mayor's lead, lobbying, consultation and noise. Undecided is within ±0.35.
+   - **Political Capital** starts at 35. Each week it moves with approval (±1.5 at most) and fades 2%
+     of the way back towards 35, so it pays to use it. A won vote earns 1; a lost one costs 6 (4 for
+     a motion); a delivered plan earns 4. Lobbying a councillor costs 2–12, more the further they
+     are from yes. A consultation ($250k) or a study ($150k) puts the vote off a month: a
+     consultation sways each councillor with their ward's mood (towards you where people are
+     content, away where they aren't); a study reassures the fiscal hawks. Amendments halve the ask.
+   - **Soft consequences:** a failed budget is replaced by council's own (the median member's
+     levy); unpopular cuts bring motions to restore routes, which become directions applied at the
+     next service change; a mayor who cools on you; and, when both capital and approval run low, a
+     reshuffled Commission.
+   - **Labour:** the fictional Transit Workers' Union, Local 613. The contract ends 31 March 2011 and
+     talks open 1 February: up to three rounds over the wage, scheduling rules and the term. A deal
+     goes to council for ratification. Failed talks bring a strike vote; a strike stops OC Transpo
+     (fares and most costs too) until you meet the union (back in days, at a higher wage), go to
+     arbitration (two weeks) or hold out.
+   - **Partners:** STO proposes fare integration, shared stops and downtown layovers on its own
+     timetable, opens the Rapibus in October 2013 and gets a new agenda after Gatineau's November
+     2013 election; turn down its downtown layovers and it goes ahead alone. Ontario offers a third of each new bus if
+     fares rise no more than 2.5% a year (2011–2013); the federal program offers $30M toward a
+     garage built by June 2013. New routes on NCC parkways need the NCC's approval.
+   - **Elections:** Ottawa votes on 27 October 2014. Each ward's result comes from its mood, the
+     incumbent and a random swing; open seats bring candidates whose platforms follow the public
+     mood. Election night reveals the wards one by one, and the new council takes office on
+     1 December.
+   - **Testing it:** `pnpm --filter @otc/sim council-demo` plays the 2010–2014 term in Node,
+     answering every vote the simple way. Status quo: every budget passes (16–19 votes), the 2011
+     contract is ratified, capital settles around 50 and one seat changes in 2014.
+     `apps/web/scripts/verify-council.cjs` plays the votes and the talks in the browser.
+   - **Still to do:** the real 2010 ward map, council debate scenes, media campaigns and press
+     conferences, the urban boundary and big projects (M8), ward redistribution (M9), Gatineau's
+     council as a full actor, and term goals (M10).
+10. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
+11. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 
 ---
 

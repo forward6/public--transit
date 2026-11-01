@@ -51,7 +51,7 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
 
 ![Riders day by day: a December service change settling in](docs/screenshots/days/ridership-daily.jpg)
 
-- M6 is under way: opinion and media.
+- M6 (v1) is done: opinion and media.
   - **The public reacts.** Every Ottawa neighbourhood has an opinion of the Commission (service,
     value for money, trust) that moves day by day with service, reliability, crowding, the
     weather, fares, taxes and the news. Tap the **Approval** chip, or switch on **Opinion** to see
@@ -66,6 +66,30 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
   stations.
 
 ![Where the load is: the morning peak, crowding against capacity](docs/screenshots/m6/load-panel.jpg)
+
+- M7 (v1) is done: council, elections and partners. Only the big items go to a vote:
+  - **the budget and deficit choices** go to council; **plans that add or remove routes** go to the
+    Transit Commission first, with a staff report on what each ward gains or loses; **big bus orders and
+    garages** go to council;
+  - before each vote you see the **whip count**: every councillor's likely vote and their reason.
+    Spend **Political Capital** to lobby (it comes from approval and delivered promises, and fades
+    if you sit on it), hold consultations or commission a study to buy a month, amend, or withdraw;
+  - **the council is split** (8 lean your way, 9 in the middle, 7 fiscal hawks). Lose votes and
+    council writes its own budget, passes motions to bring back routes you cut, and reshuffles your
+    Commission;
+  - **contract talks** with the (fictional) union open in February 2011, with Ottawa still
+    remembering the 51-day strike of 2008–09. A deal needs council's ratification; failed talks
+    can end in a strike;
+  - **partners:** Gatineau's STO is a light-touch partner with its own agenda (fare integration,
+    shared stops, the Rapibus, a new council in 2013); the Province and the federal government offer
+    money with strings attached (a third of each new bus if fares stay down; $30M toward a garage
+    built by June 2013); the NCC reviews new routes on its parkways;
+  - **election night,** 27 October 2014: the wards come in one by one, and the new council sets how
+    hard the next term will be.
+
+![Council vote: the whip count on the budget](docs/screenshots/m7/vote-budget.jpg)
+
+![Election night, 2014](docs/screenshots/m7/election-night.jpg)
 
 ![Public opinion, neighbourhood by neighbourhood](docs/screenshots/m6/opinion-panel.jpg)
 
@@ -94,7 +118,8 @@ URL options:
 - `&t=HH:MM` sets the time of day (a new game starts at 00:01; a saved one resumes where it was)
 - `&speed=0..5` sets the speed: pause, real time, 1 min/s, 15 min/s (the default), 2 h/s, 1 day/s
 - `&select=stop:carleton|route:oct-otrain|vehicle:oct-otrain|persona:marc|opinion:city|load:peak` opens an inspector
-- `&riders=1` turns on the Riders view (peak crowding; `&rv=daily` for riders per day); `&opinion=1` the Opinion view (`&ov=service|value|trust` for an axis)
+- `&riders=1` turns on the Riders view (peak crowding; `&rv=daily` for riders per day); `&opinion=1` the Opinion view (`&ov=ward|service|value|trust` for wards or an axis)
+- `&select=council:term` opens the Council panel
 - `&plan=1` opens Plan mode. Add `&iso=lon,lat` for travel times from a point, or
   `&draw=lon,lat;lon,lat;…` to sketch a route.
 
