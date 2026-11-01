@@ -798,12 +798,14 @@ to keep iteration fast; it expands to the full region afterwards.
 2. ✅ **M0:** the project skeleton and CI.
 3. ✅ **M1:** the 2010 base map ([screenshots](screenshots/m1/)). Run it with `pnpm dev` after
    `uv run otc-pipeline all`.
-4. 🔶 **M2 (in progress):** the engine is done. That covers the network format, timetable
-   playback, moving vehicles, the game clock, inspectors and camera-follow, plus the Transitway
-   corridor, 26 stations and the original O-Train ([screenshots](screenshots/m2/)). **Still to
-   do: the 2010 bus routes.** They need `web.archive.org` (and ideally `en/fr.wikipedia.org`)
-   allowed in the environment's network settings. Then `otc-pipeline archive` and
-   `network --gtfs` load them. See `pipeline/README.md`.
+4. 🔶 **M2 (mostly done):**
+   - **Built:** the engine, plus the 2010 Transitway network from dated Wikipedia revisions.
+     That is 43 stations; routes 94, 95, 96, 97, 85, 106, 112 and 118 plus the O-Train
+     (about 1,700 weekday trips); and a catalogue of all 373 OC Transpo and STO routes from
+     November 2010 ([screenshots](screenshots/m2/)).
+   - **Still to do:** the remaining ~260 OC Transpo and all STO route alignments. They need
+     OC Transpo's 2010 GTFS from the Wayback Machine, which refuses connections from this build
+     environment. See `pipeline/curation/network2010/README.md`.
 5. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
 6. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 

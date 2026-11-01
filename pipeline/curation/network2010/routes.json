@@ -1,6 +1,6 @@
 {
   "snapshot": "2010-12-01",
-  "note": "Service definitions. Bus routes are added from archived 2010 sources (OC Transpo GTFS, system maps, timetables) — see README.md. Do not add routes without a source.",
+  "note": "Service definitions with provenance. Sourced from Wikipedia revisions as of late 2010 (the Wayback Machine, which holds OC Transpo's 2010 GTFS, refuses connections from this build environment). Every route lists what was stated vs estimated.",
   "routes": [
     {
       "id": "oct-otrain",
@@ -10,14 +10,770 @@
       "mode": "rail",
       "class": "otrain",
       "color": "#25965A",
-      "patterns": [{ "headsign": "Greenboro", "stops": ["bayview", "carling", "carleton", "confederation", "greenboro"] }],
+      "patterns": [
+        {
+          "headsign": "Greenboro",
+          "stops": [
+            "bayview",
+            "carling",
+            "carleton",
+            "confederation",
+            "greenboro"
+          ]
+        }
+      ],
       "bidirectional": true,
-      "weekday": [{ "from": "06:00", "to": "23:30", "headwayMin": 15 }],
+      "weekday": [
+        {
+          "from": "06:00",
+          "to": "23:30",
+          "headwayMin": 15
+        }
+      ],
       "provenance": {
         "source": "Claude's knowledge of the 2010 service (diesel O-Train every 15 minutes) — provisional",
         "confidence": "medium",
         "verified": false,
         "note": "Check headway and span against the archived 2010 timetable"
+      }
+    },
+    {
+      "id": "oct-95",
+      "agency": "octranspo",
+      "shortName": "95",
+      "longName": "Barrhaven Centre / Fallowfield – Downtown – Place d'Orléans / Trim",
+      "mode": "brt",
+      "class": "transitway",
+      "color": "#D7263D",
+      "streets": [
+        "Greenbank Road",
+        "Transitway",
+        "Ottawa River Parkway",
+        "Regional Road 174",
+        "Albert Street",
+        "Slater Street"
+      ],
+      "patterns": [
+        {
+          "headsign": "Place d'Orléans",
+          "headsign_back": "Barrhaven Centre",
+          "path": [
+            "barrhaven-centre",
+            "strandherd",
+            "fallowfield",
+            "baseline",
+            "iris",
+            "queensway",
+            "lincoln-fields",
+            "dominion",
+            "westboro",
+            "tunneys",
+            "bayview",
+            "lebreton",
+            "bay",
+            "kent",
+            "bank",
+            "metcalfe",
+            "mackenzie-king",
+            "laurier",
+            "campus",
+            "lees",
+            "hurdman",
+            "train",
+            "st-laurent",
+            "cyrville",
+            "blair",
+            "jeanne-darc",
+            "place-dorleans"
+          ],
+          "weekday": [
+            {
+              "from": "06:00",
+              "to": "23:00",
+              "headwayMin": 15
+            }
+          ]
+        },
+        {
+          "headsign": "Trim",
+          "headsign_back": "Fallowfield",
+          "path": [
+            "fallowfield",
+            "baseline",
+            "iris",
+            "queensway",
+            "lincoln-fields",
+            "dominion",
+            "westboro",
+            "tunneys",
+            "bayview",
+            "lebreton",
+            "bay",
+            "kent",
+            "bank",
+            "metcalfe",
+            "mackenzie-king",
+            "laurier",
+            "campus",
+            "lees",
+            "hurdman",
+            "train",
+            "st-laurent",
+            "cyrville",
+            "blair",
+            "jeanne-darc",
+            "place-dorleans",
+            "trim"
+          ],
+          "weekday": [
+            {
+              "from": "04:00",
+              "to": "06:00",
+              "headwayMin": 30
+            },
+            {
+              "from": "06:00",
+              "to": "24:00",
+              "headwayMin": 15
+            },
+            {
+              "from": "24:00",
+              "to": "26:00",
+              "headwayMin": 30
+            }
+          ]
+        },
+        {
+          "headsign": "Place d'Orléans",
+          "headsign_back": "Baseline",
+          "path": [
+            "baseline",
+            "iris",
+            "queensway",
+            "lincoln-fields",
+            "dominion",
+            "westboro",
+            "tunneys",
+            "bayview",
+            "lebreton",
+            "bay",
+            "kent",
+            "bank",
+            "metcalfe",
+            "mackenzie-king",
+            "laurier",
+            "campus",
+            "lees",
+            "hurdman",
+            "train",
+            "st-laurent",
+            "cyrville",
+            "blair",
+            "jeanne-darc",
+            "place-dorleans"
+          ],
+          "weekday": [
+            {
+              "from": "06:00",
+              "to": "06:30",
+              "headwayMin": 7.5
+            },
+            {
+              "from": "06:30",
+              "to": "09:00",
+              "headwayMin": 5
+            },
+            {
+              "from": "09:00",
+              "to": "15:00",
+              "headwayMin": 7.5
+            },
+            {
+              "from": "15:00",
+              "to": "18:00",
+              "headwayMin": 5
+            },
+            {
+              "from": "18:00",
+              "to": "23:00",
+              "headwayMin": 7.5
+            }
+          ]
+        }
+      ],
+      "summary": [
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "headwayMin": 4
+        },
+        {
+          "from": "06:30",
+          "to": "09:00",
+          "headwayMin": 3
+        },
+        {
+          "from": "09:00",
+          "to": "15:00",
+          "headwayMin": 4
+        },
+        {
+          "from": "15:00",
+          "to": "18:00",
+          "headwayMin": 3
+        },
+        {
+          "from": "18:00",
+          "to": "23:00",
+          "headwayMin": 4
+        },
+        {
+          "from": "23:00",
+          "to": "26:00",
+          "headwayMin": 15
+        }
+      ],
+      "provenance": {
+        "source": "Wikipedia 'OC Transpo Route 95' rev 396801938 (14 Nov 2010) https://en.wikipedia.org/w/index.php?oldid=396801938; stations: 'Transitway (Ottawa)' https://en.wikipedia.org/w/index.php?oldid=389051515",
+        "confidence": "medium",
+        "verified": false,
+        "note": "Stated: every 3–4 min Orléans–Baseline (2–4 at rush hour), 7–8 from Fallowfield, ~14 from Barrhaven Centre, 24-hour service every 30 min. Modelled as three overlapping patterns."
+      }
+    },
+    {
+      "id": "oct-94",
+      "agency": "octranspo",
+      "shortName": "94",
+      "longName": "Tunney's Pasture – Downtown – Blair – Innes – Millennium",
+      "mode": "brt",
+      "class": "transitway",
+      "color": "#D7263D",
+      "streets": [
+        "Transitway",
+        "Innes Road",
+        "Albert Street",
+        "Slater Street"
+      ],
+      "patterns": [
+        {
+          "headsign": "Millennium",
+          "headsign_back": "Tunney's Pasture",
+          "path": [
+            "tunneys",
+            "bayview",
+            "lebreton",
+            "bay",
+            "kent",
+            "bank",
+            "metcalfe",
+            "mackenzie-king",
+            "laurier",
+            "campus",
+            "lees",
+            "hurdman",
+            "train",
+            "st-laurent",
+            "cyrville",
+            "blair",
+            "millennium"
+          ],
+          "weekday": [
+            {
+              "from": "06:00",
+              "to": "24:00",
+              "headwayMin": 15
+            }
+          ]
+        }
+      ],
+      "summary": null,
+      "provenance": {
+        "source": "Wikipedia 'OC Transpo Route 95' (§ Route 94) rev 396801938 (14 Nov 2010) https://en.wikipedia.org/w/index.php?oldid=396801938; termini: 'OC Transpo routes' https://en.wikipedia.org/w/index.php?oldid=397776188",
+        "confidence": "medium",
+        "verified": false,
+        "note": "Stated: rapid service along Innes Road, every 15 minutes, until midnight (since 2009)."
+      }
+    },
+    {
+      "id": "oct-97",
+      "agency": "octranspo",
+      "shortName": "97",
+      "longName": "Bayshore – Downtown – South Keys – Airport",
+      "mode": "brt",
+      "class": "transitway",
+      "color": "#D7263D",
+      "streets": [
+        "Carling Avenue",
+        "Richmond Road",
+        "Transitway",
+        "Ottawa River Parkway",
+        "Airport Parkway",
+        "Albert Street",
+        "Slater Street"
+      ],
+      "patterns": [
+        {
+          "headsign": "Airport",
+          "headsign_back": "Bayshore",
+          "path": [
+            "bayshore",
+            "lincoln-fields",
+            "dominion",
+            "westboro",
+            "tunneys",
+            "bayview",
+            "lebreton",
+            "bay",
+            "kent",
+            "bank",
+            "metcalfe",
+            "mackenzie-king",
+            "laurier",
+            "campus",
+            "lees",
+            "hurdman",
+            "lycee-claudel",
+            "smyth",
+            "riverside",
+            "pleasant-park",
+            "billings-bridge",
+            "heron",
+            "walkley",
+            "greenboro",
+            "south-keys",
+            "airport"
+          ],
+          "weekday": [
+            {
+              "from": "06:00",
+              "to": "24:00",
+              "headwayMin": 15
+            }
+          ]
+        },
+        {
+          "headsign": "South Keys",
+          "headsign_back": "Tunney's Pasture",
+          "path": [
+            "tunneys",
+            "bayview",
+            "lebreton",
+            "bay",
+            "kent",
+            "bank",
+            "metcalfe",
+            "mackenzie-king",
+            "laurier",
+            "campus",
+            "lees",
+            "hurdman",
+            "lycee-claudel",
+            "smyth",
+            "riverside",
+            "pleasant-park",
+            "billings-bridge",
+            "heron",
+            "walkley",
+            "greenboro",
+            "south-keys"
+          ],
+          "weekday": [
+            {
+              "from": "06:30",
+              "to": "09:00",
+              "headwayMin": 7.5
+            },
+            {
+              "from": "09:00",
+              "to": "15:00",
+              "headwayMin": 10
+            },
+            {
+              "from": "15:00",
+              "to": "18:00",
+              "headwayMin": 7.5
+            },
+            {
+              "from": "18:00",
+              "to": "20:00",
+              "headwayMin": 10
+            },
+            {
+              "from": "20:00",
+              "to": "23:00",
+              "headwayMin": 15
+            }
+          ]
+        }
+      ],
+      "summary": [
+        {
+          "from": "06:00",
+          "to": "06:30",
+          "headwayMin": 15
+        },
+        {
+          "from": "06:30",
+          "to": "09:00",
+          "headwayMin": 5
+        },
+        {
+          "from": "09:00",
+          "to": "15:00",
+          "headwayMin": 6
+        },
+        {
+          "from": "15:00",
+          "to": "18:00",
+          "headwayMin": 5
+        },
+        {
+          "from": "18:00",
+          "to": "20:00",
+          "headwayMin": 6
+        },
+        {
+          "from": "20:00",
+          "to": "23:00",
+          "headwayMin": 7.5
+        },
+        {
+          "from": "23:00",
+          "to": "24:00",
+          "headwayMin": 15
+        }
+      ],
+      "provenance": {
+        "source": "Wikipedia 'OC Transpo Route 97' rev 381629703 (29 Aug 2010) https://en.wikipedia.org/w/index.php?oldid=381629703; stations: 'Transitway (Ottawa)' https://en.wikipedia.org/w/index.php?oldid=389051515",
+        "confidence": "medium",
+        "verified": false,
+        "note": "Stated: every 5–7 min Tunney's–Airport at rush hour, every 6 min midday Tunney's–South Keys, every 15 to Bayshore and the Airport. West of Lincoln Fields routed via Carling/Richmond (communities served: Britannia, Foster Farm)."
+      }
+    },
+    {
+      "id": "oct-96",
+      "agency": "octranspo",
+      "shortName": "96",
+      "longName": "Terry Fox – Kanata – Queensway – Downtown – Hurdman",
+      "mode": "brt",
+      "class": "transitway",
+      "color": "#D7263D",
+      "streets": [
+        "Katimavik Road",
+        "Eagleson Road",
+        "Highway 417",
+        "Transitway",
+        "Ottawa River Parkway",
+        "Albert Street",
+        "Slater Street"
+      ],
+      "patterns": [
+        {
+          "headsign": "Hurdman",
+          "headsign_back": "Terry Fox",
+          "path": [
+            "terry-fox",
+            "Katimavik Road & Eagleson Road",
+            "eagleson",
+            "queensway",
+            "lincoln-fields",
+            "dominion",
+            "westboro",
+            "tunneys",
+            "bayview",
+            "lebreton",
+            "bay",
+            "kent",
+            "bank",
+            "metcalfe",
+            "mackenzie-king",
+            "laurier",
+            "campus",
+            "lees",
+            "hurdman"
+          ],
+          "weekday": [
+            {
+              "from": "06:00",
+              "to": "06:30",
+              "headwayMin": 15
+            },
+            {
+              "from": "06:30",
+              "to": "09:00",
+              "headwayMin": 10
+            },
+            {
+              "from": "09:00",
+              "to": "15:00",
+              "headwayMin": 15
+            },
+            {
+              "from": "15:00",
+              "to": "18:00",
+              "headwayMin": 10
+            },
+            {
+              "from": "18:00",
+              "to": "23:30",
+              "headwayMin": 15
+            }
+          ]
+        }
+      ],
+      "summary": null,
+      "provenance": {
+        "source": "Route notes in Wikipedia 'OC Transpo routes' rev 397776188 (20 Nov 2010) https://en.wikipedia.org/w/index.php?oldid=397776188; stations: 'Transitway (Ottawa)' https://en.wikipedia.org/w/index.php?oldid=389051515",
+        "confidence": "low",
+        "verified": false,
+        "note": "Alignment from the notes (Katimavik Rd, Eagleson Rd, Highway 417 to Queensway Station). Frequencies are estimates — not stated in the 2010 sources."
+      }
+    },
+    {
+      "id": "oct-85",
+      "agency": "octranspo",
+      "shortName": "85",
+      "longName": "Hurdman – Downtown – Bronson – Carling – Bayshore",
+      "mode": "bus",
+      "class": "frequent",
+      "color": "#2856B8",
+      "streets": [
+        "Transitway",
+        "Albert Street",
+        "Slater Street",
+        "Bronson Avenue",
+        "Carling Avenue"
+      ],
+      "patterns": [
+        {
+          "headsign": "Bayshore",
+          "headsign_back": "Hurdman",
+          "path": [
+            "hurdman",
+            "lees",
+            "campus",
+            "laurier",
+            "mackenzie-king",
+            "metcalfe",
+            "bank",
+            "kent",
+            "bay",
+            "Albert Street & Bronson Avenue",
+            "Bronson Avenue & Carling Avenue",
+            "lincoln-fields",
+            "bayshore"
+          ],
+          "weekday": [
+            {
+              "from": "06:00",
+              "to": "06:30",
+              "headwayMin": 15
+            },
+            {
+              "from": "06:30",
+              "to": "09:00",
+              "headwayMin": 10
+            },
+            {
+              "from": "09:00",
+              "to": "15:00",
+              "headwayMin": 15
+            },
+            {
+              "from": "15:00",
+              "to": "18:00",
+              "headwayMin": 10
+            },
+            {
+              "from": "18:00",
+              "to": "24:00",
+              "headwayMin": 15
+            }
+          ]
+        }
+      ],
+      "summary": null,
+      "provenance": {
+        "source": "Route notes in Wikipedia 'OC Transpo routes' rev 397776188 (20 Nov 2010) https://en.wikipedia.org/w/index.php?oldid=397776188",
+        "confidence": "medium",
+        "verified": false,
+        "note": "Stated: central Transitway, Albert/Slater, Bronson and Carling to Bayshore, stopping at Carlingwood and Lincoln Fields. Frequencies are estimates."
+      }
+    },
+    {
+      "id": "oct-106",
+      "agency": "octranspo",
+      "shortName": "106",
+      "longName": "Hurdman – Southeast Transitway – Smyth – Elmvale",
+      "mode": "bus",
+      "class": "local",
+      "color": "#8794AB",
+      "streets": [
+        "Transitway",
+        "Smyth Road"
+      ],
+      "patterns": [
+        {
+          "headsign": "Elmvale",
+          "headsign_back": "Hurdman",
+          "path": [
+            "hurdman",
+            "lycee-claudel",
+            "smyth",
+            "Smyth Road & St-Laurent Boulevard"
+          ],
+          "weekday": [
+            {
+              "from": "06:00",
+              "to": "06:30",
+              "headwayMin": 30
+            },
+            {
+              "from": "06:30",
+              "to": "09:00",
+              "headwayMin": 15
+            },
+            {
+              "from": "09:00",
+              "to": "15:00",
+              "headwayMin": 20
+            },
+            {
+              "from": "15:00",
+              "to": "18:00",
+              "headwayMin": 15
+            },
+            {
+              "from": "18:00",
+              "to": "23:00",
+              "headwayMin": 30
+            }
+          ]
+        }
+      ],
+      "summary": null,
+      "provenance": {
+        "source": "Route notes in Wikipedia 'OC Transpo routes' rev 397776188 (20 Nov 2010) https://en.wikipedia.org/w/index.php?oldid=397776188",
+        "confidence": "medium",
+        "verified": false,
+        "note": "Stated: via the South-East Transitway and Smyth Road to/from Elmvale S.C. Frequencies are estimates."
+      }
+    },
+    {
+      "id": "oct-112",
+      "agency": "octranspo",
+      "shortName": "112",
+      "longName": "Billings Bridge – Heron – Walkley – Russell – Elmvale",
+      "mode": "bus",
+      "class": "local",
+      "color": "#8794AB",
+      "streets": [
+        "Bank Street",
+        "Heron Road",
+        "Baycrest Drive",
+        "Walkley Road",
+        "Russell Road"
+      ],
+      "patterns": [
+        {
+          "headsign": "Elmvale",
+          "headsign_back": "Billings Bridge",
+          "path": [
+            "billings-bridge",
+            "Bank Street & Heron Road",
+            "Heron Road & Baycrest Drive",
+            "Baycrest Drive & Walkley Road",
+            "Walkley Road & Russell Road",
+            "Russell Road & Smyth Road"
+          ],
+          "weekday": [
+            {
+              "from": "06:00",
+              "to": "23:00",
+              "headwayMin": 30
+            }
+          ]
+        }
+      ],
+      "summary": null,
+      "provenance": {
+        "source": "Route notes in Wikipedia 'OC Transpo routes' rev 397776188 (20 Nov 2010) https://en.wikipedia.org/w/index.php?oldid=397776188",
+        "confidence": "medium",
+        "verified": false,
+        "note": "Stated: via Bank, Heron, Baycrest, Walkley and Russell. Frequency is an estimate."
+      }
+    },
+    {
+      "id": "oct-118",
+      "agency": "octranspo",
+      "shortName": "118",
+      "longName": "Kanata – Hazeldean – Richmond – Baseline – Heron – Hurdman",
+      "mode": "bus",
+      "class": "frequent",
+      "color": "#2856B8",
+      "streets": [
+        "Hazeldean Road",
+        "Robertson Road",
+        "Richmond Road",
+        "Baseline Road",
+        "Heron Road",
+        "Transitway"
+      ],
+      "patterns": [
+        {
+          "headsign": "Hurdman",
+          "headsign_back": "Kanata",
+          "path": [
+            "terry-fox",
+            "Hazeldean Road & Eagleson Road",
+            "Robertson Road & Moodie Drive",
+            "Richmond Road & Baseline Road",
+            "baseline",
+            "Baseline Road & Prince Of Wales Drive",
+            "Heron Road & Riverside Drive",
+            "heron",
+            "billings-bridge",
+            "pleasant-park",
+            "riverside",
+            "smyth",
+            "lycee-claudel",
+            "hurdman"
+          ],
+          "weekday": [
+            {
+              "from": "06:00",
+              "to": "06:30",
+              "headwayMin": 20
+            },
+            {
+              "from": "06:30",
+              "to": "09:00",
+              "headwayMin": 15
+            },
+            {
+              "from": "09:00",
+              "to": "15:00",
+              "headwayMin": 15
+            },
+            {
+              "from": "15:00",
+              "to": "18:00",
+              "headwayMin": 15
+            },
+            {
+              "from": "18:00",
+              "to": "24:00",
+              "headwayMin": 20
+            }
+          ]
+        }
+      ],
+      "summary": null,
+      "provenance": {
+        "source": "Route notes in Wikipedia 'OC Transpo routes' rev 397776188 (20 Nov 2010) https://en.wikipedia.org/w/index.php?oldid=397776188",
+        "confidence": "medium",
+        "verified": false,
+        "note": "Stated: Hazeldean/Robertson/Richmond/Baseline/Heron corridor, deviating at Baseline Station; Terry Fox to Hurdman. The Heron Rd → Hurdman link (via the Southeast Transitway) and frequencies are estimates."
       }
     }
   ]

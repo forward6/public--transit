@@ -1,9 +1,9 @@
-import { formatClock, type Lang, type NetRoute, type Provenance } from '@otc/shared';
+import { formatClock, type CatalogueClass, type Lang, type NetRoute, type Provenance } from '@otc/shared';
 import type { NetworkState } from '../network/useNetwork';
 import type { Strings } from '../i18n/strings';
 import type { Palette } from '../map/palettes';
 
-export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor'; id: string } | null;
+export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue'; id: string } | null;
 
 interface Props {
   sel: Exclude<Selection, null>;
@@ -97,6 +97,8 @@ export function Inspector({ sel, net, t, s, palette, onSelect }: Props) {
     );
   }
 
+  if (sel.type === 'catalogue') return <Catalogue net={net} s={s} palette={palette} onSelect={onSelect} />;
+
   if (sel.type === 'route') {
     const route = playback.routes.get(sel.id);
     if (!route) return <Empty s={s} text={sel.id} />;
@@ -136,6 +138,53 @@ export function Inspector({ sel, net, t, s, palette, onSelect }: Props) {
         <div><div className="ins-title">{c.name}</div><div className="ins-sub">{c.kind === 'rail' ? s.railCorridor : s.busway} · OC Transpo</div></div></div>
       {network.status === 'infrastructure-only' && c.kind === 'busway' && <p className="notice">{s.awaitingRoutes}</p>}
       <ProvenanceNote p={c.provenance} s={s} />
+    </div>
+  );
+}
+
+const CLASS_ORDER: CatalogueClass[] = ['regular', 'peak', 'express', 'interzone', 'rural', 'event', 'early', 'school', 'partner'];
+
+/** Every 2010 route from the dated sources: which are on the map, which are listed only. */
+function Catalogue({ net, s, palette, onSelect }: { net: NetworkState; s: Strings; palette: Palette; onSelect: (sel: Selection) => void }) {
+  const { network, playback } = net;
+  const cat = network.catalogue ?? [];
+  const mapped = network.routes.filter((r) => r.mode !== 'rail');
+  const sources = [...new Set(cat.map((c) => c.source))];
+  const group = (agency: string) => CLASS_ORDER.map((cls) => ({ cls, items: cat.filter((c) => c.agency === agency && c.class === cls) })).filter((g) => g.items.length);
+  return (
+    <div className="ins">
+      <div className="ins-head"><div className="ins-icon" style={{ background: palette.transit.transitway }} />
+        <div><div className="ins-title">{s.catalogueTitle}</div><div className="ins-sub">{network.statusNote}</div></div></div>
+      <div className="grid3">
+        <div><b>{mapped.length}</b><span>{s.catalogueMapped}</span></div>
+        <div><b>{cat.filter((c) => c.agency === 'octranspo').length}</b><span>OC Transpo · {s.catalogueListed}</span></div>
+        <div><b>{cat.filter((c) => c.agency === 'sto').length}</b><span>STO · {s.catalogueListed}</span></div>
+      </div>
+      <div className="sec">{s.catalogueOnMap}</div>
+      <div className="badges">
+        {network.routes.map((r) => <RouteBadge key={r.id} route={r} palette={palette} onClick={() => onSelect({ type: 'route', id: r.id })} />)}
+      </div>
+      {(['octranspo', 'sto'] as const).map((agency) => (
+        <div key={agency}>
+          <div className="sec">{agency === 'sto' ? 'STO' : 'OC Transpo'} · {s.catalogueListedLong}</div>
+          {group(agency).map(({ cls, items }) => (
+            <div key={cls} className="cat-row">
+              <span className="cat-cls">{s.catalogueClass[cls]} <em>{items.length}</em></span>
+              <span className="cat-nums">
+                {items.map((c) => (
+                  <i key={c.number} className={c.mapped ? 'on' : ''} title={c.termini.join(' ↔ ')}
+                    onClick={c.mapped && c.routeId ? () => onSelect({ type: 'route', id: c.routeId! }) : undefined}>{c.number}</i>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div className="prov prov-medium"><b>{s.catalogueSources}</b>
+        {sources.map((u) => <span key={u}>{u}</span>)}
+        <span>{s.catalogueWayback}</span>
+      </div>
+      {playback.trips.length > 0 && <p className="muted">{playback.trips.length.toLocaleString()} {s.tripsToday}</p>}
     </div>
   );
 }

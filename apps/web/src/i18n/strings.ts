@@ -1,4 +1,4 @@
-import type { Confidence, Lang, NetworkStatus, RouteClass, Season, TimeOfDay } from '@otc/shared';
+import type { CatalogueClass, Confidence, Lang, NetworkStatus, RouteClass, Season, TimeOfDay } from '@otc/shared';
 
 export interface Strings {
   appName: string;
@@ -51,6 +51,14 @@ export interface Strings {
   legendTransitway: string;
   legendOTrain: string;
   legendStation: string;
+  catalogueTitle: string;
+  catalogueMapped: string;
+  catalogueListed: string;
+  catalogueListedLong: string;
+  catalogueOnMap: string;
+  catalogueSources: string;
+  catalogueWayback: string;
+  catalogueClass: Record<CatalogueClass, string>;
 }
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -108,6 +116,14 @@ export const STRINGS: Record<Lang, Strings> = {
     legendTransitway: 'Transitway (2010)',
     legendOTrain: 'O-Train · Bayview–Greenboro',
     legendStation: 'Station',
+    catalogueTitle: 'The 2010 routes',
+    catalogueMapped: 'routes on the map',
+    catalogueListed: 'listed',
+    catalogueListedLong: 'routes in the November 2010 tables (highlighted = on the map)',
+    catalogueOnMap: 'On the map now',
+    catalogueSources: 'Dated sources (Wikipedia revisions)',
+    catalogueWayback: 'OC Transpo’s own 2010 timetable data (GTFS) is held by the Wayback Machine, which refuses connections from this build environment; the remaining routes need it or archived route maps.',
+    catalogueClass: { regular: 'All-day', peak: 'Peak', express: 'Express', event: 'Events', rural: 'Rural partner', school: 'School', early: 'Early morning', interzone: 'Interzone', partner: 'Partner' },
   },
   fr: {
     appName: 'Commissaire au transport d’Ottawa',
@@ -163,5 +179,13 @@ export const STRINGS: Record<Lang, Strings> = {
     legendTransitway: 'Transitway (2010)',
     legendOTrain: 'O-Train · Bayview–Greenboro',
     legendStation: 'Station',
+    catalogueTitle: 'Les lignes de 2010',
+    catalogueMapped: 'lignes sur la carte',
+    catalogueListed: 'répertoriées',
+    catalogueListedLong: 'lignes des tableaux de novembre 2010 (en surbrillance = sur la carte)',
+    catalogueOnMap: 'Sur la carte',
+    catalogueSources: 'Sources datées (révisions de Wikipédia)',
+    catalogueWayback: 'Les données d’horaires 2010 d’OC Transpo (GTFS) sont conservées par la Wayback Machine, qui refuse les connexions de cet environnement ; les autres lignes en ont besoin, ou de plans archivés.',
+    catalogueClass: { regular: 'Toute la journée', peak: 'Pointe', express: 'Express', event: 'Événements', rural: 'Partenaires ruraux', school: 'Scolaires', early: 'Tôt le matin', interzone: 'Interzones', partner: 'Partenaires' },
   },
 };

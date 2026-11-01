@@ -109,7 +109,7 @@ export function App() {
       if (!f) return setSel(null);
       const p = f.properties as Record<string, string>;
       if (f.layer.id === 'net-vehicles' || f.layer.id === 'net-vehicle-dots') setSel({ type: 'vehicle', id: p.trip! });
-      else if (f.layer.id === 'net-stations') setSel({ type: 'stop', id: p.id! });
+      else if (f.layer.id === 'net-stations' || f.layer.id === 'net-stops') setSel({ type: 'stop', id: p.id! });
       else if (p.kind === 'route') setSel({ type: 'route', id: p.id! });
       else setSel({ type: 'corridor', id: p.id! });
     };
@@ -156,7 +156,7 @@ export function App() {
         time={view.time} speed={view.speed} onSpeed={(s) => clock.setSpeed(s)} inService={inService}
         status={net?.network.status ?? null} statusNote={net?.network.statusNote}
         inspector={sel && net ? <Inspector sel={sel} net={net} t={view.time} s={t} lang={settings.lang} palette={pal} onSelect={setSel} /> : null}
-        onCloseInspector={() => setSel(null)} />
+        onCloseInspector={() => setSel(null)} onOpenCatalogue={() => setSel({ type: 'catalogue', id: '2010' })} />
     </>
   );
 }

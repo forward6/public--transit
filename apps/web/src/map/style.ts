@@ -31,7 +31,7 @@ export const NET_VEHICLES = 'net-vehicles';
 export const NET_TRAILS = 'net-trails';
 export const CLASSES: RouteClass[] = ['local', 'peak', 'rural', 'sto', 'frequent', 'transitway', 'otrain'];
 /** Interactive layers, top-most first (click priority). */
-export const PICKABLE = ['net-vehicles', 'net-vehicle-dots', 'net-stations', 'net-routes', 'net-otrain', 'net-transitway'];
+export const PICKABLE = ['net-vehicles', 'net-vehicle-dots', 'net-stations', 'net-stops', 'net-routes', 'net-otrain', 'net-transitway'];
 export const TERRAIN = 'terrain';
 
 type Stops = number[];
@@ -321,15 +321,27 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette) {
       'icon-size': ['interpolate', ['exponential', 1.6], ['zoom'], 13.5, 0.85, 15, 1.1, 17, 1.9],
     } });
 
+  // ordinary stops: small dots, only when zoomed in
+  L({ id: 'net-stops', type: 'circle', source: NET_STOPS, minzoom: 13, filter: ['!=', ['get', 'kind'], 'station'],
+    paint: {
+      'circle-color': p.stationFill,
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 1.6, 16, 4.2],
+      'circle-stroke-color': ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local] as unknown as ExpressionSpecification,
+      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 13, 1, 16, 2],
+    } });
   // stations
-  L({ id: 'net-stations', type: 'circle', source: NET_STOPS, minzoom: 10,
+  L({ id: 'net-stations', type: 'circle', source: NET_STOPS, minzoom: 10, filter: ['==', ['get', 'kind'], 'station'],
     paint: {
       'circle-color': p.stationFill,
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, ['case', ['get', 'transfer'], 3.6, 2.4], 16, ['case', ['get', 'transfer'], 11, 8]],
       'circle-stroke-color': ['case', ['get', 'transfer'], p.labelCity, ['match', ['get', 'cls'], 'otrain', T.otrain, T.transitway]],
       'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 1.3, 16, 3.2],
     } });
-  L({ id: 'net-station-labels', type: 'symbol', source: NET_STOPS, minzoom: 12.3,
+  L({ id: 'net-stop-labels', type: 'symbol', source: NET_STOPS, minzoom: 16, filter: ['!=', ['get', 'kind'], 'station'],
+    layout: { 'text-field': ['get', 'name'], 'text-font': ['Inter Regular'], 'text-size': 10.5, 'text-anchor': 'left', 'text-offset': [0.8, 0],
+      'text-optional': true, 'text-max-width': 10 },
+    paint: { 'text-color': p.labelMinor, 'text-halo-color': p.halo, 'text-halo-width': 1.6 } });
+  L({ id: 'net-station-labels', type: 'symbol', source: NET_STOPS, minzoom: 12.3, filter: ['==', ['get', 'kind'], 'station'],
     layout: { 'text-field': ['get', 'name'], 'text-font': ['Inter SemiBold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10.5, 16, 13],
       'text-anchor': 'left', 'text-offset': [0.9, 0], 'text-optional': true, 'text-max-width': 9 },
     paint: { 'text-color': p.stationText, 'text-halo-color': p.halo, 'text-halo-width': 1.8 } });

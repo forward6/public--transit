@@ -22,7 +22,7 @@ import numpy as np
 import pyarrow.parquet as pq
 import shapely
 from scipy.sparse import coo_matrix
-from scipy.sparse.csgraph import dijkstra
+from scipy.sparse.csgraph import connected_components, dijkstra
 from scipy.spatial import cKDTree
 from shapely.geometry import Point, box
 
@@ -62,13 +62,15 @@ class Edge:
     coords: np.ndarray  # lon/lat, oriented u -> v
     length: float
     cls: str
+    name: str | None = None
 
 
 class Graph:
     """Undirected network graph. Lines are split only where they share a vertex with another
     line (Overture connectors are shared vertices), so overpasses do not create false junctions."""
 
-    def __init__(self, lines: list[np.ndarray], classes: list[str]):
+    def __init__(self, lines: list[np.ndarray], classes: list[str], names: list[str | None] | None = None):
+        names = names or [None] * len(lines)
         keys_per_line = [self._keys(c) for c in lines]
         uniq = np.concatenate([np.unique(k) for k in keys_per_line]) if lines else np.array([], dtype=np.int64)
         vals, counts = np.unique(uniq, return_counts=True)
@@ -83,7 +85,7 @@ class Graph:
                 node_xy.append((float(coord[0]), float(coord[1])))
             return node_ids[key]
 
-        for coords, keys, cls in zip(lines, keys_per_line, classes):
+        for coords, keys, cls, name in zip(lines, keys_per_line, classes, names):
             if len(coords) < 2:
                 continue
             cut = [0] + [i for i in range(1, len(coords) - 1) if int(keys[i]) in junction] + [len(coords) - 1]
@@ -92,7 +94,7 @@ class Graph:
                 L = line_len_m(seg)
                 if L <= 0:
                     continue
-                self.edges.append(Edge(nid(int(keys[a]), coords[a]), nid(int(keys[b]), coords[b]), seg, L, cls))
+                self.edges.append(Edge(nid(int(keys[a]), coords[a]), nid(int(keys[b]), coords[b]), seg, L, cls, name))
         self.node_lonlat = np.array(node_xy) if node_xy else np.zeros((0, 2))
         x, y = to_m_xy(self.node_lonlat[:, 0], self.node_lonlat[:, 1]) if len(node_xy) else (np.array([]), np.array([]))
         self.tree = cKDTree(np.column_stack([x, y])) if len(node_xy) else None
@@ -105,14 +107,32 @@ class Graph:
         return kx * 400_000_000 + ky
 
     def _build_matrix(self) -> None:
+        self.matrix, self.best = self.weighted()
+        self.edges_at: dict[int, list[int]] = {}
+        for i, e in enumerate(self.edges):
+            self.edges_at.setdefault(e.u, []).append(i)
+            self.edges_at.setdefault(e.v, []).append(i)
+        self.name_nodes: dict[str, set[int]] = {}
+        for e in self.edges:
+            if e.name:
+                self.name_nodes.setdefault(e.name, set()).update((e.u, e.v))
+        # main connected component: waypoints snap only to it, so islands never cause detours
+        n = len(self.node_lonlat)
+        if n:
+            _, labels = connected_components(self.matrix, directed=False)
+            main = np.flatnonzero(labels == np.bincount(labels).argmax())
+            mx, my = to_m_xy(self.node_lonlat[main, 0], self.node_lonlat[main, 1])
+            self.main_nodes = main
+            self.main_tree = cKDTree(np.column_stack([mx, my]))
+
+    def weighted(self, prefer: set[str] | frozenset = frozenset(), factor: float = 0.35):
+        """Cost matrix (and best edge per node pair) — edges named in ``prefer`` cost ``factor`` x."""
         n = len(self.node_lonlat)
         if not self.edges:
-            self.matrix = coo_matrix((0, 0)).tocsr()
-            self.best: dict[tuple[int, int], int] = {}
-            return
+            return coo_matrix((0, 0)).tocsr(), {}
         best: dict[tuple[int, int], tuple[float, int]] = {}
         for i, e in enumerate(self.edges):
-            w = e.length * COST.get(e.cls, 1.5)
+            w = e.length * COST.get(e.cls, 1.5) * (factor if e.name in prefer else 1.0)
             for a, b in ((e.u, e.v), (e.v, e.u)):
                 if a == b:
                     continue
@@ -121,8 +141,38 @@ class Graph:
         rows = np.array([k[0] for k in best], dtype=np.int64)
         cols = np.array([k[1] for k in best], dtype=np.int64)
         data = np.array([v[0] for v in best.values()])
-        self.matrix = coo_matrix((data, (rows, cols)), shape=(n, n)).tocsr()
-        self.best = {k: v[1] for k, v in best.items()}
+        return coo_matrix((data, (rows, cols)), shape=(n, n)).tocsr(), {k: v[1] for k, v in best.items()}
+
+    def intersection(self, a: str, b: str, near: tuple[float, float] | None = None, max_gap_m: float = 60) -> int:
+        """Node where streets ``a`` and ``b`` meet (closest to ``near`` if they meet more than once)."""
+        na, nb = self.name_nodes.get(a, set()), self.name_nodes.get(b, set())
+        if not na or not nb:
+            raise KeyError(f"street not in graph: {a if not na else b!r}")
+        main = set(self.main_nodes.tolist()) if getattr(self, "main_nodes", None) is not None else None
+        if main is not None:
+            na, nb = na & main, nb & main
+        common = na & nb
+        if not common:  # dual carriageways / ramps: closest pair of nodes within max_gap_m
+            la, lb = sorted(na), sorted(nb)
+            xa, ya = to_m_xy(self.node_lonlat[la, 0], self.node_lonlat[la, 1])
+            xb, yb = to_m_xy(self.node_lonlat[lb, 0], self.node_lonlat[lb, 1])
+            d, j = cKDTree(np.column_stack([xb, yb])).query(np.column_stack([xa, ya]))
+            ok = np.flatnonzero(d <= max_gap_m)
+            if not len(ok):
+                raise KeyError(f"{a!r} and {b!r} do not meet")
+            common = {la[i] for i in ok}
+        if near is None or len(common) == 1:
+            return min(common)
+        nx, ny = to_m_xy(near[0], near[1])
+        return min(common, key=lambda i: math.hypot(*(np.subtract(to_m_xy(*self.node_lonlat[i]), (nx, ny)))))
+
+    def cross_name(self, node: int, street: str | None) -> str | None:
+        """Name of another street meeting ``node`` (for naming stops 'Street / Cross')."""
+        for e in self.edges_at.get(node, ()):
+            n = self.edges[e].name
+            if n and n != street and self.edges[e].cls not in ("busway", "link"):
+                return n
+        return None
 
     def add_links(self, max_m: float = 60.0, only_class: str = "busway") -> int:
         """Connect dangling ends of ``only_class`` edges (corridor pieces from another source, which
@@ -146,16 +196,147 @@ class Graph:
         self._build_matrix()
         return added
 
-    def nearest_node(self, lon: float, lat: float) -> tuple[int, float]:
+    def link_parallel(self, cls: str = "busway", max_m: float = 35.0) -> int:
+        """Cross-link parallel carriageways/tracks of ``cls`` (a 2010 busway was one two-way road;
+        the LRT-derived geometry has two separate tracks joined only at their ends)."""
+        nodes = sorted({n for e in self.edges if e.cls == cls for n in (e.u, e.v)})
+        if not nodes:
+            return 0
+        adj = {n: {self.edges[e].v if self.edges[e].u == n else self.edges[e].u for e in self.edges_at.get(n, ())} for n in nodes}
+        x, y = to_m_xy(self.node_lonlat[nodes, 0], self.node_lonlat[nodes, 1])
+        tree = cKDTree(np.column_stack([x, y]))
+        added = 0
+        for a, b in tree.query_pairs(max_m):
+            na, nb = nodes[a], nodes[b]
+            if nb in adj[na]:
+                continue
+            c = np.array([self.node_lonlat[na], self.node_lonlat[nb]])
+            self.edges.append(Edge(int(na), int(nb), c, max(line_len_m(c), 0.1), "busway", "Transitway"))
+            added += 1
+        return added
+
+    def split_edges_near(self, lon: float, lat: float, cls: str = "busway", radius: float = 150.0,
+                         min_len: float = 40.0) -> list[int]:
+        """Split every ``cls`` edge passing within ``radius`` m of the point at its closest point.
+        Returns the node at the split (or an existing end node if the closest point is an end)."""
         x, y = to_m_xy(lon, lat)
+        out: list[int] = []
+        for idx in range(len(self.edges)):
+            e = self.edges[idx]
+            if e.cls != cls or e.length < min_len:
+                continue
+            mx, my = to_m_xy(e.coords[:, 0], e.coords[:, 1])
+            line = shapely.LineString(np.column_stack([mx, my]))
+            if line.distance(Point(x, y)) > radius:
+                continue
+            d = line.project(Point(x, y))
+            if d < 15 or d > line.length - 15:
+                out.append(e.u if d < 15 else e.v)
+                continue
+            cut = shapely.line_interpolate_point(line, d)
+            cum = np.concatenate([[0], np.cumsum(np.hypot(np.diff(mx), np.diff(my)))])
+            k = int(np.searchsorted(cum, d))
+            clon, clat = cut.x / KX + LON0, cut.y / KY + LAT0
+            node = len(self.node_lonlat)
+            self.node_lonlat = np.vstack([self.node_lonlat, [clon, clat]])
+            first = np.vstack([e.coords[:k], [[clon, clat]]])
+            second = np.vstack([[[clon, clat]], e.coords[k:]])
+            self.edges[idx] = Edge(e.u, node, first, line_len_m(first), e.cls, e.name)
+            self.edges.append(Edge(node, e.v, second, line_len_m(second), e.cls, e.name))
+            out.append(node)
+        if out:
+            nx, ny = to_m_xy(self.node_lonlat[:, 0], self.node_lonlat[:, 1])
+            self.tree = cKDTree(np.column_stack([nx, ny]))
+        return out
+
+    def _busway_components(self) -> dict[int, int]:
+        parent: dict[int, int] = {}
+
+        def find(i):
+            while parent.setdefault(i, i) != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+        for e in self.edges:
+            if e.cls == "busway":
+                parent[find(e.u)] = find(e.v)
+        return {n: find(n) for n in parent}
+
+    def link_station(self, lon: float, lat: float, radius: float = 180.0) -> int:
+        """Station access: join the busway node nearest a station to the street nodes near it
+        (2010 Transitway stations had ramps to the street). Returns links added; call rebuild()."""
+        x, y = to_m_xy(lon, lat)
+        near = self.tree.query_ball_point([float(x), float(y)], radius)
+        if not near:
+            return 0
+        busway = set()
+        street = set()
+        for i in near:
+            for e in self.edges_at.get(i, ()):
+                (busway if self.edges[e].cls == "busway" else street).add(i)
+        street -= busway
+        if not busway:
+            return 0
+        nx, ny = to_m_xy(self.node_lonlat[:, 0], self.node_lonlat[:, 1])
+        d = lambda i: math.hypot(nx[i] - x, ny[i] - y)  # noqa: E731
+        b = min(busway, key=d)
+        added = 0
+        # corridor pieces meeting at this station (e.g. LRT-derived trunk and the SE busway at Hurdman)
+        comp = self._busway_comp_cache if getattr(self, "_busway_comp_cache", None) else self._busway_components()
+        self._busway_comp_cache = comp
+        nearest_per_comp: dict[int, int] = {}
+        for i in sorted(busway, key=d):
+            nearest_per_comp.setdefault(comp.get(i, i), i)
+        for other in nearest_per_comp.values():
+            if comp.get(other, other) != comp.get(b, b):
+                c = np.array([self.node_lonlat[b], self.node_lonlat[other]])
+                self.edges.append(Edge(int(b), int(other), c, max(line_len_m(c), 0.1), "busway", "Transitway"))
+                added += 1
+        for s_ in sorted(street, key=d)[:2]:
+            c = np.array([self.node_lonlat[b], self.node_lonlat[s_]])
+            self.edges.append(Edge(int(b), int(s_), c, max(line_len_m(c), 0.1), "link"))
+            added += 1
+        return added
+
+    def nearest_of_class(self, lon: float, lat: float, cls: str, radius: float = 300.0) -> int | None:
+        """Nearest main-component node touching an edge of class ``cls`` within ``radius`` m."""
+        x, y = to_m_xy(lon, lat)
+        main = set(self.main_nodes.tolist())
+        comp = self._busway_components() if cls == "busway" else {}
+        sizes: dict[int, float] = {}  # total busway length per piece, metres
+        for e in self.edges:
+            if e.cls == "busway":
+                c = comp.get(e.u, e.u)
+                sizes[c] = sizes.get(c, 0.0) + e.length
+        best = None
+        for i in self.tree.query_ball_point([float(x), float(y)], radius):
+            if i not in main or not any(self.edges[e].cls == cls for e in self.edges_at.get(i, ())):
+                continue
+            if comp and sizes.get(comp.get(i, i), 0) < 1500:  # skip station loops / stubs, snap to the trunk
+                continue
+            d = math.hypot(*np.subtract(to_m_xy(*self.node_lonlat[i]), (x, y)))
+            if best is None or d < best[0]:
+                best = (d, i)
+        return None if best is None else int(best[1])
+
+    def rebuild(self) -> None:
+        self._build_matrix()
+
+    def nearest_node(self, lon: float, lat: float, main: bool = True) -> tuple[int, float]:
+        """Nearest node (in the main connected component unless ``main=False``)."""
+        x, y = to_m_xy(lon, lat)
+        if main and getattr(self, "main_tree", None) is not None:
+            d, i = self.main_tree.query([float(x), float(y)])
+            return int(self.main_nodes[i]), float(d)
         d, i = self.tree.query([float(x), float(y)])
         return int(i), float(d)
 
-    def path(self, a: int, b: int) -> list[Edge]:
+    def path(self, a: int, b: int, weights=None) -> list[Edge]:
         """Shortest path as a list of edges oriented a -> b (empty if a == b)."""
         if a == b:
             return []
-        dist, pred = dijkstra(self.matrix, directed=True, indices=a, return_predecessors=True)
+        matrix, best = weights or (self.matrix, self.best)
+        dist, pred = dijkstra(matrix, directed=True, indices=a, return_predecessors=True)
         if not np.isfinite(dist[b]):
             raise ValueError(f"no path between nodes {a} and {b}")
         seq = [b]
@@ -164,9 +345,9 @@ class Graph:
         seq.reverse()
         out = []
         for u, v in zip(seq, seq[1:]):
-            e = self.edges[self.best[(u, v)]]
+            e = self.edges[best[(u, v)]]
             coords = e.coords if (e.u, e.v) == (u, v) else e.coords[::-1]
-            out.append(Edge(u, v, coords, e.length, e.cls))
+            out.append(Edge(u, v, coords, e.length, e.cls, e.name))
         return out
 
 
@@ -245,7 +426,7 @@ def build_transitway(infra: dict, seg_g, seg, roads_g, roads) -> list[np.ndarray
     return lines
 
 
-def place_stations(infra: dict, corridors: dict[str, list[np.ndarray]]) -> list[dict]:
+def place_stations(infra: dict, corridors: dict[str, list[np.ndarray]], graph: "Graph | None" = None) -> list[dict]:
     pg, p = _read(config.RAW / "overture" / "transit_place.parquet")
     by_name: dict[str, list[tuple[float, Point]]] = {}
     for g, n, c in zip(pg, p["name"], p["confidence"]):
@@ -260,6 +441,8 @@ def place_stations(infra: dict, corridors: dict[str, list[np.ndarray]]) -> list[
             if cands:
                 pt = max(cands, key=lambda c: c[0])[1]
                 break
+        if pt is None and "x" in st and graph is not None:
+            pt = Point(graph.node_lonlat[graph.intersection(*st["x"])])
         if pt is None and "at" in st:
             pt = Point(st["at"])
         if pt is None:
@@ -280,7 +463,7 @@ def place_stations(infra: dict, corridors: dict[str, list[np.ndarray]]) -> list[
         out.append({
             "id": st["id"], "name": st["name"], **({"name_fr": st["name_fr"]} if "name_fr" in st else {}),
             "lon": round(pt.x, 6), "lat": round(pt.y, 6), "kind": "station", "agencies": ["octranspo"],
-            "provenance": {"source": "Station position: Overture places (today's map); existence in 2010: curated",
+            "provenance": {"source": st.get("source", "Station position: Overture places (today's map); existence in 2010: curated"),
                            "confidence": st["confidence"], "verified": False, **({"note": st["note"]} if "note" in st else {})},
             "_corridors": st["corridors"],
         })
@@ -327,6 +510,182 @@ def build_patterns(route: dict, graph: Graph, stops: dict[str, dict], mode: str)
     return pats
 
 
+STOP_SPACING_M = 420
+FAST = {"busway", "motorway", "trunk", "link"}
+
+
+def departures(periods: list[dict], direction: int) -> list[int]:
+    """Departure times (s after midnight) from frequency periods; direction 1 offset by half a headway."""
+    out = []
+    for p in periods:
+        h = p["headwayMin"] * 60
+        t0 = _clock(p["from"]) + (h / 2 if direction else 0)
+        t, end = t0, _clock(p["to"])
+        while t < end:
+            out.append(int(round(t)))
+            t += h
+    return sorted(set(out))
+
+
+def _clock(hhmm: str) -> int:
+    h, m = hhmm.split(":")
+    return int(h) * 3600 + int(m) * 60
+
+
+def _waypoint(wp: str, graph: Graph, stations: dict[str, dict], near=None) -> tuple[int, str | None]:
+    """'station-id' | 'A & B' (intersection) | '@lon,lat' -> (graph node, station id or None)."""
+    if wp.startswith("@"):
+        lon, lat = (float(v) for v in wp[1:].split(","))
+        return graph.nearest_node(lon, lat)[0], None
+    if " & " in wp:
+        a, b = (x.strip() for x in wp.split(" & ", 1))
+        return graph.intersection(a, b, near), None
+    st = stations[wp]
+    if "_node" in st:  # Transitway stations: their own node on the busway (see build_graphs)
+        return st["_node"], wp
+    if "transitway" in st.get("_corridors", ()):
+        node = graph.nearest_of_class(st["lon"], st["lat"], "busway")
+        if node is not None:
+            return node, wp
+    return graph.nearest_node(st["lon"], st["lat"])[0], wp
+
+
+def build_bus_pattern(route: dict, pdef: dict, graph: Graph, weights, stations: dict[str, dict], pid: str,
+                      direction: int) -> tuple[dict, list[dict]]:
+    """Route a pattern through its waypoints; stations are stops, and street sections get stops
+    every ~420 m named after the cross street. Returns (pattern, new stops)."""
+    wps = pdef["path"]
+    rapid = route.get("class") == "transitway"
+    resolved = []
+    prev = None
+    for wp in wps:
+        node, sid = _waypoint(wp, graph, stations, near=prev)
+        resolved.append((node, sid))
+        prev = tuple(graph.node_lonlat[node])
+    legs = [graph.path(a, b, weights) for (a, _), (b, _) in zip(resolved, resolved[1:])]
+    edges = [e for leg in legs for e in leg]
+    shape = path_coords(edges)
+    # walk the path, emitting stops
+    stops: list[tuple[str, float]] = []  # (stop id, distance along)
+    new_stops: list[dict] = []
+    acc = 0.0
+    since = 0.0
+
+    def add_generated(node: int, street: str | None, at: float):
+        cross = graph.cross_name(node, street)
+        name = f"{street} / {cross}" if street and cross else (street or "Stop")
+        sid = f"{pid}-s{len(new_stops)}"
+        lon, lat = graph.node_lonlat[node]
+        new_stops.append({"id": sid, "name": name, "lon": round(float(lon), 6), "lat": round(float(lat), 6),
+                          "kind": "stop", "agencies": [route["agency"]]})
+        stops.append((sid, at))
+
+    first_node, first_sid = resolved[0]
+    if first_sid:
+        stops.append((first_sid, 0.0))
+    else:
+        add_generated(first_node, edges[0].name if edges else None, 0.0)
+    for k, leg in enumerate(legs):
+        for e in leg:
+            acc += e.length
+            since += e.length if e.cls not in FAST else 0
+            station_leg = rapid and resolved[k][1] is not None and resolved[k + 1][1] is not None
+            if not station_leg and e.cls not in FAST and since >= STOP_SPACING_M and graph.cross_name(e.v, e.name):
+                add_generated(e.v, e.name, acc)
+                since = 0.0
+        node, sid = resolved[k + 1]
+        if sid:
+            if stops and stops[-1][1] > acc - 120 and not stations.get(stops[-1][0]):  # a generated stop just before a station
+                stops.pop()
+                new_stops.pop()
+            stops.append((sid, acc))
+            since = 0.0
+        elif k == len(legs) - 1:
+            if not stops or acc - stops[-1][1] > 60:
+                add_generated(node, leg[-1].name if leg else None, acc)
+    # run times between consecutive stops from the edge speeds
+    cum = np.cumsum([0.0] + [e.length for e in edges])
+    times = np.cumsum([0.0] + [path_time([e], "bus") for e in edges])
+    t_at = lambda d: float(np.interp(d, cum, times))  # noqa: E731
+    dist = [d for _, d in stops]
+    run = [round(t_at(b) - t_at(a), 1) for a, b in zip(dist, dist[1:])]
+    all_stops = stations | {s["id"]: s for s in new_stops}
+    dwell = [DWELL[all_stops[sid]["kind"]] for sid, _ in stops]
+    dwell[0] = dwell[-1] = 0
+    headsign = pdef.get("headsign") or all_stops[stops[-1][0]]["name"]
+    pattern = {"id": pid, "routeId": route["id"], "direction": direction, "headsign": headsign,
+               "stops": [sid for sid, _ in stops], "stopDist": [round(d, 1) for d in dist],
+               "shape": [[round(x, 6), round(y, 6)] for x, y in shape], "runTimes": run, "dwell": dwell}
+    return pattern, new_stops
+
+
+def build_bus_route(r: dict, graph: Graph, stations: dict[str, dict]) -> tuple[dict, list[dict], list[dict]]:
+    weights = graph.weighted(set(r.get("streets", [])), 0.35)
+    patterns, stops, deps = [], [], {}
+    for i, pdef in enumerate(r["patterns"]):
+        variants = [(pdef, 0)]
+        if r.get("bidirectional", True):
+            rev = {**pdef, "path": list(reversed(pdef["path"])), "headsign": pdef.get("headsign_back")}
+            variants.append((rev, 1))
+        for v, direction in variants:
+            pid = f"{r['id']}-{i}{'ab'[direction]}"
+            pat, new = build_bus_pattern(r, v, graph, weights, stations, pid, direction)
+            patterns.append(pat)
+            stops += new
+            deps[pid] = departures(pdef["weekday"], direction)
+    route = {k: r[k] for k in ("id", "agency", "shortName", "longName", "mode", "class", "color") if k in r} | {
+        "patterns": [p["id"] for p in patterns], "departures": deps,
+        "weekday": r.get("summary") or r["patterns"][0]["weekday"],
+        "provenance": _provenance(r["provenance"]),
+    }
+    return route, patterns, stops
+
+
+def build_graphs(infra, roads_g, roads, rail_g, rail, seg_g, seg):
+    """Corridors, the routable bus graph (streets + Transitway) and the rail graph, plus placed stations."""
+    # corridors -----------------------------------------------------------------------------
+    tw_lines = build_transitway(infra, seg_g, seg, roads_g, roads)
+    ot_lines = [ln for g, n, c in zip(rail_g, rail["name"], rail["class"]) if n == "O-Train" and c == "light_rail" for ln in _lines(g)]
+    print(f"  transitway: {len(tw_lines)} pieces, {sum(line_len_m(l) for l in tw_lines) / 1000:.1f} km; "
+          f"O-Train: {len(ot_lines)} pieces, {sum(line_len_m(l) for l in ot_lines) / 1000:.1f} km")
+
+    # graphs ----------------------------------------------------------------------------------
+    road_lines, road_cls, road_names = [], [], []
+    for g, c, n in zip(roads_g, roads["class"], roads["name"]):
+        for ln in _lines(g):
+            road_lines.append(ln)
+            road_cls.append(c)
+            road_names.append(n)
+    bus = Graph(road_lines + tw_lines, road_cls + ["busway"] * len(tw_lines), road_names + ["Transitway"] * len(tw_lines))
+    links = bus.add_links(150)
+    bus.rebuild()
+    links += bus.link_parallel("busway", 35)
+    rail_graph = Graph(ot_lines, ["rail"] * len(ot_lines))
+    print(f"  bus graph: {len(bus.node_lonlat):,} nodes, {len(bus.edges):,} edges ({links} links); rail graph: {len(rail_graph.edges)} edges")
+
+    # stations -----------------------------------------------------------------------------------
+    stations = place_stations(infra, {"transitway": tw_lines, "otrain": ot_lines}, bus)
+    access = 0
+    for st in stations:
+        if "transitway" not in st["_corridors"]:
+            continue
+        nodes = sorted(set(bus.split_edges_near(st["lon"], st["lat"], "busway", 150)),
+                       key=lambda i: math.hypot(*np.subtract(to_m_xy(*bus.node_lonlat[i]), to_m_xy(st["lon"], st["lat"]))))
+        if nodes:
+            st["_node"] = int(nodes[0])
+            for other in nodes[1:]:  # corridor pieces / tracks meeting at the station
+                c = np.array([bus.node_lonlat[nodes[0]], bus.node_lonlat[other]])
+                bus.edges.append(Edge(int(nodes[0]), int(other), c, max(line_len_m(c), 0.1), "busway", "Transitway"))
+                access += 1
+    bus.rebuild()
+    for st in stations:
+        if "transitway" in st["_corridors"]:
+            access += bus.link_station(st["lon"], st["lat"])
+    bus.rebuild()
+    print(f"  station access links: {access}")
+    return tw_lines, ot_lines, bus, rail_graph, stations
+
+
 def build_network(gtfs: str | None = None) -> dict:
     t0 = time.time()
     cur = config.CURATION / "network2010"
@@ -336,25 +695,7 @@ def build_network(gtfs: str | None = None) -> dict:
     rail_g, rail = _read(config.BUILD / "2010" / "rail.parquet")
     seg_g, seg = _read(config.RAW / "overture" / "segment.parquet")
 
-    # corridors -----------------------------------------------------------------------------
-    tw_lines = build_transitway(infra, seg_g, seg, roads_g, roads)
-    ot_lines = [ln for g, n, c in zip(rail_g, rail["name"], rail["class"]) if n == "O-Train" and c == "light_rail" for ln in _lines(g)]
-    print(f"  transitway: {len(tw_lines)} pieces, {sum(line_len_m(l) for l in tw_lines) / 1000:.1f} km; "
-          f"O-Train: {len(ot_lines)} pieces, {sum(line_len_m(l) for l in ot_lines) / 1000:.1f} km")
-
-    # graphs ----------------------------------------------------------------------------------
-    road_lines, road_cls = [], []
-    for g, c in zip(roads_g, roads["class"]):
-        for ln in _lines(g):
-            road_lines.append(ln)
-            road_cls.append(c)
-    bus = Graph(road_lines + tw_lines, road_cls + ["busway"] * len(tw_lines))
-    links = bus.add_links(60)
-    rail_graph = Graph(ot_lines, ["rail"] * len(ot_lines))
-    print(f"  bus graph: {len(bus.node_lonlat):,} nodes, {len(bus.edges):,} edges ({links} links); rail graph: {len(rail_graph.edges)} edges")
-
-    # stations -----------------------------------------------------------------------------------
-    stations = place_stations(infra, {"transitway": tw_lines, "otrain": ot_lines})
+    tw_lines, ot_lines, bus, rail_graph, stations = build_graphs(infra, roads_g, roads, rail_g, rail, seg_g, seg)
     stops = {s["id"]: s for s in stations}
 
     # routes ---------------------------------------------------------------------------------------
@@ -365,8 +706,17 @@ def build_network(gtfs: str | None = None) -> dict:
         routes += g_routes
         patterns += g_patterns
         stops.update({s["id"]: s for s in g_stops})
+    station_stops = dict(stops)
     for r in routes_def["routes"]:
-        graph = rail_graph if r["mode"] == "rail" else bus
+        if r["mode"] != "rail":
+            route, pats, new_stops = build_bus_route(r, bus, station_stops)
+            routes.append(route)
+            patterns += pats
+            stops.update({s["id"]: s for s in new_stops})
+            print(f"  route {r['shortName']}: {len(pats)} patterns, {sum(len(p['stops']) for p in pats)} stop calls, "
+                  f"{sum(len(v) for v in route['departures'].values())} trips")
+            continue
+        graph = rail_graph
         pats = build_patterns(r, graph, stops, r["mode"])
         patterns += pats
         routes.append({k: r[k] for k in ("id", "agency", "shortName", "longName", "mode", "class", "color") if k in r}
@@ -378,10 +728,18 @@ def build_network(gtfs: str | None = None) -> dict:
     status = "gtfs" if gtfs else ("archive-reconstruction" if has_bus else "infrastructure-only")
     note = {
         "gtfs": "2010 service imported from an archived OC Transpo GTFS feed.",
-        "archive-reconstruction": "2010 routes reconstructed from archived maps and timetables (see provenance per route).",
+        "archive-reconstruction": "2010 routes reconstructed from dated archive sources (Wikipedia revisions from late 2010: "
+                                  "route tables, route articles, Transitway station lists). See the provenance of each route.",
         "infrastructure-only": "Transitway corridor, stations and the original O-Train only. The 2010 bus routes will be "
                                "loaded from archived sources (OC Transpo GTFS / system maps) once they are reachable.",
     }[status]
+    catalogue = []
+    cat_path = config.BUILD / "2010" / "route_catalogue.json"
+    if cat_path.exists():
+        mapped = {r["id"] for r in routes}
+        for e in json.loads(cat_path.read_text()):
+            rid = f"{'oct' if e['agency'] == 'octranspo' else 'sto'}-{e['number']}"
+            catalogue.append(e | {"mapped": rid in mapped, "routeId": rid if rid in mapped else None})
     network = {
         "version": 1,
         "snapshot": config.SNAPSHOT_DATE,
@@ -399,6 +757,7 @@ def build_network(gtfs: str | None = None) -> dict:
         "stops": [{k: v for k, v in s.items() if not k.startswith("_")} for s in stops.values()],
         "routes": routes,
         "patterns": patterns,
+        "catalogue": catalogue,
     }
     out = config.WEB_DATA / OUTPUT
     out.parent.mkdir(parents=True, exist_ok=True)

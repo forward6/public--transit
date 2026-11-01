@@ -16,6 +16,7 @@ uv run pytest -q             # offline unit tests
 | `terrain` | NRCan CDEM 16 m window → Terrarium elevation tiles z7–12 | `apps/web/public/data/terrain.pmtiles` (~5 MB) | ~45 s |
 | `tiles` | Vector tiles z7–14 per `packages/shared/src/tile-schema.json` | `apps/web/public/data/basemap-2010.pmtiles` (~26 MB) | ~30 s |
 | `glyphs` | SDF label glyphs for Inter and Source Serif 4 | `apps/web/public/glyphs/` (committed) | ~10 s |
+| `wiki` | Wikipedia revisions as of 1 Dec 2010: the 2010 route catalogue (OC Transpo and STO) and the Transitway station list | `data/build/2010/route_catalogue.json` | ~2 min (rate-limited) |
 | `network` | The 2010 transit network: Transitway corridor, stations, O-Train and routes (`--gtfs FILE.zip` imports a feed) | `apps/web/public/data/network-2010.json` | ~10 s |
 | `archive` *(not in `all`)* | Searches the Wayback Machine for 2010 OC Transpo and STO GTFS captures and downloads the closest | `data/raw/archive/*.zip` | — |
 
@@ -61,9 +62,11 @@ It places **26 stations** using Overture place positions snapped to the corridor
 pattern's shape along the graph. Running times come from road-class speeds (12 km/h downtown)
 plus dwell. Curation lives in [`curation/network2010/`](curation/network2010/).
 
-**Status:** infrastructure and the original O-Train only. The **2010 bus routes are pending
-archive access**: `web.archive.org` and Wikipedia are blocked by the build environment's
-network policy. Once they're reachable, run:
+**Status:** 8 bus routes plus the O-Train are mapped from dated Wikipedia revisions (the
+`wiki` step). That gives 1,700 weekday trips, plus a catalogue of all 373 OC Transpo and STO routes
+from November 2010. See [`curation/network2010/README.md`](curation/network2010/README.md). The
+rest need OC Transpo's 2010 GTFS from the Wayback Machine, which resets connections from this
+build environment. From a machine that can reach it, run:
 
 ```bash
 uv run otc-pipeline archive                    # finds and downloads a 2010 GTFS capture

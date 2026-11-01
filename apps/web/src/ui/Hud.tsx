@@ -27,6 +27,7 @@ interface HudProps {
   statusNote?: string;
   inspector: ReactNode | null;
   onCloseInspector: () => void;
+  onOpenCatalogue: () => void;
 }
 
 export function Logo({ size = 42 }: { size?: number }) {
@@ -107,9 +108,9 @@ function SpeedControl({ t, speed, onSpeed }: { t: Strings; speed: SpeedIndex; on
   );
 }
 
-function StatusChip({ t, status, note }: { t: Strings; status: NetworkStatus | null; note?: string }) {
+function StatusChip({ t, status, note, onClick }: { t: Strings; status: NetworkStatus | null; note?: string; onClick?: () => void }) {
   if (!status) return null;
-  return <div className={`status-chip status-${status}`} title={note}><i />{t.networkStatus[status]}</div>;
+  return <button className={`status-chip status-${status}`} title={note} onClick={onClick}><i />{t.networkStatus[status]}</button>;
 }
 
 function Legend({ t }: { t: Strings }) {
@@ -127,7 +128,7 @@ function Legend({ t }: { t: Strings }) {
 }
 
 export function Hud(props: HudProps) {
-  const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector } = props;
+  const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue } = props;
   if (layout === 'phone') {
     return (
       <>
@@ -150,7 +151,7 @@ export function Hud(props: HudProps) {
               <div className="m-sheet-title">{t.mapStyle}</div>
               <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
               <Controls t={t} settings={settings} onChange={onChange} compact />
-              <StatusChip t={t} status={status} note={statusNote} />
+              <StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} />
             </>
           )}
         </section>
@@ -174,7 +175,7 @@ export function Hud(props: HudProps) {
           <div className="clock-row"><span className="clock-time">{formatClock(time)}</span><span className="clock-sub">{inService} {t.inService}</span></div>
         </div>
         <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
-        {layout === 'desktop' && <StatusChip t={t} status={status} note={statusNote} />}
+        {layout === 'desktop' && <StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} />}
         <Controls t={t} settings={settings} onChange={onChange} compact={layout === 'tablet'} />
       </header>
       <MapButtons t={t} map={map} />

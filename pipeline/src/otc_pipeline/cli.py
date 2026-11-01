@@ -6,6 +6,8 @@ Steps (in order):
   terrain   NRCan CDEM elevation -> Terrarium-encoded raster tiles -> apps/web/public/data/terrain.pmtiles
   tiles     vector tiles for the base map                         -> apps/web/public/data/basemap-2010.pmtiles
   glyphs    SDF label glyphs (Inter, Source Serif 4)              -> apps/web/public/glyphs/
+  wiki      2010 route catalogue + Transitway stations (Wikipedia
+            revisions as of 1 Dec 2010)                           -> data/build/2010/route_catalogue.json
   network   the 2010 transit network (+ --gtfs FILE.zip)          -> apps/web/public/data/network-2010.json
   archive   search the Wayback Machine for 2010 GTFS feeds        -> data/raw/archive/ (not part of `all`)
 """
@@ -15,7 +17,7 @@ from __future__ import annotations
 import argparse
 import time
 
-STEPS = ["fetch", "curate", "terrain", "tiles", "glyphs", "network"]
+STEPS = ["fetch", "curate", "terrain", "tiles", "glyphs", "wiki", "network"]
 
 
 def run(step: str, args: argparse.Namespace) -> None:
@@ -36,6 +38,9 @@ def run(step: str, args: argparse.Namespace) -> None:
     elif step == "glyphs":
         from .glyphs import build_glyphs
         build_glyphs()
+    elif step == "wiki":
+        from .wiki import build_wiki
+        build_wiki()
     elif step == "network":
         from .network2010 import build_network
         build_network(gtfs=args.gtfs)

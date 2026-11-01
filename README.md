@@ -11,9 +11,11 @@ on desktop, iPad and phone.
 **Status:**
 
 - M0 (project skeleton) and M1 (the 2010 base map) are done.
-- M2 is in progress. The Transitway, stations and the original O-Train run on a game clock,
-  with moving vehicles and inspectors. The 2010 bus routes are waiting on access to archived
-  sources.
+- M2 is mostly done. The 2010 Transitway network (routes 94–97, 85, 106, 112, 118 and the
+  O-Train, about 1,700 weekday trips) runs on a game clock, reconstructed from dated archive
+  sources, with a catalogue of all 373 OC Transpo and STO routes of November 2010.
+
+![The 2010 network at 8:10 am](docs/screenshots/m2/network-2010-overview.jpg)
 
 See the [roadmap](docs/PLAN.md#12-roadmap).
 

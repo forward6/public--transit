@@ -83,6 +83,22 @@ export interface NetRoute {
 
 export type NetworkStatus = 'infrastructure-only' | 'archive-reconstruction' | 'gtfs';
 
+/** Fare/service class of a route in the 2010 route tables. */
+export type CatalogueClass =
+  | 'regular' | 'peak' | 'express' | 'event' | 'rural' | 'school' | 'early' | 'interzone' | 'partner';
+
+/** One route as listed in a dated 2010 source, whether or not it is mapped yet. */
+export interface CatalogueEntry {
+  agency: AgencyId;
+  number: string;
+  class: CatalogueClass;
+  termini: string[];
+  /** URL of the dated source revision */
+  source: string;
+  mapped: boolean;
+  routeId: string | null;
+}
+
 export interface Network {
   version: 1;
   snapshot: string;
@@ -94,6 +110,8 @@ export interface Network {
   stops: NetStop[];
   routes: NetRoute[];
   patterns: NetPattern[];
+  /** every 2010 route from the dated sources, with whether it is mapped (optional) */
+  catalogue?: CatalogueEntry[];
 }
 
 export function parseClock(hhmm: string): number {
