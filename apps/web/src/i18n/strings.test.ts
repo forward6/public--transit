@@ -34,4 +34,17 @@ describe('strings', () => {
       expect(STRINGS.en.op.reasonHelp[k]).toBeTruthy();
     }
   });
+
+  it('translates the council text', () => {
+    const en = STRINGS.en.co as unknown as Record<string, unknown>;
+    const fr = STRINGS.fr.co as unknown as Record<string, unknown>;
+    const same = new Set(['stoSection', 'votes', 'commissionTag']);
+    expect(Object.keys(en).filter((k) => !same.has(k) && typeof en[k] === 'string' && en[k] === fr[k])).toEqual([]);
+    for (const k of Object.keys(STRINGS.en.co.news) as (keyof typeof STRINGS.en.co.news)[]) {
+      const d = { kind: 'budget', passed: 1, yes: 13, no: 11, byChair: 1, levyChange: 1.5, mover: 'X', route: '86', choice: 'restore', wage: 2.8, years: 3,
+        strikeVote: 0, from: '2011-03-31', agenda: 'taxFreeze', clawedBack: 0, approved: 1, name: 'Y', out: 'A', in: 'B', protest: 0 };
+      expect(STRINGS.fr.co.news[k]!(d, 'fr')).not.toEqual(STRINGS.en.co.news[k]!(d, 'en'));
+    }
+    expect(Object.keys(STRINGS.fr.co.reason)).toEqual(Object.keys(STRINGS.en.co.reason));
+  });
 });

@@ -2,23 +2,29 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PERSONAS, type GameState, type Lang, type OpinionAxis, type Persona, type Post, type Reason } from '@otc/shared';
 import {
-  OPINION_2010, districtOpinion, explainCity, explainZone, journeyPosition, opinionSummary, toApproval, weatherOn, zoneScore, type GameWorld,
-  type Journey,
+  OPINION_2010, districtOpinion, explainCity, explainZone, isAlly, journeyPosition, opinionSummary, toApproval, wardMoods, weatherOn, zoneScore,
+  type CouncilWorld, type GameWorld, type Journey,
 } from '@otc/sim';
+import { WARDS_2010 } from '@otc/shared';
 import { fmtK, type Strings } from '../i18n/strings';
 import { fmtDate } from './GameUI';
 import type { GameApi } from './useGame';
 
-export type OpinionView = 'approval' | OpinionAxis;
+export type OpinionView = 'approval' | 'ward' | OpinionAxis;
 
 const loc = (lang: Lang) => (lang === 'fr' ? 'fr-CA' : 'en-CA');
 const pctText = (x: number, lang: Lang, digits = 0) => `${x.toLocaleString(loc(lang), { maximumFractionDigits: digits, minimumFractionDigits: digits })}${lang === 'fr' ? ' %' : '%'}`;
 const hhmm = (t: number) => `${String(Math.floor(t / 3600) % 24).padStart(2, '0')}:${String(Math.floor((t % 3600) / 60)).padStart(2, '0')}`;
 
-/** Per zone: the value the map shows (approval points around 50%, or an axis ÷ 2). */
-export function opinionValues(s: GameState | null, view: OpinionView): number[] | null {
+/** Per zone: the value the map shows (approval points around 50%, by ward, or an axis ÷ 2). */
+export function opinionValues(s: GameState | null, view: OpinionView, world?: CouncilWorld | null): number[] | null {
   const o = s?.opinion;
   if (!o) return null;
+  if (view === 'ward' && s && world) {
+    const moods = wardMoods(s, world);
+    return o.service.map((_, i) => (moods[world.wardOf[i]!]?.approval ?? 50) - 50);
+  }
+  if (view === 'ward') return null;
   return o.service.map((_, i) => (view === 'approval' ? toApproval(zoneScore(o, i)) - 50 : o[view][i]! / 2));
 }
 
@@ -250,7 +256,7 @@ export function OpinionPanel({ game, t, lang, view, setView, onPersona }: {
       <ApprovalChart s={s} t={t} lang={lang} />
       <div className="sec">{t.op.axisPicker}</div>
       <div className="seg wide" role="radiogroup" aria-label={t.op.axisPicker}>
-        {(['approval', 'service', 'value', 'trust'] as OpinionView[]).map((v) => (
+        {(['approval', 'ward', 'service', 'value', 'trust'] as OpinionView[]).filter((v) => v !== 'ward' || game.state?.council).map((v) => (
           <button key={v} role="radio" aria-checked={view === v} className={view === v ? 'on' : ''} onClick={() => setView(v)}>{t.op.axis[v]}</button>
         ))}
       </div>
@@ -289,6 +295,10 @@ export function ZonePanel({ game, index, t, lang, onPersona }: { game: GameApi; 
   const los = s.los ?? w.baseLos;
   const reasons = explainZone(s, w, index);
   const near = PERSONAS.filter((p) => Math.hypot((p.home.lon - z.lon) * 78_000, (p.home.lat - z.lat) * 111_000) < 2500);
+  const wardId = game.councilWorld?.wardOf[index] ?? 0;
+  const ward = WARDS_2010.find((w) => w.id === wardId);
+  const councillor = s.council?.councillors.find((m) => m.ward === wardId);
+  const wardMood = wardId && game.councilWorld ? wardMoods(s, game.councilWorld)[wardId] : undefined;
   const minutes = (x: number) => `${x.toLocaleString(loc(lang), { maximumFractionDigits: 1 })} min`;
   return (
     <div className="ins">
@@ -299,6 +309,8 @@ export function ZonePanel({ game, index, t, lang, onPersona }: { game: GameApi; 
         <div><b>{fmtK(z.pop)}</b><span>{t.op.residents}</span></div>
         <div><b>{pctText(100 * (w.share[index] ?? 0), lang)}</b><span>{t.op.transitShare}</span></div>
       </div>
+      {ward && councillor && <p className="riders-line ward-line"><b>{ward.name[lang]}</b> · {councillor.name}
+        {wardMood && ` · ${t.op.approval} ${pctText(wardMood.approval, lang)}`} <em className={`lean ${isAlly(councillor) ? 'yes' : councillor.fiscal >= 0.5 ? 'no' : 'undecided'}`} /></p>}
       <AxisBars values={{ service: o.service[index]!, value: o.value[index]!, trust: o.trust[index]! }} t={t} lang={lang} />
       <div className="sec">{t.op.why}</div>
       <ReasonBars reasons={reasons} t={t} lang={lang} />

@@ -5,13 +5,14 @@ import { MapView, type CameraPadding } from './map/MapView';
 import { palette } from './map/palettes';
 import { LOAD_COLORS, NET_LOADS, OPINION_ZONES, PICKABLE, RIDER_PATH, RIDER_POS } from './map/style';
 import { LoadPanel, type LoadMode } from './game/LoadUI';
+import { CapitalChip, CouncilPanel, ElectionNight } from './game/CouncilUI';
 import { useStreamedSource } from './map/useStreamedSource';
 import { STRINGS } from './i18n/strings';
 import { draftFeatures, isoPolys, loadFeatures, networkLines, networkStops, opinionPolys, riderPath, zonePoints } from './network/geojson';
 import { useNetwork } from './network/useNetwork';
 import { useVehicleAnimation } from './network/useVehicleAnimation';
 import { DAYS_SPEED, createClock, isNight, seasonOf, type SpeedIndex } from './sim/clock';
-import { serviceDayAt, vehiclesNow } from './sim/service';
+import { serviceDayAt, vehiclesNow, type ServiceDay } from './sim/service';
 import { Hud, type Settings } from './ui/Hud';
 import { Inspector, type Selection } from './ui/Inspector';
 import { Snow } from './ui/Snow';
@@ -94,7 +95,7 @@ export function App() {
   const [map, setMap] = useState<MLMap | null>(null);
   const [sel, setSel] = useState<Selection>(null);
   const [loadMode, setLoadMode] = useState<LoadMode>(params.get('rv') === 'daily' ? 'daily' : 'crowding');
-  const [opinionView, setOpinionView] = useState<OpinionView>((['approval', 'service', 'value', 'trust'] as const).find((v) => v === params.get('ov')) ?? 'approval');
+  const [opinionView, setOpinionView] = useState<OpinionView>((['approval', 'ward', 'service', 'value', 'trust'] as const).find((v) => v === params.get('ov')) ?? 'approval');
   const t = STRINGS[settings.lang];
   const still = params.has('still') || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const baseUrl = useMemo(() => new URL(import.meta.env.BASE_URL, location.href).href, []);
@@ -110,7 +111,9 @@ export function App() {
   const date = game.state?.date ?? '2010-12-01';
   const dateRef = useRef(date);
   dateRef.current = date;
-  const serviceDayNow = useCallback(() => serviceDayAt(dateRef.current, clock.now()), []);
+  const strikeRef = useRef(false);
+  strikeRef.current = !!game.state?.strike;
+  const serviceDayNow = useCallback((): ServiceDay => (strikeRef.current ? 'none' : serviceDayAt(dateRef.current, clock.now())), []);
   useVehicleAnimation(map, net?.playback ?? null, clock, serviceDayNow);
 
   // the look follows the calendar (season) and the sun (night), except when days fly by
@@ -300,7 +303,7 @@ export function App() {
   const opinionOn = settings.opinion && !!game.state?.opinion;
   // redrawn daily, or weekly when days fly by (a thousand hexagons a second is a lot for a phone)
   const opinionTick = view.speed >= DAYS_SPEED ? `w${game.state?.opinion?.history.length}` : game.state?.date;
-  const values = useMemo(() => (opinionOn ? opinionValues(game.state, opinionView) : null), [opinionOn, opinionTick, opinionView, !!game.state?.opinion]); // eslint-disable-line react-hooks/exhaustive-deps
+  const values = useMemo(() => (opinionOn ? opinionValues(game.state, opinionView, game.councilWorld) : null), [opinionOn, opinionTick, opinionView, !!game.state?.opinion, game.councilWorld]); // eslint-disable-line react-hooks/exhaustive-deps
   const zoneSel = sel?.type === 'zone' ? Number(sel.id) : null;
   const opinionFc = useMemo(() => (values ? opinionPolys(base?.zones ?? null, values, zoneSel) : null), [values, base, zoneSel]);
   useStreamedSource(map, OPINION_ZONES, opinionFc);
@@ -369,6 +372,7 @@ export function App() {
         status={net?.network.status ?? null} statusNote={net?.network.statusNote}
         inspector={sel && net ? (sel.type === 'scorecard' ? <ScorecardPanel plan={plan} t={t} />
           : sel.type === 'budget' ? <BudgetPanel game={game} t={t} lang={settings.lang} />
+          : sel.type === 'council' ? <CouncilPanel game={game} t={t} lang={settings.lang} />
           : sel.type === 'load' ? <LoadPanel report={report} byStop={game.loads?.byStop ?? null} scale={loadScale} net={(opNet ?? net).network} t={t}
             lang={settings.lang} palette={pal} mode={loadMode} setMode={(m) => { setLoadMode(m); changeSettings({ riders: true }); }}
             onFocus={(c) => map?.flyTo({ center: c, zoom: Math.max(map.getZoom(), 13.5), duration: 900 })}
@@ -388,9 +392,10 @@ export function App() {
         boardings={net?.demand?.summary.boardings ?? null}
         ridersChip={<DailyRidersChip game={game} t={t} lang={settings.lang} fallback={net?.demand?.summary.boardings ?? null} onClick={openRidership} />}
         approval={<ApprovalChip game={game} t={t} lang={settings.lang} onClick={openOpinion} />} hasOpinion={!!game.state?.opinion} tempC={tempC}
-        ridersLegend={ridersLegend} />
+        ridersLegend={ridersLegend} capital={<CapitalChip game={game} t={t} onClick={() => setSel({ type: 'council', id: 'term' })} />} />
       {!params.has('nodecision') && <DecisionCard game={game} t={t} lang={settings.lang} />}
       <NewsToasts game={game} t={t} lang={settings.lang} />
+      {!params.has('nodecision') && <ElectionNight game={game} t={t} lang={settings.lang} />}
       {!params.has('nodecision') && <FrontPageCard game={game} t={t} lang={settings.lang} onShow={pauseForPaper} onClose={resumeAfterPaper} />}
     </>
   );

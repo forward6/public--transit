@@ -152,6 +152,7 @@ body:has(.inspector).layout-tablet .mapbuttons { right: 364px; }
 .periods { list-style: none; margin: 0; padding: 0; }
 .periods li { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 6px 0; border-top: 1px solid var(--divider); }
 .periods li span { color: var(--fg2); }
+.periods li b { white-space: nowrap; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 14px; }
 .grid3 > div { background: var(--track); border-radius: 10px; padding: 8px 10px; }
 .grid3 b { display: block; font-size: 16px; font-weight: 700; }
@@ -449,3 +450,76 @@ ul.stretches .route-badge { font-size: 10.5px; padding: 1px 5px; min-width: 0; }
 .route-load { display: flex; gap: 8px; align-items: center; }
 .route-load small { font-size: 11.5px; color: var(--muted); }
 .btn.wide-btn { width: 100%; margin-top: 12px; justify-content: center; }
+
+/* =====================================================================
+   M7 — council, votes, labour, partners, election night
+   ===================================================================== */
+body.theme-day { --yes: #2f8f5b; --no: #c0453a; --und: #b9a37a; }
+body.theme-night { --yes: #4cc488; --no: #ff6b5e; --und: #c9b48a; }
+.status-chip.capital i { background: #5b6cc0; }
+.status-chip.capital.warn i { background: var(--amber); }
+.status-chip.capital.bad i { background: var(--hot); }
+.decision.vote { width: min(640px, 100%); }
+ul.effects { list-style: none; margin: 6px 0 10px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+ul.effects li { font-size: 12.5px; background: var(--track); border-radius: 8px; padding: 4px 8px; color: var(--fg2); }
+.seats { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 4px; }
+.seats i { width: 14px; height: 14px; border-radius: 50%; display: block; background: var(--und); }
+.seats i.yes { background: var(--yes); }
+.seats i.no { background: var(--no); }
+.seats i.chair { box-shadow: 0 0 0 2px var(--glass-strong), 0 0 0 3.5px var(--fg); }
+p.tally { font-size: 12.5px; font-weight: 650; margin: 2px 0 8px; }
+p.tally.passing { color: var(--yes); }
+p.tally.failing { color: var(--no); }
+ul.whip { list-style: none; margin: 0; padding: 0; max-height: 34vh; overflow: auto; border-top: 1px solid var(--divider); }
+ul.whip li { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 6px 2px; border-bottom: 1px solid var(--divider); }
+ul.whip .who { display: flex; flex-direction: column; min-width: 0; }
+ul.whip .who b { font-size: 13px; }
+ul.whip .who small { font-size: 11.5px; color: var(--muted); }
+ul.whip em { font-style: normal; font-size: 11.5px; font-weight: 700; }
+ul.whip li.yes em { color: var(--yes); }
+ul.whip li.no em { color: var(--no); }
+ul.whip li.undecided em { color: var(--und); }
+.btn.small { font-size: 11.5px; padding: 4px 8px; height: auto; }
+.vote-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; justify-content: flex-end; }
+.choices.two { grid-template-columns: 1fr 1fr; }
+.choice.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+ul.councillors { list-style: none; margin: 4px 0; padding: 0; columns: 2; column-gap: 12px; }
+ul.councillors li { display: grid; grid-template-columns: 10px 1fr; gap: 6px; align-items: start; padding: 3px 0; break-inside: avoid; }
+ul.councillors li i { width: 9px; height: 9px; border-radius: 50%; margin-top: 4px; background: var(--und); }
+ul.councillors li.yes i { background: var(--yes); }
+ul.councillors li.no i { background: var(--no); }
+ul.councillors span { display: flex; flex-direction: column; font-size: 12px; line-height: 1.25; }
+ul.councillors small { font-size: 10.5px; color: var(--muted); }
+ul.councillors em { display: none; }
+.ward-line em.lean { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-left: 4px; background: var(--und); }
+.ward-line em.lean.yes { background: var(--yes); }
+.ward-line em.lean.no { background: var(--no); }
+/* election night */
+.election-wrap { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; padding: 16px;
+  background: radial-gradient(ellipse at top, rgba(20, 33, 58, 0.78), rgba(8, 12, 22, 0.92)); }
+.election { width: min(860px, 100%); max-height: calc(100vh - 32px); overflow: auto; color: #eaf0fa; }
+.election .decision-kicker { color: #f2c14e; }
+.election h2 { font: 700 40px/1.1 var(--serif); margin: 4px 0 10px; color: #fff; }
+.election .mayor { font: 600 18px/1.3 var(--serif); margin: 0 0 14px; }
+.election ul.wards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+.election ul.wards li { border-radius: 10px; padding: 8px 10px; background: rgba(255, 255, 255, 0.06); border-left: 4px solid rgba(255, 255, 255, 0.15);
+  display: flex; flex-direction: column; gap: 2px; opacity: 0.35; transition: opacity .4s, transform .4s; transform: translateY(4px); }
+.election ul.wards li.in { opacity: 1; transform: none; }
+.election ul.wards li.in.p-transit { border-left-color: #4cc488; }
+.election ul.wards li.in.p-lowTax { border-left-color: #ff8a5e; }
+.election ul.wards li.in.p-rural { border-left-color: #d9b45a; }
+.election ul.wards li.in.p-centre { border-left-color: #8fb0e8; }
+.election ul.wards small { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: #9fb0cc; }
+.election ul.wards b { font-size: 13.5px; }
+.election ul.wards em { font-style: normal; font-size: 11px; color: #c9d4e6; }
+.election ul.wards li.in.new b { color: #f2c14e; }
+.election .allies { font-size: 15px; margin: 14px 0 0; }
+.election .platforms { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 0 0; font-size: 11.5px; color: #9fb0cc; }
+.election .platforms i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.election .platforms .p-transit i { background: #4cc488; }
+.election .platforms .p-lowTax i { background: #ff8a5e; }
+.election .platforms .p-rural i { background: #d9b45a; }
+.election .platforms .p-centre i { background: #8fb0e8; }
+@media (prefers-reduced-motion: reduce) { .election ul.wards li { transition: none; } }
+body.layout-phone ul.councillors { columns: 1; }
+body.layout-phone .choices.two { grid-template-columns: 1fr; }

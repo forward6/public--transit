@@ -41,6 +41,8 @@ interface HudProps {
   tempC?: number;
   /** the Riders view's legend (riders per day or peak crowding) */
   ridersLegend?: ReactNode;
+  /** M7: the Political Capital chip */
+  capital?: ReactNode;
   /** M4 Plan mode */
   planActive: boolean;
   onTogglePlan: () => void;
@@ -163,7 +165,7 @@ export function Hud(props: HudProps) {
   const lastSpeed = useRef<SpeedIndex>(3);
   if (props.speed !== 0) lastSpeed.current = props.speed;
   const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue,
-    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC, ridersLegend } = props;
+    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC, ridersLegend, capital } = props;
   const temp = tempC !== undefined ? `${tempC} °C · ` : '';
   const hasRiders = boardings !== null;
   const planCtl = hasRiders ? { active: planActive, toggle: onTogglePlan } : undefined;
@@ -189,7 +191,7 @@ export function Hud(props: HudProps) {
               <div className="m-sheet-title">{t.mapStyle}</div>
               <div className="m-row"><SpeedControl t={t} speed={speed} onSpeed={onSpeed} /></div>
               <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} />
-              <div className="m-chips">{treasury}{approval}{ridersChip}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></div>
+              <div className="m-chips">{treasury}{approval}{capital}{ridersChip}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></div>
             </>
           )}
         </section>
@@ -214,7 +216,7 @@ export function Hud(props: HudProps) {
             <span className="clock-sub">{temp}{dayNote ?? `${inService} ${t.inService}`}</span></div>
         </div>
         <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
-        {layout === 'desktop' ? <div className="chips"><div className="chip-row">{treasury}{approval}</div>{ridersChip}</div> : treasury}
+        {layout === 'desktop' ? <div className="chips"><div className="chip-row">{treasury}{approval}</div><div className="chip-row">{ridersChip}{capital}</div></div> : treasury}
         <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} />
       </header>
       <MapButtons t={t} map={map} />
@@ -226,7 +228,7 @@ export function Hud(props: HudProps) {
       ) : null}
       {dock}
       {!dock && <Legend t={t} riders={settings.riders && hasRiders} opinion={settings.opinion && hasOpinion} ridersLegend={ridersLegend}
-        status={<>{layout !== 'desktop' && <>{approval}{ridersChip}</>}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></>} />}
+        status={<>{layout !== 'desktop' && <>{approval}{capital}{ridersChip}</>}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></>} />}
     </>
   );
 }

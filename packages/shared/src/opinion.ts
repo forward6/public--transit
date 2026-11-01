@@ -139,7 +139,10 @@ export interface DiaryEntry {
 export type StoryKind =
   | 'ridershipUp' | 'ridershipDown' | 'approvalUp' | 'approvalDown' | 'routeLaunched' | 'routeCut' | 'serviceBoost'
   | 'snowstorm' | 'coldSnap' | 'missedTrips' | 'fareHike' | 'levyHike' | 'deficit' | 'serviceCuts' | 'newBuses' | 'garage'
-  | 'riderStory' | 'quiet';
+  | 'riderStory' | 'quiet'
+  // M7
+  | 'budgetPassed' | 'budgetRewritten' | 'planApproved' | 'planRejected' | 'motionFiled' | 'motionPassed' | 'strike' | 'strikeOver' | 'contract'
+  | 'election' | 'stoRapibus' | 'gatineauVotes' | 'fundingLost' | 'reshuffle';
 
 export type Tone = 'good' | 'bad' | 'neutral';
 

@@ -15,6 +15,8 @@ const TONE: Record<StoryKind, Tone> = {
   ridershipUp: 'good', ridershipDown: 'bad', approvalUp: 'good', approvalDown: 'bad', routeLaunched: 'good', routeCut: 'bad',
   serviceBoost: 'good', snowstorm: 'bad', coldSnap: 'bad', missedTrips: 'bad', fareHike: 'bad', levyHike: 'bad', deficit: 'bad',
   serviceCuts: 'bad', newBuses: 'good', garage: 'good', riderStory: 'neutral', quiet: 'neutral',
+  budgetPassed: 'neutral', budgetRewritten: 'bad', planApproved: 'good', planRejected: 'bad', motionFiled: 'bad', motionPassed: 'bad', strike: 'bad',
+  strikeOver: 'good', contract: 'neutral', election: 'neutral', stoRapibus: 'neutral', gatineauVotes: 'neutral', fundingLost: 'bad', reshuffle: 'bad',
 };
 
 const story = (kind: StoryKind, salience: number, params: Story['params'] = {}): Story => ({ kind, tone: TONE[kind], salience: Math.round(salience), params });
@@ -76,6 +78,23 @@ export function frontPage(s: GameState, world: OpinionWorld, month: string, star
   // reliability
   const missed = missedShare(s, start);
   if (missed >= 0.01) stories.push(story('missedTrips', 40 + 2000 * missed, { pct: +(100 * missed).toFixed(1) }));
+  // council, labour and partners
+  for (const e of s.events.filter((x) => x.date.startsWith(month))) {
+    const g = (k: string) => e.data[k] ?? '';
+    if (e.kind === 'voteResult' && g('kind') === 'budget' && g('passed')) stories.push(story('budgetPassed', 50, { yes: g('yes'), no: g('no') }));
+    else if (e.kind === 'councilBudget') stories.push(story('budgetRewritten', 75, { levy: g('levyChange') }));
+    else if (e.kind === 'voteResult' && g('kind') === 'plan') stories.push(story(g('passed') ? 'planApproved' : 'planRejected', g('passed') ? 55 : 65, { yes: g('yes'), no: g('no') }));
+    else if (e.kind === 'motion') stories.push(story('motionFiled', 55, { route: g('route'), mover: g('mover') }));
+    else if (e.kind === 'directive' && g('choice') === 'restore') stories.push(story('motionPassed', 70, { route: g('route') }));
+    else if (e.kind === 'strike') stories.push(story('strike', 95, {}));
+    else if (e.kind === 'strikeEnds') stories.push(story('strikeOver', 85, { wage: g('wage') }));
+    else if (e.kind === 'labourDeal') stories.push(story('contract', 50, { wage: g('wage'), years: g('years'), protest: g('protest') }));
+    else if (e.kind === 'election') stories.push(story('election', 100, { allies: g('allies'), before: g('before') }));
+    else if (e.kind === 'stoNews' && g('kind') === 'rapibus') stories.push(story('stoRapibus', 45, {}));
+    else if (e.kind === 'stoNews' && g('kind') === 'election') stories.push(story('gatineauVotes', 50, { agenda: g('agenda') }));
+    else if (e.kind === 'fundingNews' && g('clawedBack')) stories.push(story('fundingLost', 70, { amount: g('clawedBack') }));
+    else if (e.kind === 'reshuffle') stories.push(story('reshuffle', 60, { out: g('out') }));
+  }
   // a rider's month: the most striking one, good or bad, not featured lately
   const featured = new Set((s.press ?? []).slice(-3).flatMap((f) => f.stories).filter((x) => x.kind === 'riderStory').map((x) => x.params.persona));
   const riders: { id: string; mood: number; kind: string }[] = [];
@@ -95,7 +114,8 @@ export function frontPage(s: GameState, world: OpinionWorld, month: string, star
   const recent = (s.press ?? []).slice(-3).flatMap((f) => f.stories);
   for (const x of stories) {
     const again = recent.filter((r) => r.kind === x.kind && (x.kind !== 'riderStory' || r.params.persona === x.params.persona)).length;
-    if (again && !['routeLaunched', 'routeCut', 'fareHike', 'levyHike', 'deficit', 'serviceCuts'].includes(x.kind)) x.salience = Math.round(x.salience / (1 + again));
+    if (again && !['routeLaunched', 'routeCut', 'fareHike', 'levyHike', 'deficit', 'serviceCuts', 'strike', 'election', 'budgetRewritten', 'motionPassed']
+      .includes(x.kind)) x.salience = Math.round(x.salience / (1 + again));
   }
   // the three most newsworthy, one per kind
   const seen = new Set<string>();

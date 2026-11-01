@@ -1,7 +1,7 @@
 // A full council term in fast-forward (needs the built data): budgets go to council, the 2011
 // contract talks, STO's offers, funding, and the October 2014 election.
 //   pnpm --filter @otc/sim council-demo [levy-% each year] [wage-% offered]
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { PERSONAS, type DemandFile, type Network, type ZonesFile } from '@otc/shared';
 import {
   JourneyPlanner, acknowledge, answerFunding, answerSto, assignWards, callVote, isAlly, lobby, negotiate, newGame, openDecision, openItem,
@@ -63,6 +63,8 @@ for (let day = 0; day < 365 * 4 + 40 && s.date < '2015-01-10'; day++) {
       log(`FUNDING offer ${d.data.offer}: accept`);
       s = answerFunding(s, true);
     } else if (d.kind === 'election') {
+      // DUMP_ELECTION=path saves the game at election night (for screenshots)
+      if (process.env.DUMP_ELECTION) writeFileSync(process.env.DUMP_ELECTION, JSON.stringify(s));
       const rec = s.council!.elections.at(-1)!;
       log(`ELECTION: approval ${rec.approval}%, allies ${rec.allies[0]} -> ${rec.allies[1]}; mayor ${rec.mayor?.held ? 'held' : 'defeated'} (${rec.mayor?.winner}); seats changed: ${rec.wards.filter((w) => !w.held).map((w) => `${w.ward}:${w.platform}`).join(' ')}`);
       s = acknowledge(s, d.id);

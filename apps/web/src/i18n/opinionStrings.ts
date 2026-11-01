@@ -12,7 +12,7 @@ export interface OpinionStrings {
   title: string;
   sub: string;
   axisPicker: string;
-  axis: Record<'approval' | OpinionAxis, string>;
+  axis: Record<'approval' | 'ward' | OpinionAxis, string>;
   axisHelp: Record<OpinionAxis, string>;
   reason: Record<ReasonKey, string>;
   reasonHelp: Record<ReasonKey, string>;
@@ -71,7 +71,7 @@ export const OPINION_EN: OpinionStrings = {
   title: 'Public opinion',
   sub: 'Ottawa residents · how they feel about the Commission',
   axisPicker: 'Show on the map',
-  axis: { approval: 'Approval', service: 'Service', value: 'Value for money', trust: 'Trust' },
+  axis: { approval: 'Approval', ward: 'By ward', service: 'Service', value: 'Value for money', trust: 'Trust' },
   axisHelp: {
     service: 'How riding feels where people live: frequency, reach, reliability, crowding, the weather.',
     value: 'Fares and the transit levy, against what people are used to paying.',
@@ -144,6 +144,20 @@ export const OPINION_EN: OpinionStrings = {
       return by[String(p.kind)] ?? { head: `A month on the bus with ${n}`, deck: `${home} to ${dest}.` };
     },
     quiet: () => ({ head: 'A quiet month on the buses', deck: 'No major disruptions, our reporters find.' }),
+    budgetPassed: (p) => ({ head: 'Council adopts the transit budget', deck: `The Chair’s budget passed ${p.yes}–${p.no}.` }),
+    budgetRewritten: (p) => ({ head: 'Council overrules the Chair on transit budget', deck: `Councillors adopted their own budget, with the levy up ${p.levy}%.` }),
+    planApproved: (p) => ({ head: 'Commission approves the Chair’s route changes', deck: `The service plan passed ${p.yes}–${p.no}; it takes effect at the next service change.` }),
+    planRejected: (p) => ({ head: 'Commission rejects the Chair’s route changes', deck: `The service plan failed ${p.yes}–${p.no}.` }),
+    motionFiled: (p) => ({ head: `${p.mover} wants route ${p.route} back`, deck: 'A motion asks council to reverse the Chair’s cut.' }),
+    motionPassed: (p) => ({ head: `Council orders route ${p.route} restored`, deck: 'The Chair is overruled; the route returns at the next service change.' }),
+    strike: () => ({ head: 'Buses stop as transit workers walk out', deck: 'For the second time in three winters, Ottawa is without its buses.' }),
+    strikeOver: (p) => ({ head: 'Buses roll again as strike ends', deck: `The settlement: ${p.wage}% a year.` }),
+    contract: (p) => ({ head: p.protest ? 'Transit workers sign under protest' : 'Transit workers ratify a new contract', deck: `${p.wage}% a year${p.years ? ` for ${p.years} years` : ''}; no strike.` }),
+    election: (p) => ({ head: 'Ottawa votes: a new council for transit', deck: `${p.allies} councillors now lean towards the Chair’s agenda (${p.before} before).` }),
+    stoRapibus: () => ({ head: 'Gatineau opens its Rapibus', deck: 'STO’s busway along the old rail line changes trips across the river.' }),
+    gatineauVotes: (p) => ({ head: 'Gatineau votes', deck: p.agenda === 'taxFreeze' ? 'The new council promises to freeze taxes; STO will look for savings.' : 'STO’s board keeps its course.' }),
+    fundingLost: () => ({ head: 'Province claws back bus money after fare hike', deck: 'Fares rose faster than the agreement allowed.' }),
+    reshuffle: (p) => ({ head: 'Council shakes up the Transit Commission', deck: `Out: ${p.out}.` }),
   },
   diary: {
     great: (n) => `Left at ${hhmm(n?.depart ?? 0)}, waited ${n?.waitMin ?? 0} min, ${routes(n)}. ${n?.minutes} minutes door to door. Easy.`,
@@ -222,7 +236,7 @@ export const OPINION_FR: OpinionStrings = {
   title: 'Opinion publique',
   sub: 'Résidents d’Ottawa · ce qu’ils pensent de la Commission',
   axisPicker: 'Afficher sur la carte',
-  axis: { approval: 'Appui', service: 'Service', value: 'Rapport qualité-prix', trust: 'Confiance' },
+  axis: { approval: 'Appui', ward: 'Par quartier', service: 'Service', value: 'Rapport qualité-prix', trust: 'Confiance' },
   axisHelp: {
     service: 'Comment se passe le trajet là où les gens vivent : fréquence, portée, fiabilité, affluence, météo.',
     value: 'Les tarifs et la taxe de transport en commun, par rapport à ce que les gens ont l’habitude de payer.',
@@ -295,6 +309,20 @@ export const OPINION_FR: OpinionStrings = {
       return by[String(p.kind)] ?? { head: `Un mois en autobus avec ${n}`, deck: `De ${home} à ${dest}.` };
     },
     quiet: () => ({ head: 'Un mois tranquille dans les autobus', deck: 'Aucune perturbation majeure, constatent nos journalistes.' }),
+    budgetPassed: (p) => ({ head: 'Le conseil adopte le budget du transport en commun', deck: `Le budget du président est adopté ${p.yes}–${p.no}.` }),
+    budgetRewritten: (p) => ({ head: 'Le conseil désavoue le président sur le budget', deck: `Les conseillers ont adopté leur propre budget, avec une taxe en hausse de ${String(p.levy).replace('.', ',')} %.` }),
+    planApproved: (p) => ({ head: 'La Commission approuve les changements de lignes', deck: `Le plan de service est adopté ${p.yes}–${p.no}; il entrera en vigueur au prochain changement de service.` }),
+    planRejected: (p) => ({ head: 'La Commission rejette les changements de lignes', deck: `Le plan de service est rejeté ${p.yes}–${p.no}.` }),
+    motionFiled: (p) => ({ head: `${p.mover} veut le retour de la ligne ${p.route}`, deck: 'Une motion demande au conseil d’annuler la coupure.' }),
+    motionPassed: (p) => ({ head: `Le conseil ordonne le retour de la ligne ${p.route}`, deck: 'Le président est désavoué; la ligne revient au prochain changement de service.' }),
+    strike: () => ({ head: 'Les autobus s’arrêtent : les chauffeurs débraient', deck: 'Pour la deuxième fois en trois hivers, Ottawa est privée de ses autobus.' }),
+    strikeOver: (p) => ({ head: 'Les autobus reprennent la route', deck: `Le règlement : ${String(p.wage).replace('.', ',')} % par an.` }),
+    contract: (p) => ({ head: p.protest ? 'Les chauffeurs signent sous protestation' : 'Les chauffeurs ratifient une nouvelle convention', deck: `${String(p.wage).replace('.', ',')} % par an${p.years ? ` pendant ${p.years} ans` : ''}; pas de grève.` }),
+    election: (p) => ({ head: 'Ottawa vote : un nouveau conseil pour le transport en commun', deck: `${p.allies} conseillers penchent maintenant du côté du président (${p.before} avant).` }),
+    stoRapibus: () => ({ head: 'Gatineau inaugure son Rapibus', deck: 'Le corridor de la STO le long de l’ancienne voie ferrée change les trajets d’une rive à l’autre.' }),
+    gatineauVotes: (p) => ({ head: 'Gatineau vote', deck: p.agenda === 'taxFreeze' ? 'Le nouveau conseil promet de geler les taxes; la STO cherchera des économies.' : 'Le conseil de la STO garde le cap.' }),
+    fundingLost: () => ({ head: 'La Province reprend l’argent des autobus après la hausse des tarifs', deck: 'Les tarifs ont augmenté plus vite que l’entente ne le permettait.' }),
+    reshuffle: (p) => ({ head: 'Le conseil remanie la Commission du transport en commun', deck: `Sortent : ${p.out}.` }),
   },
   diary: {
     great: (n) => `Départ à ${hhmm(n?.depart ?? 0)}, ${n?.waitMin ?? 0} min d’attente, ${routes(n)}. ${n?.minutes} minutes porte à porte. Facile.`,

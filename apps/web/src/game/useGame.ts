@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PERSONAS, type BusType, type Edit, type GameEvent, type GameState, type PendingFigures, type ZoneLos } from '@otc/shared';
 import {
+  ORDER_VOTE_THRESHOLD, acknowledge, amend as amendItem, answerFunding, answerSto, assignWards, callVote as callVoteOn, delayFor, isBigPlan,
+  lobby as lobbyOn, negotiate as negotiateOn, planEffects, proposeBudget, proposeDeficit, proposeGarage, proposeOrder, proposePlan, setPlanEffects,
+  strikeChoice as strikeChoiceOn, withdraw as withdrawItem, type CouncilWorld,
   JourneyPlanner, Playback, agencyOnly, applyEdits, buildGarage, dismissEvent, newGame, openDecision, orderBuses, resolve, schedulePlan,
   serviceStats, setLevers, setPendingFigures, setService, stepDay, updateRoutines, withOpinion, type GameWorld, type PersonaTrips,
   type Resolution, type Scorecard,
@@ -45,6 +48,18 @@ export interface GameApi {
   /** riders per segment on the network in operation (null until measured; see requestLoads) */
   loads: OpLoads | null;
   requestLoads: () => void;
+  /** M7: the council's world (wards), and what you can do in council, at the table and with partners */
+  councilWorld: CouncilWorld | null;
+  lobby: (itemId: string, councillorId: string) => void;
+  delay: (itemId: string, how: 'consult' | 'study') => void;
+  amend: (itemId: string) => void;
+  withdraw: (itemId: string) => void;
+  callVote: (itemId: string) => void;
+  negotiate: (offer: { wage: number; scheduling: 'keep' | 'reform'; years: number }) => void;
+  strikeChoice: (c: 'meet' | 'arbitration' | 'holdOut') => void;
+  answerSto: (accept: boolean) => void;
+  answerFunding: (accept: boolean) => void;
+  acknowledge: (eventId: string) => void;
 }
 
 /** The assignment's loads for one network, and the model's OC Transpo weekday boardings on it (to scale by). */
@@ -160,8 +175,11 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
     return { ...baseWorld, personas: PERSONAS, trips, routeName: (id) => routes.get(id) ?? id.replace(/^oct-/, ''),
       stopName: (id) => stops.get(id) ?? id };
   }, [baseWorld, trips, operationNetwork, base]);
-  const worldRef = useRef(world);
-  worldRef.current = world;
+  // M7: wards over the zones (once)
+  const wardOf = useMemo(() => (base?.zones ? assignWards(base.zones.zones) : null), [base]);
+  const councilWorld = useMemo<CouncilWorld | null>(() => (world && wardOf ? { ...world, wardOf } : null), [world, wardOf]);
+  const worldRef = useRef<GameWorld | null>(world);
+  worldRef.current = councilWorld ?? world;
   useEffect(() => {
     if (world && state && !state.opinion) setState((s) => (s ? withOpinion(s, world) : s));
   }, [world, state?.opinion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -183,10 +201,12 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
     if (lp) loadsCache.current.set(JSON.stringify([...before, ...added]), lp);
     setLoadsTick((n) => n + 1);
     // the model's absolute level differs a little between runs: scale to the game's current figures
-    const k = g.service.boardings / Math.max(1, baseline.byAgency.octranspo ?? 0);
+    // (measuring from the 2010 network, e.g. after a route was restored: scale to 2010's)
+    const ref = before.length ? g.service.boardings : base.demand?.summary.boardingsByAgency.octranspo ?? g.service.boardings;
+    const k = ref / Math.max(1, baseline.byAgency.octranspo ?? 0);
     const s = serviceStats(agencyOnly(applyEdits(base.network, [...before, ...added]), 'octranspo'));
     const watch = watchList(added, baseline, plan);
-    const los = losAfter(g.los ?? base.demand?.los, baseline, plan);
+    const los = losAfter(before.length ? g.los ?? base.demand?.los : base.demand?.los, baseline, plan);
     return {
       ...(los ? { los } : {}),
       service: { boardings: (plan.byAgency.octranspo ?? 0) * k, vehicleHours: s.vehicleHours, peakVehicles: s.peakVehicles },
@@ -218,6 +238,24 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
       setState((s) => (s ? setPendingFigures(s, { key: pendingKey, ...f }) : s));
     });
   }, [base, pendingKey, appliedKey, figures, run]);
+
+  // a plan before the Commission: staff measure it (what each ward gains or loses)
+  const planReports = useRef(new Map<string, Omit<PendingFigures, 'key'>>());
+  const measuringItem = state?.council?.items.find((i) => i.kind === 'plan' && i.measuring);
+  useEffect(() => {
+    const g = stateRef.current;
+    const item = measuringItem;
+    if (!g || !item || !base?.demand || !councilWorld) return;
+    run(`item:${item.id}`, async () => {
+      const edits = item.payload.edits ?? [];
+      const f = await figures(g.applied, edits, g);
+      planReports.current.set(item.id, f);
+      const net = applyEdits(base.network, g.applied);
+      const before = serviceStats(agencyOnly(net, 'octranspo')).vehicleHours;
+      const effects = planEffects(net, edits, councilWorld, g.los ?? base.demand!.los!, f.los, before, f.service.vehicleHours);
+      setState((s) => (s ? setPlanEffects(s, item.id, effects) : s));
+    });
+  }, [measuringItem?.id, base, councilWorld]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // a plan in operation that was never measured (scheduled too late, or an older save): measure it now
   useEffect(() => {
@@ -258,13 +296,45 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
 
   return {
     state, operation, decision, news, measuring: measuring > 0, world, loads, requestLoads,
-    resolve: (r) => setState((s) => (s && openDecision(s) ? resolve(s, openDecision(s)!.id, r) : s)),
+    resolve: (r) => setState((s) => {
+      const d = s ? openDecision(s) : undefined;
+      if (!s || !d) return s;
+      // with a council, the budget and most deficit answers go to a vote
+      if (s.council && r.kind === 'budget') return proposeBudget(s, d.id, r.choice);
+      if (s.council && r.kind === 'deficit' && r.choice !== 'defer') return proposeDeficit(s, d.id, r.choice);
+      return resolve(s, d.id, r);
+    }),
     dismiss: (id) => setState((s) => (s ? dismissEvent(s, id) : s)),
-    orderBuses: (type, count) => setState((s) => (s ? orderBuses(s, type, count) : s)),
-    buildGarage: () => setState((s) => (s ? buildGarage(s) : s)),
+    orderBuses: (type, count) => setState((s) => (s ? (s.council && count >= ORDER_VOTE_THRESHOLD ? proposeOrder(s, type, count) : orderBuses(s, type, count)) : s)),
+    buildGarage: () => setState((s) => (s ? (s.council ? proposeGarage(s) : buildGarage(s)) : s)),
     setLevers: (l) => setState((s) => (s ? setLevers(s, l) : s)),
-    schedule: (edits) => setState((s) => (s ? schedulePlan(s, edits) : s)),
+    // new or removed routes go to the Transit Commission; frequency changes are scheduled directly
+    schedule: (edits) => setState((s) => {
+      if (!s) return s;
+      const added = edits.slice(s.pending.length);
+      if (s.council && isBigPlan(added)) return proposePlan(s, edits.slice(s.pending.length));
+      return schedulePlan(s, edits);
+    }),
     unschedule: () => setState((s) => (s ? schedulePlan(s, []) : s)),
+    councilWorld,
+    lobby: (itemId, id) => setState((s) => (s && councilWorld ? lobbyOn(s, councilWorld, itemId, id) : s)),
+    delay: (itemId, how) => setState((s) => (s ? delayFor(s, itemId, how) : s)),
+    amend: (itemId) => setState((s) => (s ? amendItem(s, itemId) : s)),
+    withdraw: (itemId) => setState((s) => (s ? withdrawItem(s, itemId) : s)),
+    callVote: (itemId) => setState((s) => {
+      if (!s || !councilWorld || !base) return s;
+      const item = s.council?.items.find((i) => i.id === itemId);
+      let next = callVoteOn(s, councilWorld, itemId, applyEdits(base.network, s.applied));
+      // a plan the Commission passed was measured for its report: carry the figures to the service change
+      const report = item?.kind === 'plan' ? planReports.current.get(itemId) : undefined;
+      if (report && next.pending.length === (item?.payload.edits ?? []).length) next = setPendingFigures(next, { key: JSON.stringify(next.pending), ...report });
+      return next;
+    }),
+    negotiate: (offer) => setState((s) => (s && councilWorld ? negotiateOn(s, councilWorld, offer) : s)),
+    strikeChoice: (c) => setState((s) => (s ? strikeChoiceOn(s, c) : s)),
+    answerSto: (accept) => setState((s) => (s ? answerSto(s, accept) : s)),
+    answerFunding: (accept) => setState((s) => (s ? answerFunding(s, accept) : s)),
+    acknowledge: (eventId) => setState((s) => (s ? acknowledge(s, eventId) : s)),
     restart: () => {
       if (startFigures) setState(world ? withOpinion(newGame(startFigures), world) : newGame(startFigures));
       clock.setTime(60); // 00:01

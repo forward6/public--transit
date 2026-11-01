@@ -4,6 +4,7 @@ import { addMonths, fleetStatus, missedShare, nextServiceChange, projectYear } f
 import type { Strings } from '../i18n/strings';
 import type { GameApi } from './useGame';
 import { Delta, weekOnWeek } from './Ridership';
+import { COUNCIL_KINDS, CouncilDecision } from './CouncilUI';
 
 export function fmtDate(iso: string, lang: Lang, style: 'long' | 'short' | 'month' | 'day' | 'mon' = 'long'): string {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -83,8 +84,19 @@ export function DecisionCard({ game, t, lang }: { game: GameApi; t: Strings; lan
     const trial = { ...s, fareIndex: s.fareIndex * (1 + fare / 100), maintenance: maint };
     return projectYear(trial, ECONOMY_2010, from, Number(d.data.last) * (1 + levy / 100));
   }, [s, d, levy, fare, maint]);
-  if (!d || !s) return null;
+  if (!d || !s || d.kind === 'election') return null;
   const f = fleetStatus(s);
+  if (COUNCIL_KINDS.has(d.kind)) {
+    const item = d.kind === 'vote' ? s.council?.items.find((i) => i.id === d.data.item) : undefined;
+    return (
+      <div className="decision-wrap" role="dialog" aria-modal="true" aria-label={t.co.decisionTitle[d.kind] ?? d.kind}>
+        <section className={`decision glass ${d.kind === 'vote' ? 'vote' : ''}`}>
+          <div className="decision-kicker">{fmtDate(s.date, lang)} · {item ? t.co.bodyVote[item.body] : t.decisionKicker}</div>
+          <CouncilDecision game={game} d={d} t={t} lang={lang} />
+        </section>
+      </div>
+    );
+  }
   return (
     <div className="decision-wrap" role="dialog" aria-modal="true" aria-label={t.decisionTitle[d.kind] ?? d.kind}>
       <section className="decision glass">
@@ -137,7 +149,8 @@ export function DecisionCard({ game, t, lang }: { game: GameApi; t: Strings; lan
 
 /** Brief news: deliveries, service changes, garages, retirements. */
 export function NewsToasts({ game, t, lang }: { game: GameApi; t: Strings; lang: Lang }) {
-  const items = game.news.filter((e) => t.news[e.kind]);
+  const text = (e: GameEvent) => t.news[e.kind] ?? t.co.news[e.kind];
+  const items = game.news.filter((e) => text(e));
   useEffect(() => {
     if (!items.length) return;
     const id = setTimeout(() => items.forEach((e) => game.dismiss(e.id)), 7000);
@@ -148,7 +161,7 @@ export function NewsToasts({ game, t, lang }: { game: GameApi; t: Strings; lang:
     <div className="toasts" aria-live="polite">
       {items.map((e: GameEvent) => (
         <div key={e.id} className={`toast glass toast-${e.kind}`}>
-          <span><b>{fmtDate(e.date, lang, 'short')}</b> · {t.news[e.kind]!(e.data, lang)}</span>
+          <span><b>{fmtDate(e.date, lang, 'short')}</b> · {text(e)!(e.data, lang)}</span>
           <button aria-label="×" onClick={() => game.dismiss(e.id)}>×</button>
         </div>
       ))}

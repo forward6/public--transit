@@ -4,10 +4,10 @@ import type { Playback, VehicleState } from '@otc/sim';
 import { addDays, serviceDay } from '@otc/sim';
 import { SERVICE_DAY_START } from './clock';
 
-export type ServiceDay = ReturnType<typeof serviceDay>;
+export type ServiceDay = ReturnType<typeof serviceDay> | 'none';
 
 /** share of weekday trips that run */
-const SHARE: Record<ServiceDay, number> = { weekday: 1, saturday: 0.6, sunday: 0.45 };
+const SHARE: Record<ServiceDay, number> = { weekday: 1, saturday: 0.6, sunday: 0.45, none: 0 };
 
 /** A stable hash of the trip id in [0, 1): the same trips run every Saturday. */
 function tripHash(id: string): number {
@@ -26,6 +26,7 @@ export function serviceDayAt(date: string, clockNow: number): ServiceDay {
 }
 
 export function vehiclesNow(playback: Playback, serviceTime: number, day: ServiceDay): VehicleState[] {
+  if (day === 'none') return []; // on strike
   const all = playback.vehiclesAt(serviceTime);
   return day === 'weekday' ? all : all.filter((v) => tripRuns(v.tripId, day));
 }

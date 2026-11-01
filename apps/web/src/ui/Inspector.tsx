@@ -8,7 +8,7 @@ import { DailyChart, RouteTrend, WatchedRoutes } from '../game/Ridership';
 import { tripRuns, vehiclesNow, type ServiceDay } from '../sim/service';
 
 export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard' | 'budget' | 'opinion' | 'zone' | 'persona'
-    | 'load';
+    | 'load' | 'council';
   id: string } | null;
 
 interface Props {

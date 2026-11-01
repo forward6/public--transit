@@ -1,5 +1,6 @@
 // Capture the app with a saved campaign (from verify-days.cjs's game.json) at a given time of day.
 // Usage: node scripts/capture-saved.cjs <url> <game.json> <HH:MM> <out.jpg> [WIDTHxHEIGHT] [scale]
+// (WAIT_MS=n waits longer before the shot, e.g. for election night's results to come in)
 const fs = require('fs');
 const { chromium } = require('playwright');
 
@@ -20,7 +21,7 @@ const { chromium } = require('playwright');
   page.on('pageerror', (e) => console.log('pageerror:', e.message));
   await page.goto(url);
   await page.waitForFunction('window.__otc && window.__otc.ready === true && window.__otc.vehicles !== false', null, { timeout: 300000, polling: 500 });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(Number(process.env.WAIT_MS ?? 800));
   await page.screenshot({ path: out, quality: 85 });
   console.log(out);
   await browser.close();
