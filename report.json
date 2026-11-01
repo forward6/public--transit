@@ -1,0 +1,482 @@
+{
+ "snapshot": "2010-12-01",
+ "generated": "2026-11-01T18:49:04+00:00",
+ "agencies": {
+  "octranspo": {
+   "queries": [
+    {
+     "url": "octranspo1.com",
+     "found": 2
+    },
+    {
+     "url": "octranspo.com",
+     "error": "<urlopen error [Errno 111] Connection refused>"
+    },
+    {
+     "url": "gtfs.s3.amazonaws.com/oc-transpo",
+     "found": 21
+    },
+    {
+     "url": "gtfs-data-exchange.com/agency/oc-transpo/",
+     "found": 0
+    },
+    {
+     "url": "ottawa.ca",
+     "error": "<urlopen error [Errno 111] Connection refused>"
+    }
+   ],
+   "checked": [
+    {
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20110806_0242.zip",
+     "timestamp": "20201202004908",
+     "date": "2011-08-06",
+     "dated_by": "file name",
+     "wayback": "https://web.archive.org/web/20201202004908id_/http://gtfs.s3.amazonaws.com/oc-transpo_20110806_0242.zip",
+     "gtfs": true,
+     "agencies": [
+      "OC Transpo"
+     ],
+     "service_from": "2011-08-05",
+     "service_to": "2011-12-24",
+     "runs_on_snapshot": false,
+     "days_from_snapshot": 247,
+     "routes": 289,
+     "has_shapes": false,
+     "bytes": 10764119,
+     "file": "octranspo_20110806.zip"
+    },
+    {
+     "original": "http://www.octranspo1.com/files/google_transit.zip",
+     "timestamp": "20111106090152",
+     "date": "2011-11-06",
+     "dated_by": "capture",
+     "wayback": "https://web.archive.org/web/20111106090152id_/http://www.octranspo1.com/files/google_transit.zip",
+     "gtfs": true,
+     "agencies": [
+      "OC Transpo"
+     ],
+     "service_from": "2011-09-23",
+     "service_to": "2011-12-24",
+     "runs_on_snapshot": false,
+     "days_from_snapshot": 296,
+     "routes": 142,
+     "has_shapes": false,
+     "bytes": 5235829
+    },
+    {
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120224_0423.zip",
+     "timestamp": "20160405052245",
+     "date": "2012-02-24",
+     "dated_by": "file name",
+     "wayback": "https://web.archive.org/web/20160405052245id_/http://gtfs.s3.amazonaws.com/oc-transpo_20120224_0423.zip",
+     "gtfs": true,
+     "agencies": [
+      "OC Transpo"
+     ],
+     "service_from": "2011-12-25",
+     "service_to": "2012-04-21",
+     "runs_on_snapshot": false,
+     "days_from_snapshot": 389,
+     "routes": 145,
+     "has_shapes": false,
+     "bytes": 10174475
+    },
+    {
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120330_0333.zip",
+     "timestamp": "20160405052223",
+     "date": "2012-03-30",
+     "dated_by": "file name",
+     "wayback": "https://web.archive.org/web/20160405052223id_/http://gtfs.s3.amazonaws.com/oc-transpo_20120330_0333.zip",
+     "gtfs": true,
+     "agencies": [
+      "OC Transpo"
+     ],
+     "service_from": "2012-03-26",
+     "service_to": "2012-06-23",
+     "runs_on_snapshot": false,
+     "days_from_snapshot": 481,
+     "routes": 290,
+     "has_shapes": false,
+     "bytes": 12836402
+    },
+    {
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120502_0314.zip",
+     "timestamp": "20160405052221",
+     "date": "2012-05-02",
+     "dated_by": "file name",
+     "wayback": "https://web.archive.org/web/20160405052221id_/http://gtfs.s3.amazonaws.com/oc-transpo_20120502_0314.zip",
+     "gtfs": true,
+     "agencies": [
+      "OC Transpo"
+     ],
+     "service_from": "2012-04-22",
+     "service_to": "2012-06-23",
+     "runs_on_snapshot": false,
+     "days_from_snapshot": 508,
+     "routes": 145,
+     "has_shapes": false,
+     "bytes": 10870849
+    },
+    {
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120603_0309.zip",
+     "timestamp": "20160405052335",
+     "date": "2012-06-03",
+     "dated_by": "file name",
+     "wayback": "https://web.archive.org/web/20160405052335id_/http://gtfs.s3.amazonaws.com/oc-transpo_20120603_0309.zip",
+     "gtfs": true,
+     "agencies": [
+      "OC Transpo"
+     ],
+     "service_from": "2012-06-01",
+     "service_to": "2012-09-01",
+     "runs_on_snapshot": false,
+     "days_from_snapshot": 548,
+     "routes": 323,
+     "has_shapes": false,
+     "bytes": 13703741
+    }
+   ],
+   "chosen": {
+    "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20110806_0242.zip",
+    "timestamp": "20201202004908",
+    "date": "2011-08-06",
+    "dated_by": "file name",
+    "wayback": "https://web.archive.org/web/20201202004908id_/http://gtfs.s3.amazonaws.com/oc-transpo_20110806_0242.zip",
+    "gtfs": true,
+    "agencies": [
+     "OC Transpo"
+    ],
+    "service_from": "2011-08-05",
+    "service_to": "2011-12-24",
+    "runs_on_snapshot": false,
+    "days_from_snapshot": 247,
+    "routes": 289,
+    "has_shapes": false,
+    "bytes": 10764119,
+    "file": "octranspo_20110806.zip"
+   },
+   "candidates": [
+    {
+     "timestamp": "20201202004908",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20110806_0242.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "HS5SQFGWTMPGK6GLKISXJK7RWKOMG4SY",
+     "length": "8726663",
+     "date": "2011-08-06",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20111106090152",
+     "original": "http://www.octranspo1.com/files/google_transit.zip",
+     "mimetype": "application/zip",
+     "statuscode": "200",
+     "digest": "6552H5YKKV7ZKNBNV74DKVS43S2VMDET",
+     "length": "3887390",
+     "date": "2011-11-06",
+     "dated_by": "capture"
+    },
+    {
+     "timestamp": "20160405052245",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120224_0423.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "KLON23UXBQFD5RH76DCERN5CJYHFJL7X",
+     "length": "7892156",
+     "date": "2012-02-24",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160405052223",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120330_0333.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "HAH434CISBZOSIGD4XI6WTR4SQTQEIPT",
+     "length": "9776497",
+     "date": "2012-03-30",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160405052221",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120502_0314.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "QUIR5ZUZX4DMRWSLCDYQXEUOHOEY6EHP",
+     "length": "8499933",
+     "date": "2012-05-02",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160405052335",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120603_0309.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "CALVOT27SLV753DMPPDKENZFV4GNVYPA",
+     "length": "10145185",
+     "date": "2012-06-03",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160405052416",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120614_0308.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "AUGWYWJCL6WMS5XDH3MK4GVTN7TARE6P",
+     "length": "10129961",
+     "date": "2012-06-14",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160405052319",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120715_0314.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "VOJN2OY6AZU7PKETIT5BUTIGCGFD67N6",
+     "length": "4543214",
+     "date": "2012-07-15",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160405052320",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120820_0150.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "RAY2MW54FWWWKGMKXGZQUV6AFFYWW4Q5",
+     "length": "8489495",
+     "date": "2012-08-20",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160405052353",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120906_0304.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "7WV3LDVOBZ3RAF5DPTCGLIKMPSTNCLYU",
+     "length": "4031119",
+     "date": "2012-09-06",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160405052410",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20120914_0326.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "EWVXG7R4CX3CKVLLNSTXSEACQOEZNO3N",
+     "length": "4020378",
+     "date": "2012-09-14",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160405052223",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20121129_0433.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "ABYURCZICYJ57GNXJU44JL5VY2ZOK6YH",
+     "length": "15756579",
+     "date": "2012-11-29",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160404172449",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20130105_0438.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "5FY4NTDG2I3JOQADCPHFY36JSUARYFVN",
+     "length": "10028344",
+     "date": "2013-01-05",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160404172557",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20130131_0425.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "QA4RMBQFYG3G5DZ3G25NI7HHIDZJQGCF",
+     "length": "10035030",
+     "date": "2013-01-31",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160404172602",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20130306_0421.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "YVR6BYKDVXA3XJADQZDIZPSMJJ5PZX65",
+     "length": "18714148",
+     "date": "2013-03-06",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160404172407",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20130417_0334.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "Z3U7RCHVACBFKFCG4PGU6I6QKDCMX3Q5",
+     "length": "13984872",
+     "date": "2013-04-17",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160404172632",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20130530_0306.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "N6VLHKTIPOZXCQMEAJVC6OZ7LHF7RNMO",
+     "length": "9467569",
+     "date": "2013-05-30",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160404172412",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20130607_0320.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "2ZXGFVMBAJ6N3ZK3HEBG2W5EU2TYE7ZY",
+     "length": "9484129",
+     "date": "2013-06-07",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160404172436",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20130702_0116.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "TC5M77MSXHSMXKKAHEBC2HDK6WA3XCY2",
+     "length": "9781469",
+     "date": "2013-07-02",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160404172401",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20130830_1554.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "NZT3SQABZT2GY4OXAS73N52UJBVN4H3Y",
+     "length": "9234476",
+     "date": "2013-08-30",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160404172524",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20130901_0116.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "FCUSP4PT3TCNQBXNZPDAVPOZGG7Z6N2Z",
+     "length": "7801819",
+     "date": "2013-09-01",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20160404172539",
+     "original": "http://gtfs.s3.amazonaws.com/oc-transpo_20131119_1910.zip",
+     "mimetype": "binary/octet-stream",
+     "statuscode": "200",
+     "digest": "RR7ZEDKV4X7MCEPUGTC6COJPLKMBK3ZI",
+     "length": "5659641",
+     "date": "2013-11-19",
+     "dated_by": "file name"
+    }
+   ]
+  },
+  "sto": {
+   "queries": [
+    {
+     "url": "sto.ca",
+     "error": "HTTP Error 504: Gateway Time-out"
+    },
+    {
+     "url": "gtfs.s3.amazonaws.com/societe-de-transport-de-l-outaouais",
+     "found": 0
+    },
+    {
+     "url": "gtfs.s3.amazonaws.com/sto",
+     "found": 2
+    },
+    {
+     "url": "gtfs-data-exchange.com/agency/societe-de-transport-de-l-outaouais/",
+     "error": "HTTP Error 503: Service Unavailable"
+    }
+   ],
+   "checked": [
+    {
+     "original": "http://gtfs.s3.amazonaws.com/sto_20160314_1810.zip",
+     "timestamp": "20160405004919",
+     "date": "2016-03-14",
+     "dated_by": "file name",
+     "wayback": "https://web.archive.org/web/20160405004919id_/http://gtfs.s3.amazonaws.com/sto_20160314_1810.zip",
+     "gtfs": true,
+     "agencies": [
+      "STO"
+     ],
+     "service_from": "2016-02-12",
+     "service_to": "2016-06-19",
+     "runs_on_snapshot": false,
+     "days_from_snapshot": 1899,
+     "routes": 78,
+     "has_shapes": true,
+     "bytes": 5258556,
+     "file": "sto_20160314.zip"
+    },
+    {
+     "original": "http://gtfs.s3.amazonaws.com/sto_20160314_1810.zip",
+     "timestamp": "20161021091441",
+     "date": "2016-03-14",
+     "dated_by": "file name",
+     "wayback": "https://web.archive.org/web/20161021091441id_/http://gtfs.s3.amazonaws.com/sto_20160314_1810.zip",
+     "gtfs": true,
+     "agencies": [
+      "STO"
+     ],
+     "service_from": "2016-02-12",
+     "service_to": "2016-06-19",
+     "runs_on_snapshot": false,
+     "days_from_snapshot": 1899,
+     "routes": 78,
+     "has_shapes": true,
+     "bytes": 5258556
+    }
+   ],
+   "chosen": {
+    "original": "http://gtfs.s3.amazonaws.com/sto_20160314_1810.zip",
+    "timestamp": "20160405004919",
+    "date": "2016-03-14",
+    "dated_by": "file name",
+    "wayback": "https://web.archive.org/web/20160405004919id_/http://gtfs.s3.amazonaws.com/sto_20160314_1810.zip",
+    "gtfs": true,
+    "agencies": [
+     "STO"
+    ],
+    "service_from": "2016-02-12",
+    "service_to": "2016-06-19",
+    "runs_on_snapshot": false,
+    "days_from_snapshot": 1899,
+    "routes": 78,
+    "has_shapes": true,
+    "bytes": 5258556,
+    "file": "sto_20160314.zip"
+   },
+   "candidates": [
+    {
+     "timestamp": "20160405004919",
+     "original": "http://gtfs.s3.amazonaws.com/sto_20160314_1810.zip",
+     "mimetype": "application/zip",
+     "statuscode": "200",
+     "digest": "PZ35AMVSWJQLXSKYQWCVRGZZ5EGZYLBI",
+     "length": "4123539",
+     "date": "2016-03-14",
+     "dated_by": "file name"
+    },
+    {
+     "timestamp": "20161021091441",
+     "original": "http://gtfs.s3.amazonaws.com/sto_20160314_1810.zip",
+     "mimetype": "application/zip",
+     "statuscode": "200",
+     "digest": "WLOZ7W3YYQOQLRKMZKKINXFJ2E6XZR7L",
+     "length": "4123386",
+     "date": "2016-03-14",
+     "dated_by": "file name"
+    }
+   ]
+  }
+ }
+}
