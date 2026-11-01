@@ -66,12 +66,17 @@ plus dwell. Curation lives in [`curation/network2010/`](curation/network2010/).
 `wiki` step). That gives 1,700 weekday trips, plus a catalogue of all 373 OC Transpo and STO routes
 from November 2010. See [`curation/network2010/README.md`](curation/network2010/README.md). The
 rest need OC Transpo's 2010 GTFS from the Wayback Machine, which resets connections from this
-build environment. From a machine that can reach it, run:
+build environment. The **Archive 2010 GTFS** workflow (`.github/workflows/archive-2010.yml`) runs
+the search on GitHub's servers instead and publishes the feeds, with a `report.json` of every
+capture checked, to the `data/gtfs-2010` branch:
 
 ```bash
-uv run otc-pipeline archive                    # finds and downloads a 2010 GTFS capture
+git fetch origin data/gtfs-2010 && git archive origin/data/gtfs-2010 | tar -x -C data/raw/archive
 uv run otc-pipeline network --gtfs data/raw/archive/octranspo_2010MMDD.zip
 ```
+
+The search also runs on any machine with Python 3.11+ and no other dependencies:
+`python3 pipeline/src/otc_pipeline/archive.py --out gtfs-2010` (or `uv run otc-pipeline archive`).
 
 The GTFS importer (`gtfs.py`) does the following:
 

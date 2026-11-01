@@ -1,0 +1,51 @@
+name: Archive 2010 GTFS
+
+# Fetches the late-2010 OC Transpo and STO GTFS feeds from the Wayback Machine, which the cloud
+# build environment cannot reach, and publishes them with a report to the `data/gtfs-2010` branch.
+# Then: git fetch origin data/gtfs-2010 && uv run otc-pipeline network --gtfs <zip>
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/archive-2010.yml
+      - pipeline/src/otc_pipeline/archive.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: archive-2010
+
+jobs:
+  fetch:
+    name: Fetch 2010 GTFS from the Wayback Machine
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Search the Wayback Machine and download the closest feeds
+        run: python3 -I pipeline/src/otc_pipeline/archive.py --out "$RUNNER_TEMP/gtfs-2010"
+
+      - name: Publish to the data/gtfs-2010 branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd "$RUNNER_TEMP/gtfs-2010" || exit 0
+          ls -la
+          cat > README.md <<EOF
+          # 2010 GTFS feeds (from the Wayback Machine)
+
+          Written by \`.github/workflows/archive-2010.yml\` (\`pipeline/src/otc_pipeline/archive.py\`
+          at ${GITHUB_SHA}). \`report.json\` lists every capture found and every feed checked,
+          with its Wayback URL. Import with \`uv run otc-pipeline network --gtfs <zip>\`.
+
+          Feeds © their agencies (OC Transpo / City of Ottawa, STO), redistributed for research.
+          EOF
+          git init -q -b data/gtfs-2010
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "2010 GTFS from the Wayback Machine (archive.py at ${GITHUB_SHA::7})"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/data/gtfs-2010

@@ -30,8 +30,8 @@ says what was stated and what is estimated.
 catalogue (number, fare class, termini), but the sources don't give their streets. They need OC
 Transpo's 2010 GTFS, which is preserved by the Wayback Machine. `web.archive.org` resets every
 connection from this build environment (the TLS handshake is cut after about 10 s; that's the
-Archive's side, the proxy allows it). Run `otc-pipeline archive` from a machine that can reach it,
-then `otc-pipeline network --gtfs <zip>`.
+Archive's side, the proxy allows it). The **Archive 2010 GTFS** GitHub workflow fetches it
+instead and publishes it to the `data/gtfs-2010` branch; import with `otc-pipeline network --gtfs <zip>`.
 
 ## Rules for adding a route by hand
 
