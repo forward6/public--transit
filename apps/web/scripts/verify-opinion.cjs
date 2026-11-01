@@ -20,7 +20,20 @@ const { chromium } = require('playwright');
   const game = () => page.evaluate(() => JSON.parse(localStorage.getItem('otc.game.v1') || 'null'));
   const t0 = Date.now();
   const log = (m) => console.log(`[${((Date.now() - t0) / 1000).toFixed(0)}s] ${m}`);
-  const until = (date) => page.waitForFunction((d) => (JSON.parse(localStorage.getItem('otc.game.v1') || '{}').date || '') >= d, date, { timeout: 600000, polling: 300 });
+  const dateNow = () => page.evaluate(() => JSON.parse(localStorage.getItem('otc.game.v1') || '{}').date || '');
+  // run at 1 day per second until `date`, reading (and closing) the front pages on the way
+  const until = async (date, onPaper) => {
+    await page.getByRole('radio', { name: '1 day per second' }).click();
+    while ((await dateNow()) < date) {
+      if (await page.locator('.front-card').count()) {
+        if (onPaper) await onPaper();
+        await page.locator('.front-card .close').click();
+      }
+      await page.waitForTimeout(400);
+    }
+    if (await page.locator('.front-card .close').count()) await page.locator('.front-card .close').click();
+    await page.getByRole('radio', { name: 'Pause' }).click();
+  };
 
   await page.goto(`${base}?lang=en&speed=0&still&opinion=1#view=10.4/45.33/-75.72`);
   await ready();
@@ -30,21 +43,14 @@ const { chromium } = require('playwright');
   await page.screenshot({ path: `${out}/opinion-map.jpg`, quality: 85 });
   log(`chip: ${await page.locator('.status-chip.approval').first().innerText()}`);
 
-  // run to the first front page
-  await page.getByRole('radio', { name: '1 day per second' }).click();
-  await until('2011-01-01');
-  await page.getByRole('radio', { name: 'Pause' }).click();
-  await page.waitForSelector('.front-card', { timeout: 20000 });
-  await page.waitForTimeout(800);
-  await page.screenshot({ path: `${out}/front-page.jpg`, quality: 85 });
-  log(`front page: ${(await page.locator('.front-card h3').innerText())}`);
-  await page.locator('.front-card .close').click();
-
-  // two months on
-  await page.getByRole('radio', { name: '1 day per second' }).click();
-  await until('2011-02-08');
-  await page.getByRole('radio', { name: 'Pause' }).click();
-  if (await page.locator('.front-card .close').count()) await page.locator('.front-card .close').click();
+  // two months on, reading the front pages
+  let papers = 0;
+  await until('2011-02-08', async () => {
+    papers++;
+    await page.waitForTimeout(800);
+    if (papers === 1) await page.screenshot({ path: `${out}/front-page.jpg`, quality: 85 });
+    log(`front page (${await dateNow()}): ${await page.locator('.front-card h3').innerText()}`);
+  });
   const g = await game();
   fs.writeFileSync(`${out}/game.json`, JSON.stringify(g));
   log(`now ${g.date}: history ${g.opinion.history.map((h) => h.approval).join(' ')}`);

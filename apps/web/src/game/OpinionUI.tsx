@@ -1,5 +1,5 @@
 // M6: public opinion, riders you can follow, the front page and the social feed.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PERSONAS, type GameState, type Lang, type OpinionAxis, type Persona, type Post, type Reason } from '@otc/shared';
 import {
   OPINION_2010, districtOpinion, explainCity, explainZone, journeyPosition, opinionSummary, toApproval, weatherOn, zoneScore, type GameWorld,
@@ -190,8 +190,11 @@ export function FrontPageView({ page, t, lang, compact = false }: { page: NonNul
 
 const SEEN_KEY = 'otc.press.seen';
 
-/** The month's front page, once, when it comes out (dismissable; it waits behind decisions). */
-export function FrontPageCard({ game, t, lang }: { game: GameApi; t: Strings; lang: Lang }) {
+/**
+ * The month's front page, once, when it comes out: the game pauses while you read it and resumes
+ * when you close it (it waits behind decisions).
+ */
+export function FrontPageCard({ game, t, lang, onShow, onClose }: { game: GameApi; t: Strings; lang: Lang; onShow: () => void; onClose: () => void }) {
   const page = game.state?.press?.at(-1);
   const [seen, setSeen] = useState(() => {
     try {
@@ -200,7 +203,11 @@ export function FrontPageCard({ game, t, lang }: { game: GameApi; t: Strings; la
       return '';
     }
   });
-  if (!page || page.month <= seen || game.decision) return null;
+  const visible = !!page && page.month > seen && !game.decision;
+  useEffect(() => {
+    if (visible) onShow();
+  }, [visible, page?.month]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!visible || !page) return null;
   const close = () => {
     setSeen(page.month);
     try {
@@ -208,6 +215,7 @@ export function FrontPageCard({ game, t, lang }: { game: GameApi; t: Strings; la
     } catch {
       /* ignore */
     }
+    onClose();
   };
   return (
     <div className="front-wrap" role="dialog" aria-label={t.op.outlet}>

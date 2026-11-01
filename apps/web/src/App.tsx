@@ -264,12 +264,24 @@ export function App() {
   }, [map, follow, riderNow, sel, view.speed]);
   // the opinion wash
   const opinionOn = settings.opinion && !!game.state?.opinion;
-  const values = useMemo(() => (opinionOn ? opinionValues(game.state, opinionView) : null), [opinionOn, game.state?.opinion, opinionView]); // eslint-disable-line react-hooks/exhaustive-deps
+  // redrawn daily, or weekly when days fly by (a thousand hexagons a second is a lot for a phone)
+  const opinionTick = view.speed >= DAYS_SPEED ? `w${game.state?.opinion?.history.length}` : game.state?.date;
+  const values = useMemo(() => (opinionOn ? opinionValues(game.state, opinionView) : null), [opinionOn, opinionTick, opinionView, !!game.state?.opinion]); // eslint-disable-line react-hooks/exhaustive-deps
   const zoneSel = sel?.type === 'zone' ? Number(sel.id) : null;
   const opinionFc = useMemo(() => (values ? opinionPolys(base?.zones ?? null, values, zoneSel) : null), [values, base, zoneSel]);
   useStreamedSource(map, OPINION_ZONES, opinionFc);
   const wx = weatherOn(date, game.state?.seed ?? 2010);
   const tempC = game.state ? temperatureAt(wx, view.time) : undefined;
+  // the paper pauses the game while it's read
+  const speedBeforePaper = useRef<SpeedIndex | null>(null);
+  const pauseForPaper = () => {
+    if (clock.speed() !== 0) speedBeforePaper.current = clock.speed();
+    clock.setSpeed(0);
+  };
+  const resumeAfterPaper = () => {
+    if (speedBeforePaper.current !== null && !game.decision) clock.setSpeed(speedBeforePaper.current);
+    speedBeforePaper.current = null;
+  };
   const openOpinion = () => {
     setSel({ type: 'opinion', id: 'city' });
     changeSettings({ opinion: true });
@@ -340,7 +352,7 @@ export function App() {
         approval={<ApprovalChip game={game} t={t} lang={settings.lang} onClick={openOpinion} />} hasOpinion={!!game.state?.opinion} tempC={tempC} />
       {!params.has('nodecision') && <DecisionCard game={game} t={t} lang={settings.lang} />}
       <NewsToasts game={game} t={t} lang={settings.lang} />
-      {!params.has('nodecision') && <FrontPageCard game={game} t={t} lang={settings.lang} />}
+      {!params.has('nodecision') && <FrontPageCard game={game} t={t} lang={settings.lang} onShow={pauseForPaper} onClose={resumeAfterPaper} />}
     </>
   );
 }
