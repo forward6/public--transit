@@ -746,7 +746,7 @@ to keep iteration fast; it expands to the full region afterwards.
 | M3 🔶 | **People ride** | Zones, synthetic population, demand model, RAPTOR skims, assignment, base-year calibration report | Ridership numbers appear and the 2011 targets are met within tolerance | L |
 | M4 🔶 | **Design tools → FIRST PLAYABLE** | Draw and edit routes, stops and frequencies (mouse, touch and Apple Pencil); live preview; isochrones; coverage and Scorecard v1 | You can redesign the network and see riders respond, on any device | L |
 | M5 🔶 | **Money and fleet** | Budget, fares, operating costs, garages, fleet ordering, maintenance, service-change calendar | You can run out of money in an interesting way | M |
-| M6 | **Opinion and media** | Opinion grid, rider diaries, "Follow a rider", headline generator, opinion maps | The public's reaction is visible and explainable | M |
+| M6 🔶 | **Opinion and media** | Opinion grid, rider diaries, "Follow a rider", headline generator, opinion maps | The public's reaction is visible and explainable | M |
 | M7 | **Council, elections and partners** | Councillors, whip counts, votes, Political Capital, elections, STO AI, funders, NCC, labour | A full four-year term plays out with soft consequences | L |
 | M8 | **Big projects** | LRT, commuter rail, Transitway segments, river crossings; procurement, construction disruption, opening day | You can build a rapid-transit line from proposal to opening | L |
 | M9 | **Growth** | Land-use allocation, developer proposals, TOD, urban boundary debates, ward redistribution | The 2030 city looks different depending on how you played | M |
@@ -892,8 +892,39 @@ to keep iteration fast; it expands to the full region afterwards.
      shocks, capital grants, difficulty presets, council votes on the budget (M7), costs for
      changing service between service-change dates, real Saturday and Sunday timetables, and
      weather (snowstorms) in the daily riders.
-8. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
-9. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
+8. 🔶 **M6 (v1):** opinion and media ([screenshots](screenshots/m6/)).
+   - **Opinion lives in each zone** (1,360 hexagons, Ottawa residents count towards approval) on
+     three axes: service, value for money and trust. Each day it moves towards a target made of
+     named reasons, so the "Why?" panel can show every point:
+     - service: how often buses come where people live; jobs within 45 minutes and waits against
+       what people are used to (expectations catch up over about five months); missed trips;
+       crowding (more riders per bus-hour than in 2010); cold waits and storm delays (fading over
+       a week or two); service cuts;
+     - value for money: fares and the levy against what people are used to paying;
+     - trust: the memory of the 2008–09 strike (fading over years), events (new routes, removed
+       routes, promises kept, fare and tax hikes, deficits, new buses; fading over months) and how
+       riding feels.
+     Opinion falls about twice as fast as it rises. Approval starts near 48%.
+   - **Each zone's level of service** comes from the demand model's skims (jobs within 45 minutes
+     by transit at the peak, and the average wait), measured with every scheduled plan.
+   - **Weather:** deterministic Ottawa days from 1981–2010 normals, with spells, storm systems
+     and deep cold. Storms keep some riders home and slow buses; the temperature shows by the clock.
+   - **Six riders to follow** (Amira, Gérald, Priya, Sam, Marc, Lise), fictional, with real
+     door-to-door journeys on the network in operation (RAPTOR). Their diaries record cold waits,
+     storms, missed trips, high-floor buses Sam can't board (until the new buses replace them),
+     Lise's missing midday bus in Manotick, and trips made better or worse by a service change.
+     Follow one to see their path and their position on the map.
+   - **The press:** a monthly front page from *The Rideau Ledger* / *Le Fil de l'Outaouais*
+     (fictional), stories ranked by news value (old news counts for less), and a social feed:
+     the riders' diaries, the weather, service changes, and residents giving their main reason.
+   - **Opinion map:** the Opinion view washes Ottawa's zones from disapprove (warm) to approve
+     (cool), by approval or by axis; tap a zone for its reasons.
+   - **Testing it:** `pnpm --filter @otc/sim opinion-demo [fare-%] [levy-%]` plays a year in Node.
+   - **Still to do:** rider-level crowding and pass-ups, accessibility failures, opinion by ward
+     (needs the 2010 ward map, M7), town halls and press conferences, NIMBY/YIMBY reactions to
+     projects (M8), and calibrating the starting mood against 2010 polling.
+9. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
+10. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 
 ---
 

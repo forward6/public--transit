@@ -1,6 +1,6 @@
 import type { FeatureCollection, LineString, Point, Polygon } from 'geojson';
 import type { DemandFile, Network, RouteClass, ZonesFile } from '@otc/shared';
-import { prepareLine, sliceLine, type Draft, type Playback, type VehicleState } from '@otc/sim';
+import { prepareLine, sliceLine, type Draft, type Journey, type Playback, type VehicleState } from '@otc/sim';
 
 export type LinesFC = FeatureCollection<LineString>;
 export type PointsFC = FeatureCollection<Point>;
@@ -152,4 +152,36 @@ export function isoPolys(zones: ZonesFile | null, minutes: Float32Array | null):
   // coarse (resolution-7) cells first, so the finer cells inside them draw on top
   features.sort((a, b) => Number(b.properties!.coarse) - Number(a.properties!.coarse));
   return { type: 'FeatureCollection', features };
+}
+
+// ------------------------------------------------------------------------------------------ M6
+
+/** Ottawa's zones for the opinion wash: `v` = approval points around 50% (or an axis ÷ 2). */
+export function opinionPolys(zones: ZonesFile | null, values: number[] | null, selected: number | null): PolysFC {
+  if (!zones || !values) return { type: 'FeatureCollection', features: [] };
+  const features: PolysFC['features'] = [];
+  zones.zones.forEach((z, i) => {
+    if (!z.ring || z.city !== 'ottawa' || z.pop <= 0) return;
+    features.push({ type: 'Feature', properties: { i, v: Math.round(values[i]! * 10) / 10, coarse: z.areaKm2 > 2, selected: i === selected },
+      geometry: { type: 'Polygon', coordinates: [[...z.ring, z.ring[0]!]] } });
+  });
+  features.sort((a, b) => Number(b.properties!.coarse) - Number(a.properties!.coarse));
+  return { type: 'FeatureCollection', features };
+}
+
+/** A rider's journeys as lines (walk / ride) and end points. */
+export function riderPath(journeys: (Journey | null)[]): { lines: LinesFC; ends: PointsFC['features'] } {
+  const lines: LinesFC = { type: 'FeatureCollection', features: [] };
+  const ends: PointsFC['features'] = [];
+  for (const j of journeys) {
+    if (!j) continue;
+    for (const leg of j.legs) {
+      if (leg.kind === 'wait' || leg.path.length < 2) continue;
+      lines.features.push({ type: 'Feature', properties: { kind: leg.kind }, geometry: { type: 'LineString', coordinates: leg.path } });
+    }
+    const first = j.legs[0]?.path[0];
+    const last = j.legs.at(-1)?.path.at(-1);
+    for (const c of [first, last]) if (c) ends.push({ type: 'Feature', properties: { kind: 'end' }, geometry: { type: 'Point', coordinates: c } });
+  }
+  return { lines, ends };
 }

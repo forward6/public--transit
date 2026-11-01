@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { BusType, Edit, GameEvent, GameState, PendingFigures } from '@otc/shared';
+import { PERSONAS, type BusType, type Edit, type GameEvent, type GameState, type PendingFigures, type ZoneLos } from '@otc/shared';
 import {
-  Playback, advanceDay, agencyOnly, applyEdits, buildGarage, dismissEvent, newGame, openDecision, orderBuses, resolve, schedulePlan,
-  serviceStats, setLevers, setPendingFigures, setService, type Resolution, type Scorecard,
+  JourneyPlanner, Playback, agencyOnly, applyEdits, buildGarage, dismissEvent, newGame, openDecision, orderBuses, resolve, schedulePlan,
+  serviceStats, setLevers, setPendingFigures, setService, stepDay, updateRoutines, withOpinion, type GameWorld, type PersonaTrips,
+  type Resolution, type Scorecard,
 } from '@otc/sim';
 import type { NetworkState } from '../network/useNetwork';
 import type { Clock } from '../sim/clock';
 
 const STORE_KEY = 'otc.game.v1';
+const EMPTY_WORLD: GameWorld = { zones: [], baseLos: { access: [], wait: [] }, share: [] };
 
 export function loadGame(): GameState | null {
   try {
@@ -38,6 +40,18 @@ export interface GameApi {
   restart: () => void;
   /** the demand model is measuring a plan (scheduled, or just put into operation) */
   measuring: boolean;
+  /** M6: what the opinion model and the diaries need (null until the data is loaded) */
+  world: GameWorld | null;
+}
+
+/** A zone's level of service once `plan` runs, from the current one and the model's before/after. */
+function losAfter(cur: ZoneLos | undefined, baseline: Scorecard, plan: Scorecard): ZoneLos | undefined {
+  const [bA, pA, bW, pW] = [baseline.zoneAccess, plan.zoneAccess, baseline.zoneWait, plan.zoneWait];
+  if (!cur || !bA || !pA || !bW || !pW) return undefined;
+  return {
+    access: cur.access.map((a, i) => Math.round((a * (pA[i]! + 1)) / (bA[i]! + 1))),
+    wait: cur.wait.map((w, i) => Math.round(Math.max(0.5, Math.min(30, w + pW[i]! - bW[i]!)) * 10) / 10),
+  };
 }
 
 /** Routes to follow after a change: the ones it touches, and the few others whose riders move most. */
@@ -86,9 +100,6 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
     return () => clearTimeout(id);
   }, [state]);
 
-  const step = useCallback(() => setState((s) => (s ? advanceDay(s) : s)), []);
-  useEffect(() => clock.onDayEnd(step), [clock, step]);
-
   const decision = state ? openDecision(state) : undefined;
   useEffect(() => {
     if (decision) clock.setSpeed(0);
@@ -102,6 +113,50 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
     const network = applyEdits(base.network, state.applied);
     return { ...base, network, playback: new Playback(network) };
   }, [base, appliedKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const operationNetwork = operation?.network ?? null;
+
+  // M6: the opinion model's world, and the personas' trips on the network in operation
+  const baseWorld = useMemo<GameWorld | null>(() => {
+    if (!base?.demand?.los || !base.zones) return null;
+    const demand = base.demand;
+    return {
+      zones: base.zones.zones, baseLos: demand.los!, share: base.zones.zones.map((z) => demand.zones[String(z.id)]?.[1] ?? 0),
+      places: base.network.stops.filter((x) => x.kind === 'station').map((x) => ({ lon: x.lon, lat: x.lat, name: x.name })),
+    };
+  }, [base]);
+  const [trips, setTrips] = useState<Record<string, PersonaTrips> | undefined>();
+  useEffect(() => {
+    const network = operationNetwork;
+    if (!network) return;
+    // about a tenth of a second of work: let the map draw first
+    const id = setTimeout(() => {
+      const jp = new JourneyPlanner(network);
+      setTrips(Object.fromEntries(PERSONAS.map((p) => [p.id, {
+        out: jp.plan([p.home.lon, p.home.lat], [p.dest.lon, p.dest.lat], p.out),
+        back: jp.plan([p.dest.lon, p.dest.lat], [p.home.lon, p.home.lat], p.back),
+      }])));
+    }, 300);
+    return () => clearTimeout(id);
+  }, [operationNetwork]);
+  const world = useMemo<GameWorld | null>(() => {
+    if (!baseWorld) return null;
+    const network = operationNetwork ?? base!.network;
+    const routes = new Map([...base!.network.routes, ...network.routes].map((r) => [r.id, r.shortName]));
+    const stops = new Map(network.stops.map((x) => [x.id, x.name]));
+    return { ...baseWorld, personas: PERSONAS, trips, routeName: (id) => routes.get(id) ?? id.replace(/^oct-/, ''),
+      stopName: (id) => stops.get(id) ?? id };
+  }, [baseWorld, trips, operationNetwork, base]);
+  const worldRef = useRef(world);
+  worldRef.current = world;
+  useEffect(() => {
+    if (world && state && !state.opinion) setState((s) => (s ? withOpinion(s, world) : s));
+  }, [world, state?.opinion]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (world?.trips) setState((s) => (s?.opinion ? updateRoutines(s, world) : s));
+  }, [world?.trips]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const step = useCallback(() => setState((s) => (s ? (worldRef.current ? stepDay(s, worldRef.current) : stepDay(s, EMPTY_WORLD)) : s)), []);
+  useEffect(() => clock.onDayEnd(step), [clock, step]);
 
   /** What the network does once `added` joins `before`: OC Transpo's weekday figures and the routes to watch. */
   const figures = useCallback(async (before: Edit[], added: Edit[], g: GameState): Promise<Omit<PendingFigures, 'key'>> => {
@@ -111,7 +166,9 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
     const k = g.service.boardings / Math.max(1, baseline.byAgency.octranspo ?? 0);
     const s = serviceStats(agencyOnly(applyEdits(base.network, [...before, ...added]), 'octranspo'));
     const watch = watchList(added, baseline, plan);
+    const los = losAfter(g.los ?? base.demand?.los, baseline, plan);
     return {
+      ...(los ? { los } : {}),
       service: { boardings: (plan.byAgency.octranspo ?? 0) * k, vehicleHours: s.vehicleHours, peakVehicles: s.peakVehicles },
       routes: Object.fromEntries(watch.map((r) => [r, Math.round((plan.byRoute[r] ?? 0) * k)])),
       routesBefore: Object.fromEntries(watch.map((r) => [r, Math.round((baseline.byRoute[r] ?? 0) * k)])),
@@ -147,7 +204,7 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
     const n = g.serviceFor ?? 0;
     run(`applied:${appliedKey}`, async () => {
       const f = await figures(g.applied.slice(0, n), g.applied.slice(n), g);
-      setState((s) => (s && s.applied.length === g.applied.length ? setService(s, f.service, f.routes, f.routesBefore) : s));
+      setState((s) => (s && s.applied.length === g.applied.length ? setService(s, f.service, f.routes, f.routesBefore, undefined, f.los) : s));
     });
   }, [base, appliedKey, state?.serviceFor, figures, run]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -159,7 +216,7 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
   }, [state?.events, state?.date]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
-    state, operation, decision, news, measuring: measuring > 0,
+    state, operation, decision, news, measuring: measuring > 0, world,
     resolve: (r) => setState((s) => (s && openDecision(s) ? resolve(s, openDecision(s)!.id, r) : s)),
     dismiss: (id) => setState((s) => (s ? dismissEvent(s, id) : s)),
     orderBuses: (type, count) => setState((s) => (s ? orderBuses(s, type, count) : s)),
@@ -168,7 +225,7 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
     schedule: (edits) => setState((s) => (s ? schedulePlan(s, edits) : s)),
     unschedule: () => setState((s) => (s ? schedulePlan(s, []) : s)),
     restart: () => {
-      if (startFigures) setState(newGame(startFigures));
+      if (startFigures) setState(world ? withOpinion(newGame(startFigures), world) : newGame(startFigures));
       clock.setTime(60); // 00:01
     },
   };

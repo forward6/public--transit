@@ -151,7 +151,8 @@ export function dayPosts(s: GameState, world: FeedWorld, date: string, diaries: 
     const d = loud[Math.floor(r('diary') * loud.length)]!;
     const n = d.out ?? d.back;
     post('diary', d.mood > 0 ? 'good' : 'bad', { persona: d.persona, name: d.persona, place: '' },
-      { kind: d.kind, minutes: n?.minutes ?? 0, wait: n?.waitMin ?? 0, temp: n?.temp ?? 0, route: n?.routes[0] ?? '' });
+      { kind: d.kind, minutes: n?.minutes ?? 0, wait: n?.waitMin ?? 0, temp: n?.temp ?? 0, route: n?.routes[0] ?? '', late: n?.late ?? 0,
+        stop: n?.stop ?? '', delta: s.routines?.[d.persona] ? (s.routines[d.persona]!.minutes - (s.routines[d.persona]!.prev ?? s.routines[d.persona]!.minutes)) : 0 });
   }
   // the weather
   const w = weatherOn(date, s.seed);

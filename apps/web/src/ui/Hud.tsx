@@ -10,6 +10,8 @@ export interface Settings {
   buildings3d: boolean;
   /** M3 Riders view */
   riders: boolean;
+  /** M6 Opinion view */
+  opinion: boolean;
 }
 
 interface HudProps {
@@ -32,6 +34,11 @@ interface HudProps {
   boardings: number | null;
   /** the riders chip (yesterday's riders once the campaign runs) */
   ridersChip?: ReactNode;
+  /** M6: the approval chip, and whether the Opinion view is available */
+  approval?: ReactNode;
+  hasOpinion?: boolean;
+  /** the temperature now (°C) */
+  tempC?: number;
   /** M4 Plan mode */
   planActive: boolean;
   onTogglePlan: () => void;
@@ -74,14 +81,16 @@ function Segmented<T extends string>({ label, value, options, onChange, render }
   );
 }
 
-function Controls({ t, settings, onChange, hasRiders, plan }: { t: Strings; settings: Settings; onChange: HudProps['onChange'];
-  hasRiders: boolean; plan?: { active: boolean; toggle: () => void } }) {
+function Controls({ t, settings, onChange, hasRiders, hasOpinion, plan }: { t: Strings; settings: Settings; onChange: HudProps['onChange'];
+  hasRiders: boolean; hasOpinion?: boolean; plan?: { active: boolean; toggle: () => void } }) {
   return (
     <div className="controls">
       {plan && <button className={`toggle plan-toggle ${plan.active ? 'on' : ''}`} aria-pressed={plan.active} onClick={plan.toggle}>{t.plan}</button>}
       <Segmented label={t.languageLabel} value={settings.lang} options={LANGS} onChange={(lang) => onChange({ lang })} render={(v) => v.toUpperCase()} />
       {hasRiders && <button className={`toggle ${settings.riders ? 'on' : ''}`} aria-pressed={settings.riders}
         onClick={() => onChange({ riders: !settings.riders })}>{t.riders}</button>}
+      {hasOpinion && <button className={`toggle ${settings.opinion ? 'on' : ''}`} aria-pressed={settings.opinion}
+        onClick={() => onChange({ opinion: !settings.opinion })}>{t.op.toggle}</button>}
       <button className={`toggle ${settings.buildings3d ? 'on' : ''}`} aria-pressed={settings.buildings3d}
         onClick={() => onChange({ buildings3d: !settings.buildings3d })}>{t.buildings3d}</button>
     </div>
@@ -130,7 +139,7 @@ function StatusChip({ t, status, note, onClick }: { t: Strings; status: NetworkS
   return <button className={`status-chip status-${status}`} title={note} onClick={onClick}><i />{t.networkStatus[status]}</button>;
 }
 
-function Legend({ t, riders, status }: { t: Strings; riders: boolean; status?: ReactNode }) {
+function Legend({ t, riders, opinion, status }: { t: Strings; riders: boolean; opinion?: boolean; status?: ReactNode }) {
   return (
     <section className="legend glass" aria-label={t.legendTitle}>
       <div className="lg-title">{t.legendTitle}</div>
@@ -140,6 +149,7 @@ function Legend({ t, riders, status }: { t: Strings; riders: boolean; status?: R
       <div className="lg-row"><svg viewBox="0 0 40 12"><line x1="2" y1="6" x2="38" y2="6" stroke="var(--boundary)" strokeWidth="2" strokeDasharray="6 4" /></svg>{t.legendRegion}</div>
       <div className="lg-row"><i className="sw sw-outside" />{t.legendOutside}</div>
       {riders && <div className="lg-riders"><span className="lg-ramp" />{t.legendRiders}</div>}
+      {opinion && <div className="lg-opinion"><span>{t.op.opinionLegend[0]}</span><span className="lg-ramp op" /><span>{t.op.opinionLegend[1]}</span></div>}
       {status && <div className="lg-status">{status}</div>}
       <div className="lg-note">{t.legendNote}</div>
     </section>
@@ -151,7 +161,8 @@ export function Hud(props: HudProps) {
   const lastSpeed = useRef<SpeedIndex>(3);
   if (props.speed !== 0) lastSpeed.current = props.speed;
   const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue,
-    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury } = props;
+    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC } = props;
+  const temp = tempC !== undefined ? `${tempC} °C · ` : '';
   const hasRiders = boardings !== null;
   const planCtl = hasRiders ? { active: planActive, toggle: onTogglePlan } : undefined;
   if (layout === 'phone') {
@@ -159,7 +170,7 @@ export function Hud(props: HudProps) {
       <>
         <header className="m-top glass">
           <Logo size={38} />
-          <div className="m-title"><span>{dateShort ?? t.dateShort} · {dayNote ?? `${inService} ${t.inService}`}</span><b>{formatClock(time)}</b></div>
+          <div className="m-title"><span>{dateShort ?? t.dateShort} · {temp}{dayNote ?? `${inService} ${t.inService}`}</span><b>{formatClock(time)}</b></div>
           <button className="m-play" aria-label={t.speed[speed === 0 ? 3 : 0]} onClick={() => onSpeed(speed === 0 ? (lastSpeed.current || 3) : 0)}>
             <svg viewBox="0 0 20 20" fill="currentColor">{SPEED_ICONS[speed === 0 ? 1 : 0]}</svg>
           </button>
@@ -175,8 +186,8 @@ export function Hud(props: HudProps) {
             <>
               <div className="m-sheet-title">{t.mapStyle}</div>
               <div className="m-row"><SpeedControl t={t} speed={speed} onSpeed={onSpeed} /></div>
-              <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} plan={planCtl} />
-              <div className="m-chips">{treasury}{ridersChip}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></div>
+              <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} />
+              <div className="m-chips">{treasury}{approval}{ridersChip}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></div>
             </>
           )}
         </section>
@@ -198,11 +209,11 @@ export function Hud(props: HudProps) {
         <div className="clock">
           <div className="clock-date">{dateLabel ?? t.date}</div>
           <div className="clock-row"><span className="clock-time">{formatClock(time)}</span>
-            <span className="clock-sub">{dayNote ?? `${inService} ${t.inService}`}</span></div>
+            <span className="clock-sub">{temp}{dayNote ?? `${inService} ${t.inService}`}</span></div>
         </div>
         <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
-        {layout === 'desktop' ? <div className="chips">{treasury}{ridersChip}</div> : treasury}
-        <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} plan={planCtl} />
+        {layout === 'desktop' ? <div className="chips"><div className="chip-row">{treasury}{approval}</div>{ridersChip}</div> : treasury}
+        <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} />
       </header>
       <MapButtons t={t} map={map} />
       {inspector ? (
@@ -212,8 +223,8 @@ export function Hud(props: HudProps) {
         </aside>
       ) : null}
       {dock}
-      {!dock && <Legend t={t} riders={settings.riders && hasRiders}
-        status={<>{layout !== 'desktop' && ridersChip}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></>} />}
+      {!dock && <Legend t={t} riders={settings.riders && hasRiders} opinion={settings.opinion && hasOpinion}
+        status={<>{layout !== 'desktop' && <>{approval}{ridersChip}</>}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></>} />}
     </>
   );
 }

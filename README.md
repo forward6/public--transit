@@ -51,6 +51,17 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
 
 ![Riders day by day: a December service change settling in](docs/screenshots/days/ridership-daily.jpg)
 
+- M6 is under way: opinion and media.
+  - **The public reacts.** Every Ottawa neighbourhood has an opinion of the Commission (service,
+    value for money, trust) that moves day by day with service, reliability, crowding, the
+    weather, fares, taxes and the news. Tap the **Approval** chip, or switch on **Opinion** to see
+    it on the map; every number has a "why".
+  - **Follow a rider:** six fictional riders, from Marc's Orléans commute to Lise's missing bus in
+    Manotick, ride the real network and keep diaries.
+  - **The papers:** a front page every month, and a feed of what people are saying.
+
+![Public opinion, neighbourhood by neighbourhood](docs/screenshots/m6/opinion-panel.jpg)
+
 ![The 2012 budget](docs/screenshots/m5/budget-2012.jpg)
 
 ![The 2010 network at 8:10 am](docs/screenshots/m2/network-2010-overview.jpg)
@@ -75,8 +86,8 @@ URL options:
 - `&layout=phone|tablet|desktop`
 - `&t=HH:MM` sets the time of day (a new game starts at 00:01; a saved one resumes where it was)
 - `&speed=0..5` sets the speed: pause, real time, 1 min/s, 15 min/s (the default), 2 h/s, 1 day/s
-- `&select=stop:carleton|route:oct-otrain|vehicle:oct-otrain` opens an inspector
-- `&riders=1` turns on the Riders view
+- `&select=stop:carleton|route:oct-otrain|vehicle:oct-otrain|persona:marc|opinion:city` opens an inspector
+- `&riders=1` turns on the Riders view; `&opinion=1` the Opinion view (`&ov=service|value|trust` for an axis)
 - `&plan=1` opens Plan mode. Add `&iso=lon,lat` for travel times from a point, or
   `&draw=lon,lat;lon,lat;…` to sketch a route.
 

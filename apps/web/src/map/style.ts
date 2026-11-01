@@ -24,6 +24,10 @@ export interface StyleOptions {
   riders?: boolean;
   /** M4 Plan mode: the network fades back; the draft route and the travel-time bloom draw on top */
   plan?: { draftLine: LinesFC; draftPoints: PointsFC; iso: PolysFC; isoOrigin: [number, number] | null };
+  /** M6 Opinion view: zones washed by opinion (data streamed into OPINION_ZONES), the network fades back */
+  opinion?: boolean;
+  /** M6 a followed rider: their journey and position (data streamed into RIDER_PATH / RIDER_POS), in their colour */
+  rider?: string | null;
   /** absolute URL prefix where data/ and glyphs/ are served (ends with '/') */
   baseUrl: string;
 }
@@ -38,9 +42,12 @@ export const NET_LOADS = 'net-loads';
 export const PLAN_DRAFT = 'plan-draft';
 export const PLAN_DRAFT_PTS = 'plan-draft-pts';
 export const PLAN_ISO = 'plan-iso';
+export const OPINION_ZONES = 'op-zones';
+export const RIDER_PATH = 'rider-path';
+export const RIDER_POS = 'rider-pos';
 export const CLASSES: RouteClass[] = ['local', 'peak', 'rural', 'sto', 'frequent', 'transitway', 'otrain'];
 /** Interactive layers, top-most first (click priority). */
-export const PICKABLE = ['net-vehicles', 'net-vehicle-dots', 'net-stations', 'net-stops', 'net-routes', 'net-otrain', 'net-transitway'];
+export const PICKABLE = ['rider-pos', 'net-vehicles', 'net-vehicle-dots', 'net-stations', 'net-stops', 'net-routes', 'net-otrain', 'net-transitway', 'op-zones'];
 export const TERRAIN = 'terrain';
 
 type Stops = number[];
@@ -183,8 +190,10 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
   }
 
   if (o.plan) addIsoLayers(L, p);
-  if (o.network) addNetworkLayers(L, p, !!o.riders && !!o.network.zones?.features.length, !!o.plan);
+  if (o.opinion) addOpinionLayers(L, p);
+  if (o.network) addNetworkLayers(L, p, !!o.riders && !!o.network.zones?.features.length, !!o.plan || !!o.opinion);
   if (o.plan) addDraftLayers(L, p);
+  if (o.rider) addRiderLayers(L, p, o.rider);
 
   // --- labels ---------------------------------------------------------------------------------------
   const halo = { 'text-halo-color': p.halo, 'text-halo-width': 1.6, 'text-halo-blur': 0.4 };
@@ -242,6 +251,12 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
       ...(o.plan.isoOrigin ? [{ type: 'Feature', properties: { origin: true }, geometry: { type: 'Point', coordinates: o.plan.isoOrigin } }] : [])] } },
   } : {};
 
+  const empty = { type: 'geojson' as const, data: { type: 'FeatureCollection' as const, features: [] } };
+  const m6Sources = {
+    ...(o.opinion ? { [OPINION_ZONES]: empty } : {}),
+    ...(o.rider ? { [RIDER_PATH]: { ...empty, lineMetrics: true }, [RIDER_POS]: empty } : {}),
+  };
+
   return {
     version: 8,
     name: `OTC base map 2010 · ${p.id}`,
@@ -255,6 +270,7 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
         attribution: 'CDEM © Natural Resources Canada' } } : {}),
       ...netSources,
       ...planSources,
+      ...m6Sources,
     },
     layers,
   } as StyleSpecification;
@@ -396,6 +412,43 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders
 function rgba(hex: string, a: number): string {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+/** The opinion wash's diverging scale: approval points around 50% (warm = disapprove, cool = approve, grey = split). */
+export const OPINION_RAMP: [number, string][] = [[-14, '#B4462E'], [-7, '#E39A6F'], [0, '#C9CDD3'], [7, '#6FB3B8'], [14, '#1F7A80']];
+export const OPINION_RAMP_NIGHT: [number, string][] = [[-14, '#D9654A'], [-7, '#B5795A'], [0, '#5A6474'], [7, '#4D9AA0'], [14, '#3FB7BE']];
+
+/** M6 Opinion view: Ottawa's zones washed by opinion, under the (muted) network; the selected zone outlined. */
+function addOpinionLayers(L: (l: LayerSpecification) => void, p: Palette) {
+  const ramp = (p.night ? OPINION_RAMP_NIGHT : OPINION_RAMP).flat();
+  L({ id: 'op-zones', type: 'fill', source: OPINION_ZONES, filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: {
+      'fill-color': ['interpolate', ['linear'], ['get', 'v'], ...ramp],
+      'fill-opacity': ['case', ['boolean', ['get', 'coarse'], false], 0.42, 0.58],
+      'fill-outline-color': p.night ? 'rgba(10,18,30,0.35)' : 'rgba(255,255,255,0.45)',
+    } as never });
+  L({ id: 'op-zones-selected', type: 'line', source: OPINION_ZONES, filter: ['==', ['get', 'selected'], true],
+    paint: { 'line-color': p.night ? '#FFFFFF' : '#14213A', 'line-width': 2.5 } });
+}
+
+/** M6 a followed rider: walking dashed, riding in their colour, waiting and moving as a dot. */
+function addRiderLayers(L: (l: LayerSpecification) => void, p: Palette, color: string) {
+  const round = { 'line-join': 'round', 'line-cap': 'round' } as const;
+  L({ id: 'rider-ride-case', type: 'line', source: RIDER_PATH, layout: round, filter: ['==', ['get', 'kind'], 'ride'],
+    paint: { 'line-color': p.night ? '#0B1220' : '#FFFFFF', 'line-width': zoomLin(10, 6, 15, 11) } });
+  L({ id: 'rider-ride', type: 'line', source: RIDER_PATH, layout: round, filter: ['==', ['get', 'kind'], 'ride'],
+    paint: { 'line-color': color, 'line-width': zoomLin(10, 3, 15, 6.5) } });
+  L({ id: 'rider-walk', type: 'line', source: RIDER_PATH, layout: round, filter: ['==', ['get', 'kind'], 'walk'],
+    paint: { 'line-color': color, 'line-width': zoomLin(10, 2, 15, 3.5), 'line-dasharray': [0.6, 1.8] } });
+  L({ id: 'rider-ends', type: 'circle', source: RIDER_POS, filter: ['==', ['get', 'kind'], 'end'],
+    paint: { 'circle-radius': zoomLin(10, 4, 15, 7), 'circle-color': p.night ? '#0B1220' : '#FFFFFF', 'circle-stroke-color': color, 'circle-stroke-width': 3 } });
+  L({ id: 'rider-halo', type: 'circle', source: RIDER_POS, filter: ['==', ['get', 'kind'], 'now'],
+    paint: { 'circle-radius': zoomLin(10, 14, 15, 22), 'circle-color': color, 'circle-opacity': 0.22, 'circle-blur': 0.4 } });
+  L({ id: 'rider-pos', type: 'circle', source: RIDER_POS, filter: ['==', ['get', 'kind'], 'now'],
+    paint: { 'circle-radius': zoomLin(10, 7, 15, 10), 'circle-color': color, 'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': 2.5 } });
+  L({ id: 'rider-label', type: 'symbol', source: RIDER_POS, filter: ['==', ['get', 'kind'], 'now'],
+    layout: { 'text-field': ['get', 'initial'], 'text-font': ['Inter Bold'], 'text-size': zoomLin(10, 9, 15, 12), 'text-allow-overlap': true },
+    paint: { 'text-color': '#FFFFFF' } });
 }
 
 /** M4 travel-time bloom: zone hexagons in four bands (10/20/30/45 min), under the network. */

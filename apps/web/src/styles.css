@@ -295,6 +295,7 @@ body.layout-phone .m-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-to
 @media (max-width: 1999px) { body.layout-desktop .brand-sub { display: none; } }
 /* French labels are longer: keep the top bar on one line by dropping the name, then the gap */
 @media (max-width: 1699px) { html[lang=fr] body.layout-desktop .brand-text { display: none; } }
+@media (max-width: 1599px) { body.layout-desktop .brand-text { display: none; } }
 body.layout-desktop .controls { flex-wrap: nowrap; }
 @media (max-width: 1499px) { body.layout-desktop .topbar { gap: 14px; } }
 
@@ -333,3 +334,95 @@ table.watch tr + tr { border-top: 1px solid var(--divider); }
 .route-trend .trend-row svg.spark { width: 90px; height: 26px; flex: none; }
 .route-trend .trend-row p { margin: 0; font-size: 13px; color: var(--muted); }
 .route-trend .trend-row b { color: var(--fg); font-size: 15px; }
+
+/* =====================================================================
+   M6 — opinion, riders to follow, the front page and the feed
+   ===================================================================== */
+body.theme-day { --op-neg: #b4462e; --op-pos: #1f7a80; --op-mid: #c9cdd3; }
+body.theme-night { --op-neg: #d9654a; --op-pos: #3fb7be; --op-mid: #5a6474; }
+.topbar .chip-row { display: flex; gap: 6px; }
+.status-chip.approval i { background: var(--op-pos); }
+.status-chip.approval.warn i { background: var(--amber); }
+.status-chip.approval.bad i { background: var(--op-neg); }
+.lg-opinion { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+.lg-ramp.op { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #b4462e, #e39a6f, #c9cdd3, #6fb3b8, #1f7a80); }
+.theme-night .lg-ramp.op { background: linear-gradient(90deg, #d9654a, #b5795a, #5a6474, #4d9aa0, #3fb7be); }
+.approval-big { display: flex; align-items: baseline; gap: 8px; margin: 12px 0 2px; }
+.approval-big b { font-size: 30px; font-weight: 720; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.approval-big span { font-size: 12px; color: var(--muted); }
+.approval-chart .line { fill: none; stroke: var(--op-pos); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.approval-chart .dot { fill: var(--fg); }
+.approval-chart .grid line.mid { stroke: var(--faint); stroke-dasharray: 3 3; }
+.approval-chart .tick.end { text-anchor: end; }
+.seg.wide { width: 100%; }
+.seg.wide button { flex: 1; padding: 0 4px; min-width: 0; font-size: 11.5px; }
+ul.reasons { list-style: none; margin: 6px 0; padding: 0; }
+ul.reasons li { display: grid; grid-template-columns: minmax(0, 1.25fr) 1fr 3.2em; gap: 8px; align-items: center; font-size: 12.5px; padding: 3px 0; cursor: help; }
+ul.reasons li span { display: flex; flex-direction: column; line-height: 1.2; }
+ul.reasons li small { font-size: 10px; color: var(--muted); }
+ul.reasons .track { position: relative; height: 8px; border-radius: 4px; background: var(--track); display: block; }
+ul.reasons .track::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--faint); }
+ul.reasons .track i { position: absolute; top: 0; bottom: 0; display: block; border-radius: 4px; }
+ul.reasons .track i.pos { background: var(--op-pos); }
+ul.reasons .track i.neg { background: var(--op-neg); }
+ul.reasons b { text-align: right; font-variant-numeric: tabular-nums; font-weight: 650; }
+ul.reasons b.up { color: var(--op-pos); }
+ul.reasons b.down { color: var(--op-neg); }
+ul.reasons.axes { margin-top: 12px; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; display: grid; place-items: center; color: #fff; font-style: normal; font-weight: 700; font-size: 13px; }
+.avatar.big { width: 38px; height: 38px; font-size: 16px; }
+ul.personas { list-style: none; margin: 4px 0; padding: 0; display: grid; gap: 4px; }
+.persona-card { width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; border: 0; background: var(--track); border-radius: 12px; padding: 8px 10px;
+  font: inherit; color: var(--fg); cursor: pointer; }
+.persona-card:hover { background: color-mix(in srgb, var(--track) 60%, var(--accent) 12%); }
+.persona-card span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.persona-card b { font-size: 13px; }
+.persona-card small { font-size: 11px; color: var(--muted); }
+.persona-card em { font-style: normal; font-size: 11.5px; color: var(--fg2); margin-top: 3px; }
+.mood.m-1 { color: var(--op-neg); }
+.mood.m1 { color: var(--op-pos); }
+.trip { margin: 4px 0 8px; }
+.trip-head { font-size: 11.5px; font-weight: 650; color: var(--fg2); margin-bottom: 4px; }
+.timeline li.leg-ride::before { background: var(--accent); border-color: var(--accent); }
+.timeline li.leg-wait::before { border-color: var(--amber); }
+.timeline li.leg-end::before { background: var(--fg); border-color: var(--fg); }
+ul.diary { list-style: none; margin: 4px 0; padding: 0; }
+ul.diary li { border-left: 3px solid var(--op-mid); padding: 4px 0 4px 10px; margin: 6px 0; }
+ul.diary li.m-1 { border-left-color: var(--op-neg); }
+ul.diary li.m1 { border-left-color: var(--op-pos); }
+ul.diary small { font-size: 11px; color: var(--muted); }
+ul.diary p { margin: 2px 0 0; font-size: 13px; line-height: 1.4; color: var(--fg); font-family: var(--serif); font-style: italic; }
+ul.feed { list-style: none; margin: 4px 0; padding: 0; }
+ul.feed li { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--divider); }
+ul.feed li:first-child { border-top: 0; }
+ul.feed b { font-size: 12.5px; }
+ul.feed small { font-size: 11px; color: var(--muted); }
+ul.feed p { margin: 2px 0 0; font-size: 13px; line-height: 1.4; }
+.pages { display: grid; gap: 8px; }
+/* the front page: a newspaper, not a dashboard */
+.front-page { font-family: var(--serif); background: #fbf8f1; color: #1b1a17; border-radius: 6px; padding: 14px 16px 12px; box-shadow: inset 0 0 0 1px rgba(27, 26, 23, 0.08); }
+.front-page header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 3px double #1b1a17; padding-bottom: 6px; margin-bottom: 10px; }
+.front-page header b { font-size: 22px; font-weight: 700; letter-spacing: 0.01em; }
+.front-page header span { font-family: var(--ui); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #5c584f; }
+.front-page h3 { font-size: 26px; line-height: 1.12; margin: 0 0 6px; font-weight: 700; }
+.front-page .deck { font-size: 15px; line-height: 1.4; margin: 0 0 10px; color: #3a3832; font-style: italic; }
+.front-page ul { list-style: none; margin: 0; padding: 8px 0 0; border-top: 1px solid #d7d2c6; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.front-page ul li { display: flex; flex-direction: column; gap: 3px; }
+.front-page ul b { font-size: 15px; line-height: 1.2; }
+.front-page ul span { font-size: 12.5px; line-height: 1.35; color: #4a473f; }
+.front-page footer { font-family: var(--ui); font-size: 11.5px; font-weight: 650; color: #5c584f; border-top: 1px solid #d7d2c6; margin-top: 10px; padding-top: 6px; }
+.front-page.compact { padding: 10px 12px 8px; }
+.front-page.compact header b { font-size: 15px; }
+.front-page.compact h3 { font-size: 17px; }
+.front-page.compact .deck { font-size: 12.5px; margin-bottom: 4px; }
+.front-wrap { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(10, 20, 36, 0.32); z-index: 38; padding: 16px; }
+.front-card { position: relative; width: min(620px, 100%); max-height: calc(100vh - 32px); overflow: auto; border-radius: 10px; box-shadow: var(--shadow);
+  animation: page-in 0.5s cubic-bezier(.2, .8, .2, 1); }
+.front-card .close { background: rgba(27, 26, 23, 0.08); color: #1b1a17; }
+.front-card .front-page { padding: 22px 26px 16px; }
+.front-card .front-page h3 { font-size: 34px; }
+@keyframes page-in { from { transform: translateY(16px) rotate(-1.5deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .front-card { animation: none; } }
+body.layout-phone .front-card .front-page { padding: 16px 16px 12px; }
+body.layout-phone .front-card .front-page h3 { font-size: 24px; }
+body.layout-phone .front-page ul { grid-template-columns: 1fr; }

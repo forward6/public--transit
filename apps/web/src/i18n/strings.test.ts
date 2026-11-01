@@ -18,4 +18,20 @@ describe('strings', () => {
     expect(fr.speed).not.toEqual(en.speed);
     expect(STRINGS.fr.ridersYesterday(412_000)).toContain('hier');
   });
+
+  it('translates the opinion and press text', () => {
+    const en = STRINGS.en.op as unknown as Record<string, unknown>;
+    const fr = STRINGS.fr.op as unknown as Record<string, unknown>;
+    const same = new Set(['toggle']);
+    const untranslated = Object.keys(en).filter((k) => !same.has(k) && typeof en[k] === 'string' && en[k] === fr[k]);
+    expect(untranslated).toEqual([]);
+    for (const k of Object.keys(STRINGS.en.op.story) as (keyof typeof STRINGS.en.op.story)[]) {
+      const p = { pct: 3.2, pts: 2.1, approval: 51.5, route: 'N1', cm: 22, low: -28, count: 15, name: 'Merivale', kind: 'cold', persona: 'marc' };
+      expect(STRINGS.fr.op.story[k](p).head).not.toEqual(STRINGS.en.op.story[k](p).head);
+    }
+    for (const k of Object.keys(STRINGS.en.op.reason) as (keyof typeof STRINGS.en.op.reason)[]) {
+      expect(STRINGS.fr.op.reasonHelp[k]).toBeTruthy();
+      expect(STRINGS.en.op.reasonHelp[k]).toBeTruthy();
+    }
+  });
 });

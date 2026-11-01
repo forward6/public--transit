@@ -3,9 +3,10 @@ import type { MapMouseEvent, Map as MLMap } from 'maplibre-gl';
 import { LANGS, SEASONS, TIMES, parseClock, type Lang, type Season, type TimeOfDay } from '@otc/shared';
 import { MapView, type CameraPadding } from './map/MapView';
 import { palette } from './map/palettes';
-import { PICKABLE } from './map/style';
+import { OPINION_ZONES, PICKABLE, RIDER_PATH, RIDER_POS } from './map/style';
+import { useStreamedSource } from './map/useStreamedSource';
 import { STRINGS } from './i18n/strings';
-import { draftFeatures, isoPolys, loadLines, networkLines, networkStops, zonePoints } from './network/geojson';
+import { draftFeatures, isoPolys, loadLines, networkLines, networkStops, opinionPolys, riderPath, zonePoints } from './network/geojson';
 import { useNetwork } from './network/useNetwork';
 import { useVehicleAnimation } from './network/useVehicleAnimation';
 import { DAYS_SPEED, createClock, isNight, seasonOf, type SpeedIndex } from './sim/clock';
@@ -17,7 +18,9 @@ import { usePlan } from './plan/usePlan';
 import { PlanDock, ScorecardPanel } from './plan/PlanUI';
 import { loadGame, useGame, type Measure } from './game/useGame';
 import { BudgetPanel, DailyRidersChip, DecisionCard, NewsToasts, TreasuryChip, fmtDate } from './game/GameUI';
-import { nextServiceChange, serviceDay } from '@otc/sim';
+import { PERSONAS } from '@otc/shared';
+import { journeyPosition, nextServiceChange, serviceDay, temperatureAt, weatherOn } from '@otc/sim';
+import { ApprovalChip, FrontPageCard, OpinionPanel, PersonaPanel, ZonePanel, opinionValues, type OpinionView } from './game/OpinionUI';
 import { useLayout, type Layout } from './ui/useLayout';
 
 const params = new URLSearchParams(location.search);
@@ -32,6 +35,7 @@ function initialSettings(): Settings {
     lang: pick<Lang>('lang', LANGS, navLang),
     buildings3d: params.get('3d') !== '0',
     riders: params.get('riders') === '1',
+    opinion: params.get('opinion') === '1',
   };
 }
 
@@ -88,6 +92,7 @@ export function App() {
   const [settings, setSettings] = useState<Settings>(initialSettings);
   const [map, setMap] = useState<MLMap | null>(null);
   const [sel, setSel] = useState<Selection>(null);
+  const [opinionView, setOpinionView] = useState<OpinionView>((['approval', 'service', 'value', 'trust'] as const).find((v) => v === params.get('ov')) ?? 'approval');
   const t = STRINGS[settings.lang];
   const still = params.has('still') || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const baseUrl = useMemo(() => new URL(import.meta.env.BASE_URL, location.href).href, []);
@@ -159,6 +164,9 @@ export function App() {
   }, [base]);
   const planRef = useRef(plan);
   planRef.current = plan;
+  // the Riders and Opinion views are alternatives
+  const changeSettings = (s: Partial<Settings>) => setSettings((prev) => ({ ...prev, ...s, ...(s.opinion ? { riders: false } : {}),
+    ...(s.riders ? { opinion: false } : {}) }));
 
   useEffect(() => {
     document.body.className = `theme-${pal.night ? 'night' : 'day'} layout-${layout}`;
@@ -170,6 +178,8 @@ export function App() {
     else q.set('3d', '0');
     if (settings.riders) q.set('riders', '1');
     else q.delete('riders');
+    if (settings.opinion) q.set('opinion', '1');
+    else q.delete('opinion');
     history.replaceState(null, '', `${location.pathname}?${q}${location.hash}`);
   }, [settings, layout, pal.night, t.appName]);
 
@@ -198,6 +208,8 @@ export function App() {
       const f = map.queryRenderedFeatures(box, { layers })[0];
       if (!f) return setSel(null);
       const p = f.properties as Record<string, string>;
+      if (f.layer.id === 'rider-pos') return;
+      if (f.layer.id === 'op-zones') return setSel({ type: 'zone', id: String(p.i) });
       if (f.layer.id === 'net-vehicles' || f.layer.id === 'net-vehicle-dots') setSel({ type: 'vehicle', id: p.trip! });
       else if (f.layer.id === 'net-stations' || f.layer.id === 'net-stops') setSel({ type: 'stop', id: p.id! });
       else if (p.kind === 'route') setSel({ type: 'route', id: p.id! });
@@ -216,7 +228,7 @@ export function App() {
 
   // follow the selected vehicle with the camera until the user drags the map
   const [follow, setFollow] = useState(false);
-  useEffect(() => setFollow(sel?.type === 'vehicle'), [sel]);
+  useEffect(() => setFollow(sel?.type === 'vehicle' || sel?.type === 'persona'), [sel]);
   useEffect(() => {
     if (!map) return;
     const stop = () => setFollow(false);
@@ -225,6 +237,44 @@ export function App() {
       map.off('dragstart', stop);
     };
   }, [map]);
+  // M6: the followed rider, their journey and where they are now
+  const persona = sel?.type === 'persona' ? PERSONAS.find((p) => p.id === sel.id) ?? null : null;
+  const personaTrips = persona ? game.world?.trips?.[persona.id] : undefined;
+  const travelsToday = !!persona && persona.days.includes(new Date(`${date}T12:00:00Z`).getUTCDay());
+  const riderNow = useMemo(() => {
+    if (!personaTrips || !travelsToday) return null;
+    for (const j of [personaTrips.out, personaTrips.back]) {
+      const at = j && journeyPosition(j, view.service);
+      if (at) return at.lonlat;
+    }
+    return null;
+  }, [personaTrips, travelsToday, view.service]);
+  const riderData = useMemo(() => {
+    if (!persona || !personaTrips) return null;
+    const { lines, ends } = riderPath([personaTrips.out, personaTrips.back]);
+    const pos = { type: 'FeatureCollection' as const, features: [...ends,
+      ...(riderNow ? [{ type: 'Feature' as const, properties: { kind: 'now', initial: persona.name[0] }, geometry: { type: 'Point' as const, coordinates: riderNow } }] : [])] };
+    return { lines, pos };
+  }, [persona, personaTrips, riderNow]);
+  useStreamedSource(map, RIDER_PATH, riderData?.lines ?? null);
+  useStreamedSource(map, RIDER_POS, riderData?.pos ?? null);
+  useEffect(() => {
+    if (!map || !follow || !riderNow || sel?.type !== 'persona') return;
+    map.easeTo({ center: riderNow, duration: view.speed === 0 ? 0 : 260, easing: (x) => x });
+  }, [map, follow, riderNow, sel, view.speed]);
+  // the opinion wash
+  const opinionOn = settings.opinion && !!game.state?.opinion;
+  const values = useMemo(() => (opinionOn ? opinionValues(game.state, opinionView) : null), [opinionOn, game.state?.opinion, opinionView]); // eslint-disable-line react-hooks/exhaustive-deps
+  const zoneSel = sel?.type === 'zone' ? Number(sel.id) : null;
+  const opinionFc = useMemo(() => (values ? opinionPolys(base?.zones ?? null, values, zoneSel) : null), [values, base, zoneSel]);
+  useStreamedSource(map, OPINION_ZONES, opinionFc);
+  const wx = weatherOn(date, game.state?.seed ?? 2010);
+  const tempC = game.state ? temperatureAt(wx, view.time) : undefined;
+  const openOpinion = () => {
+    setSel({ type: 'opinion', id: 'city' });
+    changeSettings({ opinion: true });
+  };
+
   useEffect(() => {
     if (!map || !net || !follow || sel?.type !== 'vehicle') return;
     const trip = net.playback.trips.find((x) => x.id === sel.id);
@@ -264,15 +314,19 @@ export function App() {
   return (
     <>
       <MapView style={{ palette: pal, lang: settings.lang, buildings3d: settings.buildings3d, terrain: true, baseUrl, history: params.has('history'), network,
-        riders: settings.riders, plan: planLayers }}
+        riders: settings.riders, plan: planLayers, opinion: opinionOn, rider: persona?.color ?? null }}
         padding={padding} onMap={setMap} />
       <Snow active={pal.snow} night={pal.night} still={still} />
       <div className="vignette" />
-      <Hud layout={layout} t={t} settings={settings} map={map} onChange={(s) => setSettings((prev) => ({ ...prev, ...s }))}
+      <Hud layout={layout} t={t} settings={settings} map={map} onChange={changeSettings}
         time={view.time} speed={view.speed} onSpeed={(s) => !game.decision && clock.setSpeed(s)} inService={inService}
         status={net?.network.status ?? null} statusNote={net?.network.statusNote}
         inspector={sel && net ? (sel.type === 'scorecard' ? <ScorecardPanel plan={plan} t={t} />
           : sel.type === 'budget' ? <BudgetPanel game={game} t={t} lang={settings.lang} />
+          : sel.type === 'opinion' ? <OpinionPanel game={game} t={t} lang={settings.lang} view={opinionView} setView={(v) => { setOpinionView(v); changeSettings({ opinion: true }); }}
+            onPersona={(id) => setSel({ type: 'persona', id })} />
+          : sel.type === 'zone' ? <ZonePanel game={game} index={Number(sel.id)} t={t} lang={settings.lang} onPersona={(id) => setSel({ type: 'persona', id })} />
+          : sel.type === 'persona' ? <PersonaPanel game={game} id={sel.id} t={t} lang={settings.lang} now={view.service} />
           : <Inspector sel={sel} net={net} t={view.service} s={t} lang={settings.lang} palette={pal} onSelect={setSel} plan={plan}
             game={game.state} routeName={routeName} day={serviceDayNow()} />) : null}
         planActive={plan.active} onTogglePlan={() => plan.setActive(!plan.active)} dock={dock}
@@ -282,9 +336,11 @@ export function App() {
         treasury={<TreasuryChip game={game} t={t} lang={settings.lang} onClick={() => setSel({ type: 'budget', id: 'books' })} />}
         onCloseInspector={() => setSel(null)} onOpenCatalogue={() => setSel({ type: 'catalogue', id: '2010' })}
         boardings={net?.demand?.summary.boardings ?? null}
-        ridersChip={<DailyRidersChip game={game} t={t} lang={settings.lang} fallback={net?.demand?.summary.boardings ?? null} onClick={openRidership} />} />
+        ridersChip={<DailyRidersChip game={game} t={t} lang={settings.lang} fallback={net?.demand?.summary.boardings ?? null} onClick={openRidership} />}
+        approval={<ApprovalChip game={game} t={t} lang={settings.lang} onClick={openOpinion} />} hasOpinion={!!game.state?.opinion} tempC={tempC} />
       {!params.has('nodecision') && <DecisionCard game={game} t={t} lang={settings.lang} />}
       <NewsToasts game={game} t={t} lang={settings.lang} />
+      {!params.has('nodecision') && <FrontPageCard game={game} t={t} lang={settings.lang} />}
     </>
   );
 }

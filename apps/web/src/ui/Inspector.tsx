@@ -7,7 +7,8 @@ import { RouteServiceEditor } from '../plan/PlanUI';
 import { DailyChart, RouteTrend, WatchedRoutes } from '../game/Ridership';
 import { tripRuns, vehiclesNow, type ServiceDay } from '../sim/service';
 
-export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard' | 'budget'; id: string } | null;
+export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard' | 'budget' | 'opinion' | 'zone' | 'persona';
+  id: string } | null;
 
 interface Props {
   sel: Exclude<Selection, null>;
