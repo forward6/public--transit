@@ -76,6 +76,8 @@ export interface DemandFile {
   stops: Record<string, number>;
   /** weekday riders on board between consecutive stops, per pattern id */
   loads: Record<string, number[]>;
+  /** the same, peak period only (crowding) */
+  peakLoads?: Record<string, number[]>;
   /** per zone id: [weekday trips made by residents, transit share of them] */
   zones: Record<string, [number, number]>;
   /** per home district: [weekday trips made by residents, transit share of them] */

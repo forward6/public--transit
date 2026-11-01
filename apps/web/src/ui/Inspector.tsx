@@ -7,7 +7,8 @@ import { RouteServiceEditor } from '../plan/PlanUI';
 import { DailyChart, RouteTrend, WatchedRoutes } from '../game/Ridership';
 import { tripRuns, vehiclesNow, type ServiceDay } from '../sim/service';
 
-export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard' | 'budget' | 'opinion' | 'zone' | 'persona';
+export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard' | 'budget' | 'opinion' | 'zone' | 'persona'
+    | 'load';
   id: string } | null;
 
 interface Props {
@@ -112,6 +113,7 @@ export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game,
 
   if (sel.type === 'ridership') {
     return <Ridership net={net} s={s} daily={game ? <>
+      <button className="btn wide-btn" onClick={() => onSelect({ type: 'load', id: 'peak' })}>{s.ld.open} →</button>
       <div className="sec">{s.dailyTitle}</div>
       <DailyChart state={game} t={s} lang={lang} />
       <p className="muted small">{s.dailyNote}</p>

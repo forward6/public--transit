@@ -1,6 +1,6 @@
 import type { FeatureCollection, LineString, Point, Polygon } from 'geojson';
 import type { DemandFile, Network, RouteClass, ZonesFile } from '@otc/shared';
-import { prepareLine, sliceLine, type Draft, type Journey, type Playback, type VehicleState } from '@otc/sim';
+import { prepareLine, sliceLine, type Draft, type Journey, type LoadReport, type Playback, type VehicleState } from '@otc/sim';
 
 export type LinesFC = FeatureCollection<LineString>;
 export type PointsFC = FeatureCollection<Point>;
@@ -184,4 +184,14 @@ export function riderPath(journeys: (Journey | null)[]): { lines: LinesFC; ends:
     for (const c of [first, last]) if (c) ends.push({ type: 'Feature', properties: { kind: 'end' }, geometry: { type: 'Point', coordinates: c } });
   }
   return { lines, ends };
+}
+
+/** The Riders view's lines: every segment with its riders per day, peak-hour riders and load factor. */
+export function loadFeatures(report: LoadReport | null): LinesFC {
+  if (!report) return EMPTY_LINES;
+  return {
+    type: 'FeatureCollection',
+    features: report.segments.map((x) => ({ type: 'Feature' as const, properties: { load: Math.round(x.daily), peak: Math.round(x.peakHour),
+      lf: Math.round(x.lf * 100) / 100 }, geometry: { type: 'LineString' as const, coordinates: x.coords } })),
+  };
 }

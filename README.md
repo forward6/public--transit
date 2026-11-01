@@ -59,6 +59,13 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
   - **Follow a rider:** six fictional riders, from Marc's Orléans commute to Lise's missing bus in
     Manotick, ride the real network and keep diaries.
   - **The papers:** a front page every month, and a feed of what people are saying.
+- **Where the load is:** switch on **Riders** for peak crowding. Every stretch shows its morning
+  peak-hour riders against the places on the buses and trains scheduled through it (all routes
+  together), from room to spare to over capacity, for the network in operation. The **Where the load
+  is** panel lists the busiest and most crowded stretches, the routes under pressure and the busiest
+  stations.
+
+![Where the load is: the morning peak, crowding against capacity](docs/screenshots/m6/load-panel.jpg)
 
 ![Public opinion, neighbourhood by neighbourhood](docs/screenshots/m6/opinion-panel.jpg)
 
@@ -86,8 +93,8 @@ URL options:
 - `&layout=phone|tablet|desktop`
 - `&t=HH:MM` sets the time of day (a new game starts at 00:01; a saved one resumes where it was)
 - `&speed=0..5` sets the speed: pause, real time, 1 min/s, 15 min/s (the default), 2 h/s, 1 day/s
-- `&select=stop:carleton|route:oct-otrain|vehicle:oct-otrain|persona:marc|opinion:city` opens an inspector
-- `&riders=1` turns on the Riders view; `&opinion=1` the Opinion view (`&ov=service|value|trust` for an axis)
+- `&select=stop:carleton|route:oct-otrain|vehicle:oct-otrain|persona:marc|opinion:city|load:peak` opens an inspector
+- `&riders=1` turns on the Riders view (peak crowding; `&rv=daily` for riders per day); `&opinion=1` the Opinion view (`&ov=service|value|trust` for an axis)
 - `&plan=1` opens Plan mode. Add `&iso=lon,lat` for travel times from a point, or
   `&draw=lon,lat;lon,lat;…` to sketch a route.
 

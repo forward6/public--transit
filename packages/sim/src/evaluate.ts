@@ -35,6 +35,10 @@ export interface Scorecard {
   /** per zone (zones file order): jobs within 45 min by transit, and the average wait (min) */
   zoneAccess?: number[];
   zoneWait?: number[];
+  /** weekday riders per segment (all day, and the peak period) per pattern, and boardings per stop */
+  loads?: Record<string, number[]>;
+  peakLoads?: Record<string, number[]>;
+  byStop?: Record<string, number>;
   byRoute: Record<string, number>;
   byAgency: Record<string, number>;
 }
@@ -196,6 +200,9 @@ export function evaluate(network: Network, inp: EvalInputs, prep?: Prepared): Ev
     vehicleHours: svc.vehicleHours, peakVehicles: svc.peakVehicles, annualCost,
     costPerBoarding: annualCost / Math.max(1, boardings * WEEKDAYS_PER_YEAR),
     byDistrict: Object.fromEntries(Object.entries(res.district).map(([d, [t, tr]]) => [d, [t, tr / t]])),
+    loads: Object.fromEntries([...asg.loads].map(([k, v]) => [k, Array.from(v, Math.round)])),
+    peakLoads: Object.fromEntries([...asg.peakLoads].map(([k, v]) => [k, Array.from(v, Math.round)])),
+    byStop: Object.fromEntries([...asg.boardingsByStop].filter(([, v]) => v >= 1).map(([k, v]) => [k, Math.round(v)])),
     zoneAccess: Array.from(los.access, Math.round),
     zoneWait: Array.from(los.wait, (w) => Math.round(w * 10) / 10),
     byRoute: Object.fromEntries(asg.boardingsByRoute),

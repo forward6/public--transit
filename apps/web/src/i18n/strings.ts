@@ -1,4 +1,5 @@
 import { OPINION_EN, OPINION_FR, type OpinionStrings } from './opinionStrings';
+import { LOAD_EN, LOAD_FR, type LoadStrings } from './loadStrings';
 import type { CatalogueClass, Confidence, District, GameEventKind, Lang, NetworkStatus, PlanPeriodId, RouteClass, Season, TimeOfDay, TravelMode } from '@otc/shared';
 
 export interface Strings {
@@ -199,6 +200,8 @@ export interface Strings {
   lastWeek: (total: string) => string;
   // M6 — opinion and media
   op: OpinionStrings;
+  // where the load is
+  ld: LoadStrings;
 }
 
 /** 512340 -> "512k", 8450 -> "8.5k" */
@@ -354,6 +357,7 @@ export const STRINGS: Record<Lang, Strings> = {
     expectedWeekday: (n) => `heading for ${n} a weekday`,
     lastWeek: (total) => `${total} riders in the last 7 days`,
     op: OPINION_EN,
+    ld: LOAD_EN,
     plan: 'Plan',
     planTitle: 'Plan mode',
     planHint: 'The clock is paused. Tap a route to change its service, draw a new one, or see travel times.',
@@ -570,6 +574,7 @@ export const STRINGS: Record<Lang, Strings> = {
     expectedWeekday: (n) => `en route vers ${n} par jour de semaine`,
     lastWeek: (total) => `${total} passagers ces 7 derniers jours`,
     op: OPINION_FR,
+    ld: LOAD_FR,
     plan: 'Planifier',
     planTitle: 'Mode planification',
     planHint: 'L’horloge est en pause. Touchez une ligne pour changer son service, tracez-en une nouvelle ou voyez les temps de trajet.',

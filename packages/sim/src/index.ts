@@ -21,3 +21,4 @@ export * from './journey';
 export * from './diary';
 export * from './press';
 export * from './game';
+export * from './crowding';

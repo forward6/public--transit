@@ -919,6 +919,14 @@ to keep iteration fast; it expands to the full region afterwards.
      the riders' diaries, the weather, service changes, and residents giving their main reason.
    - **Opinion map:** the Opinion view washes Ottawa's zones from disapprove (warm) to approve
      (cool), by approval or by axis; tap a zone for its reasons.
+   - **Where the load is** (added at your request): the Riders view shows peak crowding. Each
+     stop-to-stop stretch carries its morning peak-hour riders (30% of its peak-period riders from
+     the assignment) against the places scheduled through it 07:00–09:00 (vehicle capacity by route
+     class), summed over all routes; calm < 65% < busy < 90% < crowded < 110% < over capacity.
+     Loads are measured for the network in operation with every plan. A panel lists the busiest
+     and most crowded stretches, routes under pressure and the busiest stations. Caveat: the
+     timetable is August 2011 summer service, so thin suburban routes look more crowded than in
+     December.
    - **Testing it:** `pnpm --filter @otc/sim opinion-demo [fare-%] [levy-%]` plays a year in Node.
    - **Still to do:** rider-level crowding and pass-ups, accessibility failures, opinion by ward
      (needs the 2010 ward map, M7), town halls and press conferences, NIMBY/YIMBY reactions to

@@ -426,3 +426,26 @@ ul.feed p { margin: 2px 0 0; font-size: 13px; line-height: 1.4; }
 body.layout-phone .front-card .front-page { padding: 16px 16px 12px; }
 body.layout-phone .front-card .front-page h3 { font-size: 24px; }
 body.layout-phone .front-page ul { grid-template-columns: 1fr; }
+
+/* =====================================================================
+   Where the load is
+   ===================================================================== */
+.lg-load { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.lg-load .seg button { font-size: 11px; height: 28px; }
+.lg-load .link { align-self: flex-start; font-size: 12px; }
+ul.load-legend { list-style: none; margin: 6px 0 2px; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--fg2); }
+ul.load-legend li { display: flex; align-items: center; gap: 5px; }
+ul.load-legend i { width: 16px; height: 5px; border-radius: 3px; display: block; }
+ul.stretches { list-style: none; margin: 4px 0; padding: 0; }
+ul.stretches li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; border-top: 1px solid var(--divider); }
+ul.stretches li:first-child { border-top: 0; }
+.stretch { display: flex; gap: 8px; align-items: center; border: 0; background: none; padding: 0; text-align: left; font: inherit; color: var(--fg); cursor: pointer; min-width: 0; }
+.stretch span { display: flex; flex-direction: column; min-width: 0; }
+.stretch b { font-size: 12.5px; font-weight: 600; }
+.stretch small { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stretch .lvl { width: 10px; height: 10px; border-radius: 50%; flex: none; display: block; }
+ul.stretches .badges { display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; max-width: 45%; }
+ul.stretches .route-badge { font-size: 10.5px; padding: 1px 5px; min-width: 0; }
+.route-load { display: flex; gap: 8px; align-items: center; }
+.route-load small { font-size: 11.5px; color: var(--muted); }
+.btn.wide-btn { width: 100%; margin-top: 12px; justify-content: center; }

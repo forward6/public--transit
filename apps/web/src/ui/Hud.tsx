@@ -39,6 +39,8 @@ interface HudProps {
   hasOpinion?: boolean;
   /** the temperature now (°C) */
   tempC?: number;
+  /** the Riders view's legend (riders per day or peak crowding) */
+  ridersLegend?: ReactNode;
   /** M4 Plan mode */
   planActive: boolean;
   onTogglePlan: () => void;
@@ -139,7 +141,7 @@ function StatusChip({ t, status, note, onClick }: { t: Strings; status: NetworkS
   return <button className={`status-chip status-${status}`} title={note} onClick={onClick}><i />{t.networkStatus[status]}</button>;
 }
 
-function Legend({ t, riders, opinion, status }: { t: Strings; riders: boolean; opinion?: boolean; status?: ReactNode }) {
+function Legend({ t, riders, opinion, status, ridersLegend }: { t: Strings; riders: boolean; opinion?: boolean; status?: ReactNode; ridersLegend?: ReactNode }) {
   return (
     <section className="legend glass" aria-label={t.legendTitle}>
       <div className="lg-title">{t.legendTitle}</div>
@@ -148,7 +150,7 @@ function Legend({ t, riders, opinion, status }: { t: Strings; riders: boolean; o
       <div className="lg-row"><svg viewBox="0 0 40 12"><circle cx="20" cy="6" r="4" fill="var(--station-fill)" stroke="var(--transitway)" strokeWidth="2" /></svg>{t.legendStation}</div>
       <div className="lg-row"><svg viewBox="0 0 40 12"><line x1="2" y1="6" x2="38" y2="6" stroke="var(--boundary)" strokeWidth="2" strokeDasharray="6 4" /></svg>{t.legendRegion}</div>
       <div className="lg-row"><i className="sw sw-outside" />{t.legendOutside}</div>
-      {riders && <div className="lg-riders"><span className="lg-ramp" />{t.legendRiders}</div>}
+      {riders && (ridersLegend ?? <div className="lg-riders"><span className="lg-ramp" />{t.legendRiders}</div>)}
       {opinion && <div className="lg-opinion"><span>{t.op.opinionLegend[0]}</span><span className="lg-ramp op" /><span>{t.op.opinionLegend[1]}</span></div>}
       {status && <div className="lg-status">{status}</div>}
       <div className="lg-note">{t.legendNote}</div>
@@ -161,7 +163,7 @@ export function Hud(props: HudProps) {
   const lastSpeed = useRef<SpeedIndex>(3);
   if (props.speed !== 0) lastSpeed.current = props.speed;
   const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue,
-    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC } = props;
+    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC, ridersLegend } = props;
   const temp = tempC !== undefined ? `${tempC} °C · ` : '';
   const hasRiders = boardings !== null;
   const planCtl = hasRiders ? { active: planActive, toggle: onTogglePlan } : undefined;
@@ -223,7 +225,7 @@ export function Hud(props: HudProps) {
         </aside>
       ) : null}
       {dock}
-      {!dock && <Legend t={t} riders={settings.riders && hasRiders} opinion={settings.opinion && hasOpinion}
+      {!dock && <Legend t={t} riders={settings.riders && hasRiders} opinion={settings.opinion && hasOpinion} ridersLegend={ridersLegend}
         status={<>{layout !== 'desktop' && <>{approval}{ridersChip}</>}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></>} />}
     </>
   );

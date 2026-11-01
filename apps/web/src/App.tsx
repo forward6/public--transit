@@ -3,10 +3,11 @@ import type { MapMouseEvent, Map as MLMap } from 'maplibre-gl';
 import { LANGS, SEASONS, TIMES, parseClock, type Lang, type Season, type TimeOfDay } from '@otc/shared';
 import { MapView, type CameraPadding } from './map/MapView';
 import { palette } from './map/palettes';
-import { OPINION_ZONES, PICKABLE, RIDER_PATH, RIDER_POS } from './map/style';
+import { LOAD_COLORS, NET_LOADS, OPINION_ZONES, PICKABLE, RIDER_PATH, RIDER_POS } from './map/style';
+import { LoadPanel, type LoadMode } from './game/LoadUI';
 import { useStreamedSource } from './map/useStreamedSource';
 import { STRINGS } from './i18n/strings';
-import { draftFeatures, isoPolys, loadLines, networkLines, networkStops, opinionPolys, riderPath, zonePoints } from './network/geojson';
+import { draftFeatures, isoPolys, loadFeatures, networkLines, networkStops, opinionPolys, riderPath, zonePoints } from './network/geojson';
 import { useNetwork } from './network/useNetwork';
 import { useVehicleAnimation } from './network/useVehicleAnimation';
 import { DAYS_SPEED, createClock, isNight, seasonOf, type SpeedIndex } from './sim/clock';
@@ -19,7 +20,7 @@ import { PlanDock, ScorecardPanel } from './plan/PlanUI';
 import { loadGame, useGame, type Measure } from './game/useGame';
 import { BudgetPanel, DailyRidersChip, DecisionCard, NewsToasts, TreasuryChip, fmtDate } from './game/GameUI';
 import { PERSONAS } from '@otc/shared';
-import { journeyPosition, nextServiceChange, serviceDay, temperatureAt, weatherOn } from '@otc/sim';
+import { journeyPosition, loadReport, monthBoardings, nextServiceChange, serviceDay, temperatureAt, weatherOn } from '@otc/sim';
 import { ApprovalChip, FrontPageCard, OpinionPanel, PersonaPanel, ZonePanel, opinionValues, type OpinionView } from './game/OpinionUI';
 import { useLayout, type Layout } from './ui/useLayout';
 
@@ -92,6 +93,7 @@ export function App() {
   const [settings, setSettings] = useState<Settings>(initialSettings);
   const [map, setMap] = useState<MLMap | null>(null);
   const [sel, setSel] = useState<Selection>(null);
+  const [loadMode, setLoadMode] = useState<LoadMode>(params.get('rv') === 'daily' ? 'daily' : 'crowding');
   const [opinionView, setOpinionView] = useState<OpinionView>((['approval', 'service', 'value', 'trust'] as const).find((v) => v === params.get('ov')) ?? 'approval');
   const t = STRINGS[settings.lang];
   const still = params.has('still') || matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -182,8 +184,10 @@ export function App() {
     else q.delete('riders');
     if (settings.opinion) q.set('opinion', '1');
     else q.delete('opinion');
+    if (settings.riders && loadMode === 'daily') q.set('rv', 'daily');
+    else q.delete('rv');
     history.replaceState(null, '', `${location.pathname}?${q}${location.hash}`);
-  }, [settings, layout, pal.night, t.appName]);
+  }, [settings, layout, pal.night, t.appName, loadMode]);
 
   // ?select=stop:carleton opens an inspector on load (handy for links and screenshots)
   useEffect(() => {
@@ -265,6 +269,33 @@ export function App() {
     if (!map || !follow || !riderNow || sel?.type !== 'persona') return;
     map.easeTo({ center: riderNow, duration: view.speed === 0 ? 0 : 260, easing: (x) => x });
   }, [map, follow, riderNow, sel, view.speed]);
+  // where the load is: the network in operation, its measured loads, scaled to this month's riders
+  const wantLoads = settings.riders || sel?.type === 'load';
+  useEffect(() => {
+    if (wantLoads) game.requestLoads();
+  }, [wantLoads, game.requestLoads]); // eslint-disable-line react-hooks/exhaustive-deps
+  const opNet = game.operation ?? base;
+  const loadScale = game.state && game.loads?.oc ? monthBoardings(game.state) / game.loads.oc : 1;
+  const scaleKey = Math.round(loadScale * 50) / 50;
+  const report = useMemo(() => (wantLoads && opNet && game.loads ? loadReport(opNet.network, opNet.playback.trips, game.loads.loads, game.loads.peakLoads, scaleKey) : null),
+    [wantLoads, opNet, game.loads, scaleKey]);
+  const loadFc = useMemo(() => (settings.riders ? loadFeatures(report) : null), [settings.riders, report]);
+  useStreamedSource(map, NET_LOADS, loadFc);
+  const openLoad = () => setSel({ type: 'load', id: 'peak' });
+  const ridersLegend = (
+    <div className="lg-load">
+      <div className="seg wide" role="radiogroup" aria-label={t.ld.title}>
+        {(['crowding', 'daily'] as LoadMode[]).map((m) => (
+          <button key={m} role="radio" aria-checked={loadMode === m} className={loadMode === m ? 'on' : ''} onClick={() => setLoadMode(m)}>{t.ld.mode[m]}</button>
+        ))}
+      </div>
+      {loadMode === 'crowding' ? <ul className="load-legend">{(['calm', 'busy', 'crowded', 'over'] as const).map((l, i) => (
+        <li key={l}><i style={{ background: (pal.night ? LOAD_COLORS.night : LOAD_COLORS.day)[i] }} />{t.ld.level[l]}</li>
+      ))}</ul> : <div className="lg-riders"><span className="lg-ramp" />{t.legendRiders}</div>}
+      <button className="link" onClick={openLoad}>{t.ld.open} →</button>
+    </div>
+  );
+
   // the opinion wash
   const opinionOn = settings.opinion && !!game.state?.opinion;
   // redrawn daily, or weekly when days fly by (a thousand hexagons a second is a lot for a phone)
@@ -298,7 +329,7 @@ export function App() {
   }, [map, net, follow, sel, view.service, view.speed]);
 
   const network = useMemo(() => (net ? { lines: networkLines(net.network, net.demand), stops: networkStops(net.network, net.playback),
-    zones: zonePoints(net.zones, net.demand), loads: loadLines(net.network, net.demand) } : undefined), [net]);
+    zones: zonePoints(net.zones, net.demand) } : undefined), [net]);
   const padding = useMemo(() => paddingFor(layout, !!sel), [layout, sel]);
   const planLayers = useMemo(() => {
     if (!plan.active) return undefined;
@@ -329,7 +360,7 @@ export function App() {
   return (
     <>
       <MapView style={{ palette: pal, lang: settings.lang, buildings3d: settings.buildings3d, terrain: true, baseUrl, history: params.has('history'), network,
-        riders: settings.riders, plan: planLayers, opinion: opinionOn, rider: persona?.color ?? null }}
+        riders: settings.riders, loadMode, plan: planLayers, opinion: opinionOn, rider: persona?.color ?? null }}
         padding={padding} onMap={setMap} />
       <Snow active={pal.snow} night={pal.night} still={still} />
       <div className="vignette" />
@@ -338,6 +369,10 @@ export function App() {
         status={net?.network.status ?? null} statusNote={net?.network.statusNote}
         inspector={sel && net ? (sel.type === 'scorecard' ? <ScorecardPanel plan={plan} t={t} />
           : sel.type === 'budget' ? <BudgetPanel game={game} t={t} lang={settings.lang} />
+          : sel.type === 'load' ? <LoadPanel report={report} byStop={game.loads?.byStop ?? null} scale={loadScale} net={(opNet ?? net).network} t={t}
+            lang={settings.lang} palette={pal} mode={loadMode} setMode={(m) => { setLoadMode(m); changeSettings({ riders: true }); }}
+            onFocus={(c) => map?.flyTo({ center: c, zoom: Math.max(map.getZoom(), 13.5), duration: 900 })}
+            onSelect={(type, id) => setSel({ type, id })} />
           : sel.type === 'opinion' ? <OpinionPanel game={game} t={t} lang={settings.lang} view={opinionView} setView={(v) => { setOpinionView(v); changeSettings({ opinion: true }); }}
             onPersona={(id) => setSel({ type: 'persona', id })} />
           : sel.type === 'zone' ? <ZonePanel game={game} index={Number(sel.id)} t={t} lang={settings.lang} onPersona={(id) => setSel({ type: 'persona', id })} />
@@ -352,7 +387,8 @@ export function App() {
         onCloseInspector={() => setSel(null)} onOpenCatalogue={() => setSel({ type: 'catalogue', id: '2010' })}
         boardings={net?.demand?.summary.boardings ?? null}
         ridersChip={<DailyRidersChip game={game} t={t} lang={settings.lang} fallback={net?.demand?.summary.boardings ?? null} onClick={openRidership} />}
-        approval={<ApprovalChip game={game} t={t} lang={settings.lang} onClick={openOpinion} />} hasOpinion={!!game.state?.opinion} tempC={tempC} />
+        approval={<ApprovalChip game={game} t={t} lang={settings.lang} onClick={openOpinion} />} hasOpinion={!!game.state?.opinion} tempC={tempC}
+        ridersLegend={ridersLegend} />
       {!params.has('nodecision') && <DecisionCard game={game} t={t} lang={settings.lang} />}
       <NewsToasts game={game} t={t} lang={settings.lang} />
       {!params.has('nodecision') && <FrontPageCard game={game} t={t} lang={settings.lang} onShow={pauseForPaper} onClose={resumeAfterPaper} />}

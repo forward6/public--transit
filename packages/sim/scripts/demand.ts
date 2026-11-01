@@ -82,6 +82,7 @@ const out: DemandFile = {
   routes: Object.fromEntries([...asg.boardingsByRoute].map(([k, v]) => [k, round(v)])),
   stops: Object.fromEntries([...asg.boardingsByStop].filter(([, v]) => v >= 1).map(([k, v]) => [k, round(v)])),
   loads: Object.fromEntries([...asg.loads].map(([k, v]) => [k, Array.from(v, round)])),
+  peakLoads: Object.fromEntries([...asg.peakLoads].map(([k, v]) => [k, Array.from(v, round)])),
   zones: Object.fromEntries(zones.map((z, i) => [String(z.id), [round(result.zoneTrips[i]!),
     result.zoneTrips[i]! > 0 ? +(result.zoneTransit[i]! / result.zoneTrips[i]!).toFixed(3) : 0]])),
   districts: Object.fromEntries(Object.entries(result.district).map(([d, [t, tr]]) => [d, [round(t), +(tr / t).toFixed(3)]])),

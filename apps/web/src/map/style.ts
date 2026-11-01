@@ -22,6 +22,8 @@ export interface StyleOptions {
   network?: { lines: LinesFC; stops: PointsFC; zones?: PointsFC; loads?: LinesFC };
   /** M3 "Riders" view: route widths by weekday riders, zones coloured by transit share */
   riders?: boolean;
+  /** the Riders view's colours: riders per day, or crowding in the morning peak (load against capacity) */
+  loadMode?: 'daily' | 'crowding';
   /** M4 Plan mode: the network fades back; the draft route and the travel-time bloom draw on top */
   plan?: { draftLine: LinesFC; draftPoints: PointsFC; iso: PolysFC; isoOrigin: [number, number] | null };
   /** M6 Opinion view: zones washed by opinion (data streamed into OPINION_ZONES), the network fades back */
@@ -191,7 +193,7 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
 
   if (o.plan) addIsoLayers(L, p);
   if (o.opinion) addOpinionLayers(L, p);
-  if (o.network) addNetworkLayers(L, p, !!o.riders && !!o.network.zones?.features.length, !!o.plan || !!o.opinion);
+  if (o.network) addNetworkLayers(L, p, !!o.riders && !!o.network.zones?.features.length, !!o.plan || !!o.opinion, o.loadMode === 'crowding');
   if (o.plan) addDraftLayers(L, p);
   if (o.rider) addRiderLayers(L, p, o.rider);
 
@@ -281,7 +283,10 @@ function scale(stops: Stops, k: number): Stops {
 }
 
 /** Transit network layers: corridors, routes, trails, vehicles, stations (VISUAL_DESIGN §3, §5). */
-function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders: boolean, muted = false) {
+/** Load levels in the Riders view's crowding colours: calm, busy (65%), crowded (90%), over capacity (110%). */
+export const LOAD_COLORS = { day: ['#9DB7C9', '#E8B730', '#E57A2E', '#C8303A'], night: ['#4C6C88', '#F2C14E', '#F08A3C', '#FF4D5A'] };
+
+function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders: boolean, muted = false, crowding = false) {
   const T = p.transit;
   const lines = { source: NET_LINES } as const;
   const corridor = (kind: string): ExpressionSpecification => ['all', ['==', ['get', 'kind'], 'corridor'], ['==', ['get', 'corridor'], kind]];
@@ -345,7 +350,11 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders
         'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 9, ['+', 1, bw(0.45)], 16, ['+', 2.5, bw(2.4)]] } as never });
     L({ id: 'net-loads', type: 'line', source: NET_LOADS, layout: round,
       paint: {
-        'line-color': ['interpolate', ['linear'], ['get', 'load'], 0, '#9CC3E4', 2000, '#4E9AD6', 8000, '#2D6CC0', 25000, '#1B3E8F'],
+        'line-color': crowding
+          ? ['step', ['get', 'lf'], ...(([c0, c1, c2, c3]) => [c0, 0.65, c1, 0.9, c2, 1.1, c3])(p.night ? LOAD_COLORS.night : LOAD_COLORS.day)]
+          : ['interpolate', ['linear'], ['get', 'load'], 0, '#9CC3E4', 2000, '#4E9AD6', 8000, '#2D6CC0', 25000, '#1B3E8F'],
+        // significant load stands out: stretches carrying few riders fade back
+        ...(crowding ? { 'line-opacity': ['interpolate', ['linear'], ['get', 'peak'], 0, 0.3, 250, 0.75, 800, 1] } : {}),
         'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 9, bw(0.45), 16, bw(2.4)],
       } as never });
   }
@@ -370,8 +379,8 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders
       'circle-color': ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local] as unknown as ExpressionSpecification,
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['match', ['get', 'cls'], 'otrain', 3.4, 2.4], 13.6, ['match', ['get', 'cls'], 'otrain', 7, 5]] as unknown as ExpressionSpecification,
       'circle-stroke-color': p.night ? '#FFFFFF' : '#14213A',
-      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, muted ? 0.6 : 1.4, 13.6, 2.2],
-      ...(muted ? { 'circle-opacity': 0.35, 'circle-stroke-opacity': 0.35 } : {}),
+      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, muted || riders ? 0.6 : 1.4, 13.6, 2.2],
+      ...(muted || riders ? { 'circle-opacity': 0.3, 'circle-stroke-opacity': 0.3 } : {}),
     } });
   L({ id: 'net-vehicles', type: 'symbol', source: NET_VEHICLES, minzoom: 13.5,
     layout: {

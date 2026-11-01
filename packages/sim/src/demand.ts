@@ -450,6 +450,8 @@ export interface Assignment {
   boardingsByRoute: Map<string, number>;
   boardingsByStop: Map<string, number>;
   loads: Map<string, Float64Array>;
+  /** the peak period's share of `loads` (for crowding: peak-hour riders against peak-hour capacity) */
+  peakLoads: Map<string, Float64Array>;
   totals: { trips: number; boardings: number; ivtMin: number; waitMin: number; walkMin: number };
 }
 
@@ -460,6 +462,7 @@ export function assign(network: Network, zones: Zone[], transit: Record<Period, 
   const boardingsByRoute = new Map<string, number>();
   const boardingsByStop = new Map<string, number>();
   const loads = new Map<string, Float64Array>();
+  const peakLoads = new Map<string, Float64Array>();
   const totals = { trips: 0, boardings: 0, ivtMin: 0, waitMin: 0, walkMin: 0 };
   let pi = 0;
   for (const period of ['peak', 'offpeak'] as Period[]) {
@@ -499,6 +502,11 @@ export function assign(network: Network, zones: Zone[], transit: Record<Period, 
             let ld = loads.get(pid);
             if (!ld) loads.set(pid, (ld = new Float64Array(rn.patternStart[l.pattern + 1]! - ps - 1)));
             for (let k = l.board; k < l.alight; k++) ld[k]! += trips;
+            if (period === 'peak') {
+              let pl = peakLoads.get(pid);
+              if (!pl) peakLoads.set(pid, (pl = new Float64Array(rn.patternStart[l.pattern + 1]! - ps - 1)));
+              for (let k = l.board; k < l.alight; k++) pl[k]! += trips;
+            }
             ivt += r.legTime(l);
           }
           const first = rn.patternStops[rn.patternStart[jr.legs[0]!.pattern]! + jr.legs[0]!.board]!;
@@ -520,7 +528,7 @@ export function assign(network: Network, zones: Zone[], transit: Record<Period, 
     }
     pi++;
   }
-  return { boardingsByRoute, boardingsByStop, loads, totals };
+  return { boardingsByRoute, boardingsByStop, loads, peakLoads, totals };
 }
 
 // ------------------------------------------------------------------------------------------ report

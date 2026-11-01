@@ -42,7 +42,21 @@ export interface GameApi {
   measuring: boolean;
   /** M6: what the opinion model and the diaries need (null until the data is loaded) */
   world: GameWorld | null;
+  /** riders per segment on the network in operation (null until measured; see requestLoads) */
+  loads: OpLoads | null;
+  requestLoads: () => void;
 }
+
+/** The assignment's loads for one network, and the model's OC Transpo weekday boardings on it (to scale by). */
+export interface OpLoads {
+  loads: Record<string, number[]>;
+  peakLoads?: Record<string, number[]>;
+  byStop: Record<string, number>;
+  oc: number;
+}
+
+const loadsOf = (sc: Scorecard): OpLoads | null => (sc.loads ? { loads: sc.loads, peakLoads: sc.peakLoads, byStop: sc.byStop ?? {},
+  oc: sc.byAgency.octranspo ?? 0 } : null);
 
 /** A zone's level of service once `plan` runs, from the current one and the model's before/after. */
 function losAfter(cur: ZoneLos | undefined, baseline: Scorecard, plan: Scorecard): ZoneLos | undefined {
@@ -162,6 +176,12 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
   const figures = useCallback(async (before: Edit[], added: Edit[], g: GameState): Promise<Omit<PendingFigures, 'key'>> => {
     if (!base) throw new Error('network not loaded');
     const { baseline, plan } = await measure(before, added);
+    // keep both networks' loads for the Riders view
+    const lb = loadsOf(baseline);
+    const lp = loadsOf(plan);
+    if (lb) loadsCache.current.set(JSON.stringify(before), lb);
+    if (lp) loadsCache.current.set(JSON.stringify([...before, ...added]), lp);
+    setLoadsTick((n) => n + 1);
     // the model's absolute level differs a little between runs: scale to the game's current figures
     const k = g.service.boardings / Math.max(1, baseline.byAgency.octranspo ?? 0);
     const s = serviceStats(agencyOnly(applyEdits(base.network, [...before, ...added]), 'octranspo'));
@@ -176,6 +196,8 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
   }, [base, measure]);
 
   const busy = useRef(new Set<string>());
+  const loadsCache = useRef(new Map<string, OpLoads>());
+  const [loadsTick, setLoadsTick] = useState(0);
   const run = useCallback((key: string, job: () => Promise<void>) => {
     if (busy.current.has(key)) return;
     busy.current.add(key);
@@ -208,6 +230,25 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
     });
   }, [base, appliedKey, state?.serviceFor, figures, run]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // loads on the network in operation: the base year's from the demand file, otherwise measured
+  const loads = useMemo<OpLoads | null>(() => {
+    if (!state?.applied.length) {
+      const d = base?.demand;
+      return d ? { loads: d.loads, peakLoads: d.peakLoads, byStop: d.stops, oc: d.summary.boardingsByAgency.octranspo ?? 0 } : null;
+    }
+    return loadsCache.current.get(appliedKey) ?? null;
+  }, [base, appliedKey, loadsTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const requestLoads = useCallback(() => {
+    const g = stateRef.current;
+    if (!g?.applied.length || loadsCache.current.has(appliedKey)) return;
+    run(`loads:${appliedKey}`, async () => {
+      const { baseline } = await measure(g.applied, []);
+      const l = loadsOf(baseline);
+      if (l) loadsCache.current.set(appliedKey, l);
+      setLoadsTick((n) => n + 1);
+    });
+  }, [appliedKey, measure, run]);
+
   // recent news only: the last three weeks of game time
   const news = useMemo(() => {
     if (!state) return [];
@@ -216,7 +257,7 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
   }, [state?.events, state?.date]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
-    state, operation, decision, news, measuring: measuring > 0, world,
+    state, operation, decision, news, measuring: measuring > 0, world, loads, requestLoads,
     resolve: (r) => setState((s) => (s && openDecision(s) ? resolve(s, openDecision(s)!.id, r) : s)),
     dismiss: (id) => setState((s) => (s ? dismissEvent(s, id) : s)),
     orderBuses: (type, count) => setState((s) => (s ? orderBuses(s, type, count) : s)),
