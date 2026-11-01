@@ -1,0 +1,13 @@
+{
+  "name": "otc-visual-prototype",
+  "version": "0.1.0",
+  "description": "Ottawa Transit Commissioner visual prototype (MapLibre)",
+  "scripts": {},
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource/source-serif-4": "^5.3.1",
+    "maplibre-gl": "^5.24.0"
+  },
+  "private": true
+}

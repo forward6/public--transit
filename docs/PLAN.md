@@ -1,9 +1,9 @@
-# Confluence — an Ottawa–Gatineau Transit Simulator
+# Ottawa Transit Commissioner (OTC)
 
-**Game design & technical plan · v0.1 · 1 November 2026**
+**Game design & technical plan · v0.2 · 1 November 2026**
 
-> *Working title.* The Ottawa, Rideau and Gatineau rivers meet at the heart of the region, and
-> "Confluence" is spelled and pronounced the same way in English and in French. See open question 7.
+> An Ottawa–Gatineau transit simulator. The look is defined in [`VISUAL_DESIGN.md`](VISUAL_DESIGN.md),
+> with screenshots from the working visual prototype.
 
 ---
 
@@ -18,7 +18,9 @@
 | History after 2010 | **Fully player-driven.** The city is exact on day one and then grows in response to your decisions. Nothing after 2010 is scripted. |
 | Simulation | **Hybrid:** zone-based demand calibrated to the 2011 National Capital Region origin–destination survey, plus a sample of individual riders you can follow. |
 | Politics | **Full civic layer:** council votes, elections, provincial and federal funding, fares and the transit levy, labour, media and opinion maps. |
+| Title | **Ottawa Transit Commissioner (OTC).** |
 | Player role | Chair of Ottawa's Transit Commission. |
+| Gatineau | **STO runs separately.** It is an AI agency with its own council, budget and political agenda. It collaborates through negotiated agreements, but its interests can clash with yours. |
 | Failure | **Soft consequences.** Things can get very hard, but it is never game over. |
 | Modes | Bus and BRT (Transitway), LRT/metro, commuter and regional rail, on-demand and para-transit, and the unusual modes: ferries, gondolas and streetcars. |
 | Team | Solo hobby project. Claude writes most of the code; you direct and playtest. |
@@ -65,11 +67,17 @@ You propose, council decides.
 - **What needs council approval:** the annual transit budget and transit levy, fare changes outside
   the band, capital projects over a threshold, new garages, rapid-transit lines, interprovincial
   agreements and changes to the urban boundary.
-- **Gatineau (STO):** run by an **AI neighbour agency** with its own board, budget, Quebec funding
-  and elections. You negotiate cross-river routes, shared stations, fare integration and joint
-  projects with it. A late-game goal is a **joint regional transit authority**, which needs both
-  councils and both provinces. Achieving it unlocks direct control of the Gatineau network.
-  In **sandbox** you control both from the start. *(Open question 1)*
+- **Gatineau (STO) runs separately.** It is an **AI agency** with its own board, budget, Quebec
+  funding, elections and **political agenda**.
+  - **How you work together:** you collaborate through negotiated agreements (cross-river routes,
+    shared stations, fare integration, joint projects and cost-sharing).
+  - **Where it gets difficult:** STO also pursues its own priorities. For example, Rapibus comes
+    first, or a Gatineau election swings toward a tram along Wellington. It can act unilaterally,
+    for instance by moving its routes through downtown Ottawa. It can stall or refuse your
+    cross-river projects. Relations ("Cordial", "Wary", "Strained" and so on) are tracked in the
+    top bar and shift with how you treat it.
+  - **No direct control:** you never run Gatineau's network in the campaign. A sandbox option can
+    let you plan both networks.
 
 ### 2.2 Core loop
 
@@ -378,7 +386,7 @@ periods: early, AM peak, midday, PM peak, evening and night.
 | **Ottawa council:** mayor plus 23 ward councillors (2010 boundaries; redistributions happen later as events) | Votes on budgets, levy, big projects and the urban boundary. Councillors are **fictional people** with traits: priorities (transit, roads, taxes, rural, heritage, environment), ideology, ambition, their relationship with you and how sensitive they are to their ward's opinion. |
 | **Transit Commission** (councillors plus citizen commissioners, chaired by you) | Votes first on transit items and recommends them to council. |
 | **Mayor (AI)** | Platform shaped by each election. Can champion your plans or obstruct them. |
-| **Gatineau council and STO board (AI)** | Partner, rival and potential merger partner. Elections in November. |
+| **Gatineau council and STO board (AI)** | A separate agency with its own agenda: sometimes a partner, sometimes an obstacle. It negotiates, trades favours, and can act unilaterally. Elections in November shift its priorities. |
 | **Ontario, Quebec and the federal government** | **Generated, fictional governments** (no real parties) whose priorities shift after their own elections. They open funding programs with conditions attached. |
 | **NCC** | Controls federal lands, parkways, Greenbelt approvals and bridge issues. Can block an alignment or demand changes to it. |
 | **Transit union** (fictional local) | Contract talks every 3–4 years. |
@@ -480,6 +488,9 @@ Five headline indicators, each grounded in real-world planning measures:
 ---
 
 ## 9. Visual and audio design: an elegant 2.5D "living map"
+
+> **Superseded in detail by [`VISUAL_DESIGN.md`](VISUAL_DESIGN.md)**, which has the final palettes,
+> symbology and HUD layout, plus prototype screenshots. This section remains as the summary.
 
 ### 9.1 Art direction
 
@@ -757,23 +768,26 @@ to keep iteration fast; it expands to the full region afterwards.
 
 | # | Question | Recommended default |
 |---|---|---|
-| 1 | **Gatineau control:** is STO an AI partner with a merger unlock, or do you control both networks from the start? | AI partner, with a joint authority as a late-game unlock. Both networks are yours in sandbox. |
+| 1 | ~~Gatineau control~~ | **Decided:** STO runs separately, collaborating but with its own political agenda. |
 | 2 | **Start date:** 1 December 2010 (new council term, budget first) or 1 January 2010 (the October 2010 election early on)? | 1 December 2010. |
 | 3 | **Names:** generic agency names by default with a "real names" option for private play? | Yes. |
 | 4 | **Public release:** will this eventually be online for others to play? This affects hosting, licensing and names. | Assume yes, eventually, and design for it from the start. |
 | 5 | **Target hardware:** a mid-range laptop with integrated graphics? Tablets? | Mid-range laptop; tablet later. |
 | 6 | **Campaign end:** 2030 (five terms), 2026 (the present) or open-ended? | 2030, then endless mode. |
-| 7 | **Title:** "Confluence" or something else? | Your call. |
+| 7 | ~~Title~~ | **Decided:** Ottawa Transit Commissioner (OTC). |
 | 8 | **Pandemic-style demand shock:** include it as an optional random event? | Optional, off by default. |
 
 ---
 
 ## 15. Immediate next steps
 
-1. Answer the open questions in §14. Defaults will be used where you don't specify.
-2. **M0:** scaffold the repo, CI and an empty map page.
-3. Send the **data requests** in §11.3, because their lead times are the longest.
-4. **M1:** build the 2010 basemap. This is the first thing you'll be able to *see*.
+1. **Graphics first (in progress):** the visual direction and three screenshots are in
+   [`VISUAL_DESIGN.md`](VISUAL_DESIGN.md), from the prototype in `prototype/visual/`. Give feedback
+   on its §11 questions.
+2. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
+3. **M0:** scaffold the repo, CI and an empty map page.
+4. Send the **data requests** in §11.3, because their lead times are the longest.
+5. **M1:** build the 2010 basemap. The prototype's styles carry straight over.
 
 ---
 

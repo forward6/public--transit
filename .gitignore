@@ -1,0 +1,6 @@
+node_modules/
+__pycache__/
+.venv/
+# Large, regenerable data for the visual prototype (see prototype/visual/README.md)
+prototype/visual/data/*
+!prototype/visual/data/.gitkeep
