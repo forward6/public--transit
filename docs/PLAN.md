@@ -798,14 +798,17 @@ to keep iteration fast; it expands to the full region afterwards.
 2. ✅ **M0:** the project skeleton and CI.
 3. ✅ **M1:** the 2010 base map ([screenshots](screenshots/m1/)). Run it with `pnpm dev` after
    `uv run otc-pipeline all`.
-4. 🔶 **M2 (mostly done):**
-   - **Built:** the engine, plus the 2010 Transitway network from dated Wikipedia revisions.
-     That is 43 stations; routes 94, 95, 96, 97, 85, 106, 112 and 118 plus the O-Train
-     (about 1,700 weekday trips); and a catalogue of all 373 OC Transpo and STO routes from
-     November 2010 ([screenshots](screenshots/m2/)).
-   - **Still to do:** the remaining ~260 OC Transpo and all STO route alignments. They need
-     OC Transpo's 2010 GTFS from the Wayback Machine, which refuses connections from this build
-     environment. See `pipeline/curation/network2010/README.md`.
+4. ✅ **M2:** the whole 2010 network moves ([screenshots](screenshots/m2/)). That's 217 OC Transpo
+   and STO routes, about 13,500 weekday trips and ~900 buses at the peak.
+   - **Sourced:** the Transitway routes 94–97, 85, 106, 112, 118 and the O-Train, with 43 stations,
+     come from dated Wikipedia revisions.
+   - **Approximate:** the rest of the November 2010 route table is approximated. Each route is
+     routed between the places the table lists, with service typical of its fare class.
+     Accuracy is "right enough for a game", by design. Each route's provenance says which kind
+     it is.
+   - **Upgrade path:** if the *Archive 2010 GTFS* workflow finds OC Transpo's own 2010 feed,
+     `network --gtfs` replaces the approximations route by route. See
+     `pipeline/curation/network2010/README.md`.
 5. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
 6. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 

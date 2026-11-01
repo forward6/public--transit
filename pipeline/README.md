@@ -62,13 +62,19 @@ It places **26 stations** using Overture place positions snapped to the corridor
 pattern's shape along the graph. Running times come from road-class speeds (12 km/h downtown)
 plus dwell. Curation lives in [`curation/network2010/`](curation/network2010/).
 
-**Status:** 8 bus routes plus the O-Train are mapped from dated Wikipedia revisions (the
-`wiki` step). That gives 1,700 weekday trips, plus a catalogue of all 373 OC Transpo and STO routes
-from November 2010. See [`curation/network2010/README.md`](curation/network2010/README.md). The
-rest need OC Transpo's 2010 GTFS from the Wayback Machine, which resets connections from this
-build environment. The **Archive 2010 GTFS** workflow (`.github/workflows/archive-2010.yml`) runs
-the search on GitHub's servers instead and publishes the feeds, with a `report.json` of every
-capture checked, to the `data/gtfs-2010` branch:
+**Status:** the whole 2010 network is built: 217 routes and about 13,500 weekday trips.
+
+- **Sourced:** 8 bus routes plus the O-Train follow dated Wikipedia revisions (the `wiki` step).
+- **Approximate:** the rest of the November 2010 route tables are approximated by `approx.py`.
+  Each route is routed between the places its row lists, with service typical of its fare class.
+  It's a game, so "right enough" is the goal.
+
+See [`curation/network2010/README.md`](curation/network2010/README.md).
+
+OC Transpo's own 2010 GTFS would replace the approximations. The Wayback Machine resets
+connections from this build environment, so the **Archive 2010 GTFS** workflow
+(`.github/workflows/archive-2010.yml`) runs the search on GitHub's servers instead. It publishes
+any feeds it finds, with a `report.json` of every capture checked, to the `data/gtfs-2010` branch:
 
 ```bash
 git fetch origin data/gtfs-2010 && git archive origin/data/gtfs-2010 | tar -x -C data/raw/archive
@@ -82,10 +88,13 @@ The GTFS importer (`gtfs.py`) does the following:
 
 - picks the weekday service of 1 December 2010 (or the nearest weekday)
 - groups trips into stop patterns and keeps every departure
-- derives AM-peak run times and dwells
-- classifies routes as Transitway, frequent, local or peak.
+- derives AM-peak run times and dwells, interpolating blank (non-timepoint) times by distance
+- routes shapes on the 2010 graph when the feed has no `shapes.txt`
+- merges the platforms of curated stations ("HURDMAN 2A") into the station
+- classifies routes as Transitway, frequent, local or peak
+- replaces the reconstructed or approximated route with the same number.
 
-It is tested on a synthetic feed.
+It is tested on synthetic feeds.
 
 ## Sources and licences
 

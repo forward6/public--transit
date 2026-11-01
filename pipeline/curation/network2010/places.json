@@ -1,0 +1,446 @@
+{
+ "_comment": "Hand-placed, approximate positions for 2010 route termini that the stations and Overture places don't name (used by approx.py). A value is [lon, lat], a station id, or a list of those (a sequence of waypoints). Keys are matched without accents, case or punctuation.",
+ "places": {
+  "downtown": "mackenzie-king",
+  "rideau centre": "mackenzie-king",
+  "rideau": "mackenzie-king",
+  "ottawa": [
+   -75.6935,
+   45.4255
+  ],
+  "downtown ottawa": [
+   -75.6935,
+   45.4255
+  ],
+  "ottawa tunney s pasture": "tunneys",
+  "barrhaven c": "barrhaven-centre",
+  "p d orleans": "place-dorleans",
+  "baseline station": "baseline",
+  "ottawa rockcliffe": [
+   -75.642,
+   45.4455
+  ],
+  "nepean centre": [
+   -75.76,
+   45.3445
+  ],
+  "nepean north": [
+   -75.772,
+   45.356
+  ],
+  "nepean south": [
+   -75.735,
+   45.278
+  ],
+  "gloucester north": [
+   -75.596,
+   45.448
+  ],
+  "gloucester south": [
+   -75.616,
+   45.342
+  ],
+  "colonnade": [
+   -75.7265,
+   45.3455
+  ],
+  "ottawa west": [
+   -75.748,
+   45.388
+  ],
+  "ottawa south": [
+   -75.683,
+   45.393
+  ],
+  "gatineau hull": [
+   -75.718,
+   45.4265
+  ],
+  "hawthorne": [
+   -75.605,
+   45.374
+  ],
+  "herongate": [
+   -75.653,
+   45.378
+  ],
+  "walter baker": [
+   -75.7385,
+   45.2765
+  ],
+  "stonebridge": [
+   -75.702,
+   45.261
+  ],
+  "teron": [
+   -75.8945,
+   45.336
+  ],
+  "aviation": [
+   -75.64,
+   45.446
+  ],
+  "queenswood heights": [
+   -75.509,
+   45.474
+  ],
+  "tenth line": [
+   -75.495,
+   45.47
+  ],
+  "esprit": [
+   -75.519,
+   45.456
+  ],
+  "portobello": [
+   -75.487,
+   45.457
+  ],
+  "pineview": [
+   -75.6,
+   45.426
+  ],
+  "elisabeth bruyere": [
+   -75.6915,
+   45.43
+  ],
+  "island lodge": [
+   -75.675,
+   45.438
+  ],
+  "somerset": [
+   -75.702,
+   45.412
+  ],
+  "merivale": [
+   -75.736,
+   45.355
+  ],
+  "longfields": [
+   -75.748,
+   45.281
+  ],
+  "morgan s grant": [
+   -75.936,
+   45.337
+  ],
+  "cumberland": [
+   -75.404,
+   45.516
+  ],
+  "carleton": "carleton",
+  "carlington": [
+   -75.733,
+   45.383
+  ],
+  "chapel hill": [
+   -75.539,
+   45.451
+  ],
+  "convent glen": [
+   -75.548,
+   45.479
+  ],
+  "beacon hill": [
+   -75.598,
+   45.453
+  ],
+  "fallingbrook": [
+   -75.493,
+   45.481
+  ],
+  "heron park": [
+   -75.68,
+   45.38
+  ],
+  "riverview": [
+   -75.662,
+   45.399
+  ],
+  "britannia": [
+   -75.801,
+   45.361
+  ],
+  "lincoln heights": [
+   -75.786,
+   45.366
+  ],
+  "westgate": [
+   -75.747,
+   45.387
+  ],
+  "honey gables": [
+   -75.617,
+   45.322
+  ],
+  "richmond": [
+   -75.836,
+   45.192
+  ],
+  "manotick": [
+   -75.717,
+   45.227
+  ],
+  "munster hamlet": [
+   -75.942,
+   45.186
+  ],
+  "stittsville": [
+   -75.922,
+   45.26
+  ],
+  "kanata": [
+   -75.903,
+   45.308
+  ],
+  "airport": "airport",
+  "pont du portage": [
+   -75.7165,
+   45.4215
+  ],
+  "pont alexandra": [
+   -75.706,
+   45.43
+  ],
+  "pont macdonald cartier": [
+   -75.7035,
+   45.4365
+  ],
+  "pont champlain": [
+   -75.764,
+   45.405
+  ],
+  "pont de la chaudiere": [
+   -75.721,
+   45.4195
+  ],
+  "gatineau centre ville": [
+   -75.72,
+   45.429
+  ],
+  "gatineau": [
+   -75.656,
+   45.485
+  ],
+  "le plateau": [
+   -75.788,
+   45.442
+  ],
+  "parc o bus freeman": [
+   -75.747,
+   45.4615
+  ],
+  "parc o bus rivermead": [
+   -75.806,
+   45.411
+  ],
+  "parc o bus jean rene monette": [
+   -75.633,
+   45.493
+  ],
+  "parc o bus robert guertin": [
+   -75.719,
+   45.4385
+  ],
+  "parc o bus st alexandre": [
+   -75.715,
+   45.489
+  ],
+  "parc o bus saint alexandre": [
+   -75.715,
+   45.489
+  ],
+  "les promenades de l outaouais": [
+   -75.66,
+   45.4865
+  ],
+  "cegep de l outaouais campus de hull": [
+   -75.743,
+   45.444
+  ],
+  "cegep de l outaouais campus gabrielle roy": [
+   -75.743,
+   45.444
+  ],
+  "casino du lac leamy": [
+   -75.712,
+   45.448
+  ],
+  "hopital de hull": [
+   -75.7385,
+   45.4425
+  ],
+  "village place cartier": [
+   -75.738,
+   45.447
+  ],
+  "galeries de hull": [
+   -75.73,
+   45.439
+  ],
+  "hautes plaines": [
+   -75.765,
+   45.456
+  ],
+  "des grives saint raymond": [
+   -75.759,
+   45.452
+  ],
+  "pink de la sapiniere": [
+   -75.795,
+   45.452
+  ],
+  "du conservatoire pink": [
+   -75.78,
+   45.454
+  ],
+  "carrefour de la cite": [
+   -75.758,
+   45.441
+  ],
+  "parc greber varennes": [
+   -75.678,
+   45.472
+  ],
+  "chemin saint thomas boulevard lorrain": [
+   -75.6,
+   45.505
+  ],
+  "marie burger": [
+   -75.748,
+   45.446
+  ],
+  "cite des jeunes": [
+   -75.743,
+   45.444
+  ],
+  "aylmer": [
+   -75.844,
+   45.395
+  ],
+  "centre du secteur aylmer": [
+   -75.844,
+   45.395
+  ],
+  "front": [
+   -75.853,
+   45.393
+  ],
+  "eardley": [
+   -75.88,
+   45.412
+  ],
+  "wychwood": [
+   -75.865,
+   45.401
+  ],
+  "jardins lavigne": [
+   -75.86,
+   45.41
+  ],
+  "des cedres": [
+   -75.833,
+   45.402
+  ],
+  "lakeview": [
+   -75.878,
+   45.396
+  ],
+  "lucerne nord": [
+   -75.815,
+   45.417
+  ],
+  "aylmer nord": [
+   -75.845,
+   45.415
+  ],
+  "parc champlain": [
+   -75.83,
+   45.408
+  ],
+  "limbour": [
+   -75.718,
+   45.496
+  ],
+  "mont luc": [
+   -75.695,
+   45.499
+  ],
+  "la verendrye": [
+   -75.65,
+   45.479
+  ],
+  "magnus": [
+   -75.672,
+   45.478
+  ],
+  "place la cite": [
+   -75.672,
+   45.478
+  ],
+  "cheval blanc": [
+   -75.582,
+   45.505
+  ],
+  "duquette": [
+   -75.627,
+   45.499
+  ],
+  "davidson": [
+   -75.614,
+   45.492
+  ],
+  "maloney": [
+   -75.645,
+   45.491
+  ],
+  "cote des neiges": [
+   -75.623,
+   45.496
+  ],
+  "du barry": [
+   -75.633,
+   45.503
+  ],
+  "touraine": [
+   -75.64,
+   45.499
+  ],
+  "ravins boises nobert": [
+   -75.6,
+   45.502
+  ],
+  "notre dame": [
+   -75.664,
+   45.474
+  ],
+  "encan larose": [
+   -75.423,
+   45.533
+  ],
+  "masson angers": [
+   -75.423,
+   45.533
+  ],
+  "buckingham": [
+   -75.419,
+   45.588
+  ],
+  "chelsea": [
+   -75.78,
+   45.5
+  ],
+  "cantley": [
+   -75.78,
+   45.565
+  ],
+  "bridlewood": [
+   -75.864,
+   45.29
+  ],
+  "gatineau octranspo": [
+   -75.72,
+   45.429
+  ]
+ }
+}

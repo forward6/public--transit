@@ -55,7 +55,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("step", choices=STEPS + ["archive", "all"])
     p.add_argument("--layers", help="fetch: comma-separated subset of layers")
     p.add_argument("--workers", type=int, default=0, help="tiles: worker processes (default: CPU count)")
-    p.add_argument("--gtfs", help="network: import a (2010) GTFS zip for the service")
+    p.add_argument("--gtfs", action="append", help="network: import a (2010) GTFS zip for the service (repeatable)")
     args = p.parse_args(argv)
     for step in STEPS if args.step == "all" else [args.step]:
         run(step, args)

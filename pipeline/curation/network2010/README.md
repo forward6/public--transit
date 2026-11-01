@@ -7,6 +7,7 @@
 |---|---|
 | `infrastructure.json` | The Transitway corridor (assembled from today's map data) and the 2010 stations, each with its confidence. `to_verify` lists the open questions. |
 | `routes.json` | Service: routes, stop patterns, weekday headways by period, and provenance. |
+| `places.json` | Hand-placed positions for 2010 route termini the gazetteer doesn't know (used to approximate the rest of the route tables). |
 | *(a 2010 GTFS feed)* | `otc-pipeline network --gtfs FILE.zip` imports OC Transpo's own 2010 timetable instead, which is the preferred source. |
 
 ## Status (November 2026)
@@ -26,12 +27,29 @@
 whose stations, streets and (for 94/95/97) frequencies the sources state. Each route's `provenance`
 says what was stated and what is estimated.
 
-**Listed but not mapped:** the other ~260 OC Transpo routes and all STO routes are in the
-catalogue (number, fare class, termini), but the sources don't give their streets. They need OC
-Transpo's 2010 GTFS, which is preserved by the Wayback Machine. `web.archive.org` resets every
-connection from this build environment (the TLS handshake is cut after about 10 s; that's the
-Archive's side, the proxy allows it). The **Archive 2010 GTFS** GitHub workflow fetches it
-instead and publishes it to the `data/gtfs-2010` branch; import with `otc-pipeline network --gtfs <zip>`.
+**Approximated (the rest):** OTC is a game, so the other routes of the 2010 route tables are
+built by `approx.py`. That's 208 OC Transpo and STO routes, of which 19 are skipped; see
+`data/reports/approx_routes.json`.
+
+- Each route goes through the places its 2010 row lists (termini and "via" bridges). The places
+  are found among the stations, Overture places and neighbourhoods, and the hand-placed names in
+  `places.json`.
+- Routes are routed on the 2010 streets. Local routes keep off highways and the Transitway;
+  peak, express and commuter routes may use them, and stop less often.
+- Service is the typical weekday pattern of the route's fare class. Peak and express routes run
+  inbound in the morning and outbound in the afternoon.
+- Each is marked `confidence: "low"` with a note.
+- Not generated: school, Scotiabank Place event, early-morning and STO partner trips, and rural
+  commuter routes from towns beyond the map (Perth, Cornwall, Casselman…).
+
+To improve a route, add it to `routes.json` (it then wins over the approximation), or fix a place
+in `places.json`.
+
+**Upgrade path:** OC Transpo's own 2010 GTFS (preserved by the Wayback Machine) would replace the
+approximations route by route. `web.archive.org` resets every connection from this build
+environment, so the **Archive 2010 GTFS** GitHub workflow searches for it instead and publishes
+what it finds to the `data/gtfs-2010` branch. Import it with
+`otc-pipeline network --gtfs <zip>` (repeatable, e.g. for STO).
 
 ## Rules for adding a route by hand
 

@@ -17,6 +17,7 @@ import math
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
 import pyarrow.parquet as pq
@@ -41,6 +42,7 @@ DOWNTOWN_KMH = 12
 COST = {"busway": 0.55, "motorway": 0.9, "trunk": 0.9, "primary": 1.0, "secondary": 1.05, "tertiary": 1.2,
         "minor": 2.2, "service": 4.0, "link": 1.5, "rail": 1.0}
 DWELL = {"station": 30, "stop": 15, "rail": 40}
+SHARE_STOP_M = 250  # a route reuses another route's stop once it is this far past its own last stop
 OUTPUT = "network-2010.json"
 
 
@@ -125,14 +127,17 @@ class Graph:
             self.main_nodes = main
             self.main_tree = cKDTree(np.column_stack([mx, my]))
 
-    def weighted(self, prefer: set[str] | frozenset = frozenset(), factor: float = 0.35):
-        """Cost matrix (and best edge per node pair) — edges named in ``prefer`` cost ``factor`` x."""
+    def weighted(self, prefer: set[str] | frozenset = frozenset(), factor: float = 0.35,
+                 class_factor: dict[str, float] | None = None):
+        """Cost matrix (and best edge per node pair) — edges named in ``prefer`` cost ``factor`` x,
+        and edges of a class in ``class_factor`` cost that much more (or less)."""
+        class_factor = class_factor or {}
         n = len(self.node_lonlat)
         if not self.edges:
             return coo_matrix((0, 0)).tocsr(), {}
         best: dict[tuple[int, int], tuple[float, int]] = {}
         for i, e in enumerate(self.edges):
-            w = e.length * COST.get(e.cls, 1.5) * (factor if e.name in prefer else 1.0)
+            w = e.length * COST.get(e.cls, 1.5) * (factor if e.name in prefer else 1.0) * class_factor.get(e.cls, 1.0)
             for a, b in ((e.u, e.v), (e.v, e.u)):
                 if a == b:
                     continue
@@ -331,12 +336,14 @@ class Graph:
         d, i = self.tree.query([float(x), float(y)])
         return int(i), float(d)
 
-    def path(self, a: int, b: int, weights=None) -> list[Edge]:
-        """Shortest path as a list of edges oriented a -> b (empty if a == b)."""
+    def path(self, a: int, b: int, weights=None, limit: float = np.inf) -> list[Edge]:
+        """Shortest path as a list of edges oriented a -> b (empty if a == b).
+
+        ``limit`` bounds the search (in cost units, ~metres): much faster for nearby nodes."""
         if a == b:
             return []
         matrix, best = weights or (self.matrix, self.best)
-        dist, pred = dijkstra(matrix, directed=True, indices=a, return_predecessors=True)
+        dist, pred = dijkstra(matrix, directed=True, indices=a, return_predecessors=True, limit=limit)
         if not np.isfinite(dist[b]):
             raise ValueError(f"no path between nodes {a} and {b}")
         seq = [b]
@@ -551,9 +558,10 @@ def _waypoint(wp: str, graph: Graph, stations: dict[str, dict], near=None) -> tu
 
 
 def build_bus_pattern(route: dict, pdef: dict, graph: Graph, weights, stations: dict[str, dict], pid: str,
-                      direction: int) -> tuple[dict, list[dict]]:
+                      direction: int, shared: dict[int, dict] | None = None) -> tuple[dict, list[dict]]:
     """Route a pattern through its waypoints; stations are stops, and street sections get stops
-    every ~420 m named after the cross street. Returns (pattern, new stops)."""
+    every ~420 m named after the cross street. With ``shared`` (graph node -> stop), routes reuse
+    each other's street stops. Returns (pattern, stops it created or reused)."""
     wps = pdef["path"]
     rapid = route.get("class") == "transitway"
     resolved = []
@@ -562,6 +570,9 @@ def build_bus_pattern(route: dict, pdef: dict, graph: Graph, weights, stations: 
         node, sid = _waypoint(wp, graph, stations, near=prev)
         resolved.append((node, sid))
         prev = tuple(graph.node_lonlat[node])
+    resolved = [r for k, r in enumerate(resolved) if k == 0 or r[0] != resolved[k - 1][0]]
+    if len(resolved) < 2:
+        raise ValueError("all waypoints resolve to the same place")
     legs = [graph.path(a, b, weights) for (a, _), (b, _) in zip(resolved, resolved[1:])]
     edges = [e for leg in legs for e in leg]
     shape = path_coords(edges)
@@ -572,13 +583,21 @@ def build_bus_pattern(route: dict, pdef: dict, graph: Graph, weights, stations: 
     since = 0.0
 
     def add_generated(node: int, street: str | None, at: float):
-        cross = graph.cross_name(node, street)
-        name = f"{street} / {cross}" if street and cross else (street or "Stop")
-        sid = f"{pid}-s{len(new_stops)}"
-        lon, lat = graph.node_lonlat[node]
-        new_stops.append({"id": sid, "name": name, "lon": round(float(lon), 6), "lat": round(float(lat), 6),
-                          "kind": "stop", "agencies": [route["agency"]]})
-        stops.append((sid, at))
+        if shared is not None and node in shared:
+            st = shared[node]
+            if route["agency"] not in st["agencies"]:
+                st["agencies"].append(route["agency"])
+        else:
+            cross = graph.cross_name(node, street)
+            name = f"{street} / {cross}" if street and cross else (street or "Stop")
+            sid = f"s{node}" if shared is not None else f"{pid}-s{len(new_stops)}"
+            lon, lat = graph.node_lonlat[node]
+            st = {"id": sid, "name": name, "lon": round(float(lon), 6), "lat": round(float(lat), 6),
+                  "kind": "stop", "agencies": [route["agency"]]}
+            if shared is not None:
+                shared[node] = st
+        new_stops.append(st)
+        stops.append((st["id"], at))
 
     first_node, first_sid = resolved[0]
     if first_sid:
@@ -590,7 +609,9 @@ def build_bus_pattern(route: dict, pdef: dict, graph: Graph, weights, stations: 
             acc += e.length
             since += e.length if e.cls not in FAST else 0
             station_leg = rapid and resolved[k][1] is not None and resolved[k + 1][1] is not None
-            if not station_leg and e.cls not in FAST and since >= STOP_SPACING_M and graph.cross_name(e.v, e.name):
+            if not station_leg and e.cls not in FAST and (
+                    (since >= route.get("stopSpacing", STOP_SPACING_M) and graph.cross_name(e.v, e.name))
+                    or (shared is not None and since >= SHARE_STOP_M and e.v in shared)):
                 add_generated(e.v, e.name, acc)
                 since = 0.0
         node, sid = resolved[k + 1]
@@ -610,17 +631,22 @@ def build_bus_pattern(route: dict, pdef: dict, graph: Graph, weights, stations: 
     dist = [d for _, d in stops]
     run = [round(t_at(b) - t_at(a), 1) for a, b in zip(dist, dist[1:])]
     all_stops = stations | {s["id"]: s for s in new_stops}
+    new_stops = [s for s in new_stops if s["id"] in {sid for sid, _ in stops}]
     dwell = [DWELL[all_stops[sid]["kind"]] for sid, _ in stops]
     dwell[0] = dwell[-1] = 0
     headsign = pdef.get("headsign") or all_stops[stops[-1][0]]["name"]
     pattern = {"id": pid, "routeId": route["id"], "direction": direction, "headsign": headsign,
                "stops": [sid for sid, _ in stops], "stopDist": [round(d, 1) for d in dist],
-               "shape": [[round(x, 6), round(y, 6)] for x, y in shape], "runTimes": run, "dwell": dwell}
+               "shape": [[round(x, 5), round(y, 5)] for x, y in shapely.simplify(shapely.LineString(shape), 0.00002).coords],
+               "runTimes": run, "dwell": dwell}
     return pattern, new_stops
 
 
-def build_bus_route(r: dict, graph: Graph, stations: dict[str, dict]) -> tuple[dict, list[dict], list[dict]]:
-    weights = graph.weighted(set(r.get("streets", [])), 0.35)
+def build_bus_route(r: dict, graph: Graph, stations: dict[str, dict], weights=None,
+                    shared: dict[int, dict] | None = None) -> tuple[dict, list[dict], list[dict]]:
+    """A route definition (routes.json format) -> (route, patterns, stops). A pattern may give
+    ``weekday_back`` for the return direction (peak-only routes run inbound AM, outbound PM)."""
+    weights = weights or graph.weighted(set(r.get("streets", [])), 0.35)
     patterns, stops, deps = [], [], {}
     for i, pdef in enumerate(r["patterns"]):
         variants = [(pdef, 0)]
@@ -629,10 +655,10 @@ def build_bus_route(r: dict, graph: Graph, stations: dict[str, dict]) -> tuple[d
             variants.append((rev, 1))
         for v, direction in variants:
             pid = f"{r['id']}-{i}{'ab'[direction]}"
-            pat, new = build_bus_pattern(r, v, graph, weights, stations, pid, direction)
+            pat, new = build_bus_pattern(r, v, graph, weights, stations, pid, direction, shared)
             patterns.append(pat)
             stops += new
-            deps[pid] = departures(pdef["weekday"], direction)
+            deps[pid] = departures(pdef.get("weekday_back", pdef["weekday"]) if direction else pdef["weekday"], direction)
     route = {k: r[k] for k in ("id", "agency", "shortName", "longName", "mode", "class", "color") if k in r} | {
         "patterns": [p["id"] for p in patterns], "departures": deps,
         "weekday": r.get("summary") or r["patterns"][0]["weekday"],
@@ -686,7 +712,7 @@ def build_graphs(infra, roads_g, roads, rail_g, rail, seg_g, seg):
     return tw_lines, ot_lines, bus, rail_graph, stations
 
 
-def build_network(gtfs: str | None = None) -> dict:
+def build_network(gtfs: str | list[str] | None = None, approximate: bool = True) -> dict:
     t0 = time.time()
     cur = config.CURATION / "network2010"
     infra = json.loads((cur / "infrastructure.json").read_text())
@@ -700,16 +726,23 @@ def build_network(gtfs: str | None = None) -> dict:
 
     # routes ---------------------------------------------------------------------------------------
     routes, patterns = [], []
-    if gtfs:
+    feeds = [gtfs] if isinstance(gtfs, str) else list(gtfs or [])
+    for feed in feeds:
         from .gtfs import import_gtfs
-        g_routes, g_patterns, g_stops = import_gtfs(gtfs, bus)
+        g_routes, g_patterns, g_stops = import_gtfs(feed, bus, stations=stations, rail_graph=rail_graph)
         routes += g_routes
         patterns += g_patterns
         stops.update({s["id"]: s for s in g_stops})
+    # a feed's own routes replace the hand-reconstructed ones with the same id
+    from_feed = {r["id"] for r in routes}
     station_stops = dict(stops)
+    shared: dict[int, dict] = {}  # street stops, shared between routes
     for r in routes_def["routes"]:
+        if r["id"] in from_feed:
+            print(f"  route {r['shortName']}: from GTFS (replaces the reconstruction)")
+            continue
         if r["mode"] != "rail":
-            route, pats, new_stops = build_bus_route(r, bus, station_stops)
+            route, pats, new_stops = build_bus_route(r, bus, station_stops, shared=shared)
             routes.append(route)
             patterns += pats
             stops.update({s["id"]: s for s in new_stops})
@@ -724,17 +757,45 @@ def build_network(gtfs: str | None = None) -> dict:
                          "provenance": _provenance(r["provenance"]),
                          **({"longName_fr": r["longName_fr"]} if "longName_fr" in r else {})})
 
+    # the rest of the 2010 catalogue, approximated (approx.py) ---------------------------------------
+    cat_path = config.BUILD / "2010" / "route_catalogue.json"
+    n_approx = 0
+    if cat_path.exists() and approximate:
+        from .approx import WEIGHTS, approx_routes, load_gazetteer
+        defs, skipped = approx_routes(json.loads(cat_path.read_text()), load_gazetteer(stations), {r["id"] for r in routes})
+        weights = {k: bus.weighted(class_factor=f) for k, f in WEIGHTS.items()}
+        for r in defs:
+            try:
+                route, pats, new_stops = build_bus_route(r, bus, station_stops, weights[r.pop("weights")], shared)
+            except ValueError as e:
+                skipped.append({"id": r["id"], "why": str(e)})
+                continue
+            routes.append(route)
+            patterns += pats
+            stops.update({s["id"]: s for s in new_stops})
+            n_approx += 1
+        config.REPORTS.mkdir(parents=True, exist_ok=True)
+        (config.REPORTS / "approx_routes.json").write_text(json.dumps(
+            {"built": [r["id"] for r in defs if r["id"] in {x["id"] for x in routes}], "skipped": skipped}, indent=1,
+            ensure_ascii=False))
+        print(f"  approximate routes: {n_approx} built, {len(skipped)} skipped (see data/reports/approx_routes.json)")
+    used = {s for p in patterns for s in p["stops"]}
+    stops = {k: v for k, v in stops.items() if k in used or v["kind"] == "station"}
+
     has_bus = any(r["mode"] != "rail" for r in routes)
-    status = "gtfs" if gtfs else ("archive-reconstruction" if has_bus else "infrastructure-only")
+    status = "gtfs" if feeds else ("archive-reconstruction" if has_bus else "infrastructure-only")
     note = {
-        "gtfs": "2010 service imported from an archived OC Transpo GTFS feed.",
+        "gtfs": "2010 service imported from archived GTFS feeds (" + ", ".join(Path(f).name for f in feeds)
+                + ") found in the Internet Archive's Wayback Machine. Routes the feeds lack are reconstructed "
+                  "from dated archive sources; see the provenance of each route.",
         "archive-reconstruction": "2010 routes reconstructed from dated archive sources (Wikipedia revisions from late 2010: "
-                                  "route tables, route articles, Transitway station lists). See the provenance of each route.",
+                                  "route tables, route articles, Transitway station lists). Routes with a route-level source "
+                                  "follow it; the rest are approximated between the places the 2010 route table lists, with "
+                                  "service typical of their fare class. See the provenance of each route.",
         "infrastructure-only": "Transitway corridor, stations and the original O-Train only. The 2010 bus routes will be "
                                "loaded from archived sources (OC Transpo GTFS / system maps) once they are reachable.",
     }[status]
     catalogue = []
-    cat_path = config.BUILD / "2010" / "route_catalogue.json"
     if cat_path.exists():
         mapped = {r["id"] for r in routes}
         for e in json.loads(cat_path.read_text()):
