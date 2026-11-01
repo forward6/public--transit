@@ -35,3 +35,4 @@ export * from './plan';
 export * from './economy';
 export * from './opinion';
 export * from './personas';
+export * from './council';

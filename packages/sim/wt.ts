@@ -1,0 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { WARDS_2010, type ZonesFile } from '@otc/shared';
+import { assignWards } from './src/wards';
+const zones = (JSON.parse(readFileSync('../../apps/web/public/data/zones-2011.json', 'utf8')) as ZonesFile).zones;
+const t = performance.now();
+const w = assignWards(zones);
+console.log('ms', (performance.now() - t).toFixed(0));
+const pop = new Map<number, number>(); const area = new Map<number, number>();
+zones.forEach((z, i) => { if (w[i]) { pop.set(w[i]!, (pop.get(w[i]!) ?? 0) + z.pop); area.set(w[i]!, (area.get(w[i]!) ?? 0) + z.areaKm2); } });
+for (const wd of WARDS_2010) console.log(wd.id, wd.name.en.padEnd(26), Math.round(pop.get(wd.id) ?? 0), Math.round(area.get(wd.id) ?? 0), 'km2');

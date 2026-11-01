@@ -23,7 +23,7 @@ function tripNote(p: Persona, j: Journey | null, date: string, leg: 'out' | 'bac
   const w = weatherOn(date, s.seed);
   const r = (k: string) => rand(s.seed, `${date}:${p.id}:${leg}:${k}`);
   const at = leg === 'out' ? p.out : p.back;
-  if (!j) {
+  if (!j || s.strike) {
     return { depart: at, arrive: at, minutes: 0, waitMin: 0, temp: temperatureAt(w, at), routes: [], stop: '', late: 0, missed: false,
       highFloor: false, none: true };
   }

@@ -4,6 +4,7 @@
 // as they are labelled.
 import type { Edit } from './plan';
 import type { DiaryEntry, FrontPage, OpinionState, Post } from './opinion';
+import type { CouncilState } from './council';
 
 const WIKI_2010 = "Wikipedia 'OC Transpo' rev 399504447 (29 Nov 2010) https://en.wikipedia.org/w/index.php?oldid=399504447";
 
@@ -166,7 +167,10 @@ export interface MonthRecord {
   missedTrips: number;
 }
 
-export type GameEventKind = 'budget' | 'deficit' | 'shortfall' | 'delivery' | 'serviceChange' | 'garageOpen' | 'retirement' | 'welcome';
+export type GameEventKind = 'budget' | 'deficit' | 'shortfall' | 'delivery' | 'serviceChange' | 'garageOpen' | 'retirement' | 'welcome'
+  // M7: council, elections and partners
+  | 'vote' | 'voteResult' | 'councilBudget' | 'motion' | 'directive' | 'routeRestored' | 'labour' | 'strike' | 'strikeEnds' | 'labourDeal'
+  | 'sto' | 'stoNews' | 'funding' | 'fundingNews' | 'nccReview' | 'election' | 'mayorCools' | 'reshuffle';
 
 export interface GameEvent {
   id: string;
@@ -253,6 +257,10 @@ export interface GameState {
   posts?: Post[];
   /** each persona's usual door-to-door minutes, to notice when a change makes it better or worse */
   routines?: Record<string, { minutes: number; prev?: number; since: string }>;
+  /** M7: council, elections, partners and labour */
+  council?: CouncilState;
+  /** the buses are on strike */
+  strike?: boolean;
 }
 
 /** Per zone (zones file order): jobs within 45 min by transit, and the average wait (min). */

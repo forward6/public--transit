@@ -29,7 +29,7 @@ export interface Reason {
 }
 
 export type ShockKind = 'newRoute' | 'routeRemoved' | 'serviceUp' | 'serviceDown' | 'promiseKept' | 'fareHike' | 'fareCut'
-  | 'levyHike' | 'levyCut' | 'serviceCut' | 'deficit' | 'newBuses' | 'newGarage';
+  | 'levyHike' | 'levyCut' | 'serviceCut' | 'deficit' | 'newBuses' | 'newGarage' | 'strike' | 'stoDeal' | 'councilOverrule';
 
 /** A citywide event that moves trust, fading over months. */
 export interface TrustShock {
@@ -67,7 +67,7 @@ export interface OpinionState {
   /** 2010 weekday boardings per bus-hour (the crowding reference) */
   crowdRef: number;
   /** what the opinion model last saw, to notice changes */
-  seen: { fareIndex: number; levy: number; serviceLevel: number; applied: number; events: string[] };
+  seen: { fareIndex: number; levy: number; serviceLevel: number; applied: number; events: string[]; strike?: boolean };
   /** weekly, newest last */
   history: OpinionRecord[];
 }

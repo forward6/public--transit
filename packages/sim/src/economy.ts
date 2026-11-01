@@ -111,7 +111,7 @@ export function rampValue(r: Ramp | undefined, iso: string, fallback: number, st
 function ridershipFactor(s: GameState, start: EconomyStart, iso: string): number {
   const m = toDate(iso).getUTCMonth();
   return start.seasonal.values[m]! * (1 + start.ridershipGrowth.value) ** Math.max(0, yearsSince2011(iso))
-    * s.fareIndex ** start.fareElasticity.value * (1 - missedShare(s, start)) * s.serviceLevel ** 0.6;
+    * s.fareIndex ** start.fareElasticity.value * (1 - missedShare(s, start)) * s.serviceLevel ** 0.6 * (s.strike ? 0 : 1);
 }
 
 /** The weekday boardings the network in operation carries this month (riders still settling after a change included). */
@@ -180,7 +180,8 @@ export function monthFlows(s: GameState, start: EconomyStart = ECONOMY_2010, iso
   const fares = boardings * days * start.revenuePerBoarding.value * s.fareIndex;
   const f = fleetStatus(s, start);
   const mixFactor = f.buses ? s.fleet.filter((g) => g.type !== 'rail').reduce((a, g) => a + BUS_TYPES[g.type].costFactor * g.count, 0) / f.buses : 1;
-  const busCost = s.service.vehicleHours * days * start.costPerVehicleHour.value * s.costIndex * s.serviceLevel * mixFactor;
+  // on strike, the buses stay in the garage: only a sliver of the cost remains
+  const busCost = s.service.vehicleHours * days * start.costPerVehicleHour.value * s.costIndex * s.serviceLevel * mixFactor * (s.strike ? 0.15 : 1);
   const maintenanceNeed = busCost * start.maintenanceShare.value;
   return {
     boardings, fares,

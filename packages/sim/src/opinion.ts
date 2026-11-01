@@ -53,6 +53,7 @@ interface Context {
   strike: number;
   events: number;
   weather: number;
+  strikeNow: boolean;
 }
 
 function context(s: GameState, o: OpinionState, world: OpinionWorld, start: EconomyStart, date = s.date): Context {
@@ -69,6 +70,7 @@ function context(s: GameState, o: OpinionState, world: OpinionWorld, start: Econ
     strike: OPINION_2010.strike * Math.exp(-Math.max(0, days(startDate, date)) / OPINION_2010.tau.strike),
     events,
     weather: o.weather,
+    strikeNow: !!s.strike,
   };
 }
 
@@ -88,6 +90,7 @@ function reasonsFor(i: number, o: OpinionState, world: OpinionWorld, c: Context,
     r('crowding', 'service', -60 * c.crowding),
     r('weather', 'service', -clamp(c.weather * clamp(wait / 6, 0.4, 2) * 0.6, 0, 25)),
     r('cuts', 'service', -150 * c.cuts),
+    ...(c.strikeNow ? [r('strike', 'service', -45)] : []),
   ];
   const s = serviceNow ?? service.reduce((a, x) => a + x.value, 0);
   return [
@@ -176,12 +179,15 @@ function notice(o: OpinionState, s: GameState, date: string): TrustShock[] {
     else if (g < -0.005) add('levyCut', 60 * -g);
   }
   if (s.serviceLevel < o.seen.serviceLevel - 0.001) add('serviceCut', -200 * (o.seen.serviceLevel - s.serviceLevel));
+  if (s.strike && !o.seen.strike) add('strike', -15);
   const seen = new Set(o.seen.events);
   for (const e of s.events) {
     if (seen.has(e.id)) continue;
     if (e.kind === 'deficit') add('deficit', -3);
     else if (e.kind === 'delivery' && !e.data.held) add('newBuses', 0.6, String(e.data.count));
     else if (e.kind === 'garageOpen') add('newGarage', 2, String(e.data.name));
+    else if (e.kind === 'councilBudget' || e.kind === 'directive') add('councilOverrule', -2);
+    else if (e.kind === 'labourDeal' && !s.strike) add('promiseKept', 1);
   }
   return out;
 }
@@ -196,7 +202,7 @@ export function advanceOpinion(prev: OpinionState, s: GameState, world: OpinionW
     .filter((k) => Math.abs(k.amount) * Math.exp(-days(k.date, ended) / OPINION_2010.tau.shocks) >= 0.2)
     .slice(-60);
   o.seen = { fareIndex: s.fareIndex, levy: s.levy, serviceLevel: s.serviceLevel, applied: s.applied.length,
-    events: s.events.map((e) => e.id) };
+    events: s.events.map((e) => e.id), strike: !!s.strike };
   // the day's hardship: cold waits and storm delays, remembered for a week or two
   const w = weatherOn(ended, s.seed);
   const hardship = Math.max(0, -w.low - 15) * 0.6 + weatherDelay(w) * 0.8;

@@ -2,6 +2,7 @@ import { ECONOMY_2010, PERSONAS, type EconomyStart, type GameState, type Persona
 import { addDays, advanceDay, openDecision } from './economy';
 import { diaryEntry, routineMinutes, type PersonaTrips } from './diary';
 import { advanceOpinion, startOpinion } from './opinion';
+import { advanceCouncil, startCouncil } from './council';
 import { dayPosts, frontPage, isFirstOfMonth, type FeedWorld } from './press';
 
 /**
@@ -15,14 +16,17 @@ export interface GameWorld extends FeedWorld {
   trips?: Record<string, PersonaTrips>;
   stopName?: (id: string) => string;
   routeName?: (id: string) => string;
+  /** M7: ward id per zone (0: not in Ottawa) */
+  wardOf?: number[];
 }
 
 const DIARY_DAYS = 28;
 
-/** Add M6's opinion and press to a game (new, or saved before M6). */
+/** Add M6's opinion and press, and M7's council, to a game (new, or saved before them). */
 export function withOpinion(s: GameState, world: GameWorld, start: EconomyStart = ECONOMY_2010): GameState {
-  if (s.opinion && s.opinion.service.length === world.zones.length) return s;
-  return { ...s, opinion: startOpinion(s, world, start), diaries: s.diaries ?? {}, press: s.press ?? [], posts: s.posts ?? [] };
+  const council = s.council ?? startCouncil(s.date);
+  if (s.opinion && s.opinion.service.length === world.zones.length) return s.council ? s : { ...s, council };
+  return { ...s, opinion: startOpinion(s, world, start), diaries: s.diaries ?? {}, press: s.press ?? [], posts: s.posts ?? [], council };
 }
 
 /** Keep each persona's usual trip time, noting when a change to the network moves it. */
@@ -46,6 +50,13 @@ export function stepDay(prev: GameState, world: GameWorld, start: EconomyStart =
   const s = advanceDay(prev, start);
   if (s === prev || !s.opinion) return s;
   s.opinion = advanceOpinion(s.opinion, s, world, ended, start);
+  let t = s;
+  if (t.council && world.wardOf) t = advanceCouncil(t, { ...world, wardOf: world.wardOf }, ended, start);
+  return dayEnd(t, world, ended, start);
+}
+
+/** The personas' day, the feed and the front page. */
+function dayEnd(s: GameState, world: GameWorld, ended: string, start: EconomyStart): GameState {
   // the personas' day
   const entries = [];
   if (world.trips) {

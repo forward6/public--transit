@@ -22,3 +22,5 @@ export * from './diary';
 export * from './press';
 export * from './game';
 export * from './crowding';
+export * from './wards';
+export * from './council';
