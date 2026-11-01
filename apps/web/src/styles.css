@@ -50,7 +50,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .brand-name { font-family: var(--serif); font-weight: 600; font-size: 18px; }
 .brand-sub { font-size: 11px; color: var(--muted); margin-top: 1px; letter-spacing: 0.02em; }
 .clock { padding-left: 18px; border-left: 1px solid var(--divider); }
-.clock-date { font-size: 15px; font-weight: 650; }
+.clock-date { font-size: 15px; font-weight: 650; white-space: nowrap; }
 .clock-sub { font-size: 11px; color: var(--muted); }
 .controls { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .seg { display: flex; gap: 2px; background: var(--track); padding: 3px; border-radius: 11px; }
@@ -293,6 +293,10 @@ body.layout-phone .m-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-to
 .legend .lg-status { margin-top: 8px; }
 .legend .lg-status .status-chip { white-space: normal; text-align: left; }
 @media (max-width: 1999px) { body.layout-desktop .brand-sub { display: none; } }
+/* French labels are longer: keep the top bar on one line by dropping the name, then the gap */
+@media (max-width: 1699px) { html[lang=fr] body.layout-desktop .brand-text { display: none; } }
+body.layout-desktop .controls { flex-wrap: nowrap; }
+@media (max-width: 1499px) { body.layout-desktop .topbar { gap: 14px; } }
 
 /* daily ridership */
 .status-chip.riders i { background: var(--riders); }
