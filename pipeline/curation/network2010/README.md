@@ -28,8 +28,8 @@ whose stations, streets and (for 94/95/97) frequencies the sources state. Each r
 says what was stated and what is estimated.
 
 **Approximated (the rest):** OTC is a game, so the other routes of the 2010 route tables are
-built by `approx.py`. That's 208 OC Transpo and STO routes, of which 19 are skipped; see
-`data/reports/approx_routes.json`.
+built by `approx.py`. With the default OC Transpo feed (below) that's 78 routes, mostly STO;
+without it (`--no-gtfs`), 208. Skipped routes are listed in `data/reports/approx_routes.json`.
 
 - Each route goes through the places its 2010 row lists (termini and "via" bridges). The places
   are found among the stations, Overture places and neighbourhoods, and the hand-placed names in
@@ -45,11 +45,23 @@ built by `approx.py`. That's 208 OC Transpo and STO routes, of which 19 are skip
 To improve a route, add it to `routes.json` (it then wins over the approximation), or fix a place
 in `places.json`.
 
-**Upgrade path:** OC Transpo's own 2010 GTFS (preserved by the Wayback Machine) would replace the
-approximations route by route. `web.archive.org` resets every connection from this build
-environment, so the **Archive 2010 GTFS** GitHub workflow searches for it instead and publishes
-what it finds to the `data/gtfs-2010` branch. Import it with
-`otc-pipeline network --gtfs <zip>` (repeatable, e.g. for STO).
+**OC Transpo's own timetable (in use by default):** `web.archive.org` resets every connection
+from this build environment, so the **Archive 2010 GTFS** GitHub workflow searched the Internet
+Archive instead. It published the closest feeds to the `data/gtfs-2010` branch, with
+`report.json` listing every capture checked.
+
+- No 2010 feed survives. The closest OC Transpo feed is `octranspo_20110806.zip`, whose summer
+  2011 service is the network just before the September 2011 restructuring.
+- `otc-pipeline network` imports its 17 August 2011 weekday in place of 1 December 2010: 148
+  routes, 8,952 trips and every stop. Those routes replace the reconstructions and
+  approximations with the same number. They are marked `confidence: "medium"` and say they stand
+  in for 2010.
+- The platform names in that feed also fixed three station positions here (Airport, Millennium,
+  Walkley).
+- STO's earliest preserved feed (2016) post-dates the Rapibus, so it isn't used; STO stays
+  approximated.
+- `--no-gtfs` builds without it. `--gtfs <zip> [--gtfs-date YYYY-MM-DD]` (repeatable) imports
+  other feeds.
 
 ## Rules for adding a route by hand
 

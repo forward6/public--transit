@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import json
 import math
+import subprocess
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -442,16 +443,14 @@ def place_stations(infra: dict, corridors: dict[str, list[np.ndarray]], graph: "
     corridor_geom = {k: shapely.MultiLineString([ln.tolist() for ln in v]) for k, v in corridors.items() if v}
     out = []
     for st in infra["stations"]:
-        pt = None
-        for m in st.get("match", []):
+        pt = Point(st["at"]) if "at" in st else None
+        for m in st.get("match", []) if pt is None else []:
             cands = by_name.get(m.lower())
             if cands:
                 pt = max(cands, key=lambda c: c[0])[1]
                 break
         if pt is None and "x" in st and graph is not None:
             pt = Point(graph.node_lonlat[graph.intersection(*st["x"])])
-        if pt is None and "at" in st:
-            pt = Point(st["at"])
         if pt is None:
             print(f"  ! station {st['id']}: no position found")
             continue
@@ -472,7 +471,7 @@ def place_stations(infra: dict, corridors: dict[str, list[np.ndarray]], graph: "
             "lon": round(pt.x, 6), "lat": round(pt.y, 6), "kind": "station", "agencies": ["octranspo"],
             "provenance": {"source": st.get("source", "Station position: Overture places (today's map); existence in 2010: curated"),
                            "confidence": st["confidence"], "verified": False, **({"note": st["note"]} if "note" in st else {})},
-            "_corridors": st["corridors"],
+            "_corridors": st["corridors"], "_gtfs_match": st.get("gtfs_match", []),
         })
     return out
 
@@ -712,7 +711,36 @@ def build_graphs(infra, roads_g, roads, rail_g, rail, seg_g, seg):
     return tw_lines, ot_lines, bus, rail_graph, stations
 
 
-def build_network(gtfs: str | list[str] | None = None, approximate: bool = True) -> dict:
+# Archived feeds used by default, from the data/gtfs-2010 branch (written by .github/workflows/archive-2010.yml).
+# No 2010 OC Transpo feed survives. The closest is August 2011, the last weeks of the network before the
+# September 2011 restructuring, so its 17 August weekday stands in for 1 December 2010. STO's earliest
+# (2016) post-dates the Rapibus, so STO stays approximated.
+DEFAULT_FEEDS = [{"file": "octranspo_20110806.zip", "date": "2011-08-17"}]
+DATA_BRANCH = "data/gtfs-2010"
+
+
+def default_feeds() -> list[tuple[str, str]]:
+    """(path, weekday) of the default feeds, extracted from the data branch when not already local."""
+    out = []
+    for f in DEFAULT_FEEDS:
+        path = config.RAW / "archive" / f["file"]
+        if not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                subprocess.run(["git", "fetch", "-q", "origin", DATA_BRANCH], cwd=config.REPO, check=True, timeout=300)
+                blob = subprocess.run(["git", "show", f"origin/{DATA_BRANCH}:{f['file']}"], cwd=config.REPO, check=True,
+                                      capture_output=True, timeout=120).stdout
+                path.write_bytes(blob)
+            except (subprocess.SubprocessError, OSError) as e:
+                print(f"  ! {f['file']}: not in {path.parent} and the {DATA_BRANCH} branch can't be fetched ({e}); "
+                      f"those routes will be approximated")
+                continue
+        out.append((str(path), f["date"]))
+    return out
+
+
+def build_network(gtfs: str | list[str] | None = None, approximate: bool = True, gtfs_date: str | None = None,
+                  use_default_feeds: bool = True) -> dict:
     t0 = time.time()
     cur = config.CURATION / "network2010"
     infra = json.loads((cur / "infrastructure.json").read_text())
@@ -726,10 +754,14 @@ def build_network(gtfs: str | list[str] | None = None, approximate: bool = True)
 
     # routes ---------------------------------------------------------------------------------------
     routes, patterns = [], []
-    feeds = [gtfs] if isinstance(gtfs, str) else list(gtfs or [])
-    for feed in feeds:
+    if gtfs:
+        feeds = [(g, gtfs_date) for g in ([gtfs] if isinstance(gtfs, str) else gtfs)]
+    else:
+        feeds = default_feeds() if use_default_feeds else []
+    for feed, day in feeds:
         from .gtfs import import_gtfs
-        g_routes, g_patterns, g_stops = import_gtfs(feed, bus, stations=stations, rail_graph=rail_graph)
+        g_routes, g_patterns, g_stops = import_gtfs(feed, bus, date.fromisoformat(day) if day else None,
+                                                    stations=stations, rail_graph=rail_graph)
         routes += g_routes
         patterns += g_patterns
         stops.update({s["id"]: s for s in g_stops})
@@ -785,9 +817,11 @@ def build_network(gtfs: str | list[str] | None = None, approximate: bool = True)
     has_bus = any(r["mode"] != "rail" for r in routes)
     status = "gtfs" if feeds else ("archive-reconstruction" if has_bus else "infrastructure-only")
     note = {
-        "gtfs": "2010 service imported from archived GTFS feeds (" + ", ".join(Path(f).name for f in feeds)
-                + ") found in the Internet Archive's Wayback Machine. Routes the feeds lack are reconstructed "
-                  "from dated archive sources; see the provenance of each route.",
+        "gtfs": "OC Transpo service from its own timetable (GTFS " + ", ".join(
+                    f"{Path(f).name}, weekday of {d}" if d else Path(f).name for f, d in feeds)
+                + "), preserved by the Internet Archive. No 2010 feed survives; this is the closest, the network "
+                  "just before the September 2011 restructuring. Routes it lacks, and all STO routes, are "
+                  "approximated from the November 2010 route tables. See the provenance of each route.",
         "archive-reconstruction": "2010 routes reconstructed from dated archive sources (Wikipedia revisions from late 2010: "
                                   "route tables, route articles, Transitway station lists). Routes with a route-level source "
                                   "follow it; the rest are approximated between the places the 2010 route table lists, with "

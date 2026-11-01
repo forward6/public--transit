@@ -798,17 +798,18 @@ to keep iteration fast; it expands to the full region afterwards.
 2. ✅ **M0:** the project skeleton and CI.
 3. ✅ **M1:** the 2010 base map ([screenshots](screenshots/m1/)). Run it with `pnpm dev` after
    `uv run otc-pipeline all`.
-4. ✅ **M2:** the whole 2010 network moves ([screenshots](screenshots/m2/)). That's 217 OC Transpo
-   and STO routes, about 13,500 weekday trips and ~900 buses at the peak.
-   - **Sourced:** the Transitway routes 94–97, 85, 106, 112, 118 and the O-Train, with 43 stations,
-     come from dated Wikipedia revisions.
-   - **Approximate:** the rest of the November 2010 route table is approximated. Each route is
-     routed between the places the table lists, with service typical of its fare class.
-     Accuracy is "right enough for a game", by design. Each route's provenance says which kind
-     it is.
-   - **Upgrade path:** if the *Archive 2010 GTFS* workflow finds OC Transpo's own 2010 feed,
-     `network --gtfs` replaces the approximations route by route. See
-     `pipeline/curation/network2010/README.md`.
+4. ✅ **M2:** the whole network moves ([screenshots](screenshots/m2/)). That's 226 routes, about
+   12,400 weekday trips, 6,400 stops and ~880 buses at the peak. Accuracy is "right enough for a
+   game", by design; each route's provenance says where it comes from.
+   - **OC Transpo:** its own timetable. The *Archive 2010 GTFS* workflow found no 2010 feed in the
+     Internet Archive. The closest is August 2011, the network just before the September 2011
+     restructuring. Its 17 August weekday stands in for 1 December 2010: 148 routes, 8,952 trips,
+     all stops.
+   - **STO, and the few OC Transpo routes missing in August 2011:** approximated. Each route goes
+     between the places the November 2010 route tables list, with service typical of its fare
+     class. STO's earliest preserved feed (2016) post-dates the Rapibus, so it isn't used.
+   - **Without the feed** (`network --no-gtfs`): the Transitway routes follow dated Wikipedia
+     revisions and everything else is approximated.
 5. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
 6. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 

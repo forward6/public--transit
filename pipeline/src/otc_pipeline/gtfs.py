@@ -34,7 +34,9 @@ from . import config
 ROUTE_COLORS = {"transitway": "#D7263D", "otrain": "#25965A", "frequent": "#2856B8", "local": "#8794AB",
                 "peak": "#6E7FA0", "rural": "#9A8C7A", "sto": "#0B97A3"}
 AM_PEAK = (7 * 3600, 9 * 3600)
-STATION_RADIUS_M = 400
+STATION_RADIUS_M = 800  # "WALKLEY 2A" is unambiguous even where our station position is a little off
+ALIAS_RADIUS_M = 300  # street-stop aliases ("ALBERT / BANK") must be close
+DETOUR = 3.0  # a routed hop longer than DETOUR x the straight line (+800 m) is drawn straight instead
 
 
 # ------------------------------------------------------------------------------------------ reading
@@ -112,14 +114,14 @@ def match_stations(stops: dict[str, dict], stations: list[dict] | None,
     """GTFS stop id -> curated station id, for the station's own platforms.
 
     A platform is near the station and named after it, optionally followed by a platform code:
-    "HURDMAN 2A", "BAYVIEW O-TRAIN", "Lincoln Fields station". Street stops near a station
-    ("BASELINE / WOODROFFE") stay separate. Stations can list ``gtfs_match`` extra names (e.g.
-    the downtown on-street stations: "ALBERT / BANK")."""
+    "HURDMAN 2A", "O-TRAIN CARLETON N.", "Lincoln Fields station". Street stops near a station
+    ("BASELINE / WOODROFFE") stay separate. Stations can list ``gtfs_match`` other names, which
+    must be close (e.g. the downtown on-street stations: "ALBERT / BANK", "SLATER / BANK")."""
     if not stations:
         return {}
     sx, sy = _xy([s["lon"] for s in stations], [s["lat"] for s in stations])
-    names = [" ".join(_words(s["name"])) for s in stations]
-    extra = [[" ".join(_words(n)) for n in s.get("gtfs_match", [])] for s in stations]
+    names = [[" ".join(_words(n)) for n in [s["name"], *s.get("gtfs_match", s.get("_gtfs_match", []))]]
+             for s in stations]
     out = {}
     for sid, s in stops.items():
         try:
@@ -127,11 +129,12 @@ def match_stations(stops: dict[str, dict], stations: list[dict] | None,
         except (KeyError, ValueError):
             continue
         name = " ".join(_words(s.get("stop_name", "")))
+        name = name.removeprefix("O TRAIN ")
         best = None
         for i in np.flatnonzero(np.hypot(sx - x, sy - y) <= radius_m):
-            st = names[i]
-            ok = (name.startswith(st) and _PLATFORM.match(name[len(st):].strip())) or name in extra[i]
             d = math.hypot(sx[i] - x, sy[i] - y)
+            ok = any(name.startswith(a) and _PLATFORM.match(name[len(a):].strip())
+                     for k, a in enumerate(names[i]) if k == 0 or d <= ALIAS_RADIUS_M)
             if ok and (best is None or d < best[0]):
                 best = (d, stations[i]["id"])
         if best:
@@ -221,12 +224,9 @@ def _routed_shape(seq: list[str], stops: dict, graph, cache: dict) -> np.ndarray
             x2, y2 = _xy(float(stops[s2]["stop_lon"]), float(stops[s2]["stop_lat"]))
             straight = math.hypot(float(x2 - x1), float(y2 - y1))
             try:
-                c = path_coords(graph.path(a, b, limit=6 * straight + 3000))
-            except ValueError:
-                try:
-                    c = path_coords(graph.path(a, b))
-                except ValueError:
-                    c = np.zeros((0, 2))
+                c = path_coords(graph.path(a, b, limit=DETOUR * straight + 800))
+            except ValueError:  # no street path of a sensible length (e.g. streets built after 2010)
+                c = np.zeros((0, 2))
             cache[key] = c
         c = cache[key]
         if len(c) < 2:  # unroutable: a straight hop between the stops
@@ -262,6 +262,12 @@ def import_gtfs(path: str, bus_graph, target: date | None = None, stations: list
     agency = "sto" if ("outaouais" in agency_name or agency_name.startswith("sto")) else "octranspo"
     prefix = "sto" if agency == "sto" else "oct"
     to_station = match_stations(stops, stations)
+    snapshot = date.fromisoformat(config.SNAPSHOT_DATE)
+    same_era = abs((day - snapshot).days) <= 60
+    provenance = {"source": f"GTFS {Path(path).name}, service of {day.isoformat()}",
+                  "confidence": "high" if same_era else "medium", "verified": same_era,
+                  **({} if same_era else {"note": f"The agency's own timetable of {day.isoformat()}, standing in for "
+                                                   f"{config.SNAPSHOT_DATE} (the closest preserved feed)."})}
     xy = {sid: tuple(float(v) for v in _xy(float(s["stop_lon"]), float(s["stop_lat"]))) for sid, s in stops.items()
           if s.get("stop_lon") and s.get("stop_lat")}
 
@@ -319,23 +325,24 @@ def import_gtfs(path: str, bus_graph, target: date | None = None, stations: list
             "longName": nice_name(r.get("route_long_name") or ""), "mode": "rail" if rail else "bus",
             "class": "local", "color": "", "patterns": [], "departures": {},
             "_deps": defaultdict(list), "_heads": defaultdict(Counter), "_tw": False,
-            "provenance": {"source": f"GTFS {Path(path).name}, service of {day.isoformat()}", "confidence": "high",
-                           "verified": True},
+            "provenance": provenance,
         })
         rt["patterns"].append(pid)
         rt["departures"][pid] = deps
         rt["_deps"][direction] += deps
         rt["_heads"][direction][headsign] += len(members)
-        rt["_tw"] |= sum(1 for s in seq if s in to_station) >= 3
+        # a Transitway route runs station to station for a good part of its trip (feeders only touch stations)
+        hops = sum(1 for a, b in zip(seq, seq[1:]) if a in to_station and b in to_station and to_station[a] != to_station[b])
+        rt["_tw"] |= hops >= 3 and hops >= 0.25 * (len(seq) - 1)
 
     for rt in out_routes.values():
         by_dir = rt.pop("_deps")
         busiest = max(by_dir.values(), key=len) if by_dir else []
         rt["class"] = classify({"route_type": "2" if rt["mode"] == "rail" else "3"}, busiest, rt.pop("_tw"), agency)
         rt["color"] = ROUTE_COLORS[rt["class"]]
-        heads = [c.most_common(1)[0][0] for _, c in sorted(rt.pop("_heads").items())]
-        if not rt["longName"]:
-            rt["longName"] = " ↔ ".join(dict.fromkeys(reversed(heads)))
+        heads: Counter = sum(rt.pop("_heads").values(), Counter())
+        if not rt["longName"]:  # e.g. OC Transpo's feeds leave it blank (and have no direction_id)
+            rt["longName"] = " ↔ ".join(h for h, _ in heads.most_common(2))
         if rt["mode"] == "bus" and rt["class"] == "transitway":
             rt["mode"] = "brt"
     out_stops = [{"id": f"{prefix}:{s}", "name": nice_name(stops[s]["stop_name"]), "lon": round(float(stops[s]["stop_lon"]), 6),

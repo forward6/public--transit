@@ -11,10 +11,12 @@ on desktop, iPad and phone.
 **Status:**
 
 - M0 (project skeleton) and M1 (the 2010 base map) are done.
-- M2 is done. The whole 2010 OC Transpo and STO network runs on a game clock: 217 routes,
-  about 13,500 weekday trips and ~900 buses at the morning peak.
-  - The Transitway routes and the O-Train follow dated archive sources.
-  - The rest of the November 2010 route tables is approximated well enough for a game.
+- M2 is done. The whole OC Transpo and STO network runs on a game clock: 226 routes, about
+  12,400 weekday trips, 6,400 stops and ~880 buses at the morning peak.
+  - **OC Transpo** runs to its own timetable: 148 routes and every stop, from the closest feed the
+    Internet Archive preserved. That's August 2011, just before the September 2011 restructuring.
+  - **STO** and the few OC Transpo routes missing from that feed are approximated from the
+    November 2010 route tables.
 
 ![The 2010 network at 8:10 am](docs/screenshots/m2/network-2010-overview.jpg)
 

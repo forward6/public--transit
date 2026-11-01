@@ -62,19 +62,22 @@ It places **26 stations** using Overture place positions snapped to the corridor
 pattern's shape along the graph. Running times come from road-class speeds (12 km/h downtown)
 plus dwell. Curation lives in [`curation/network2010/`](curation/network2010/).
 
-**Status:** the whole 2010 network is built: 217 routes and about 13,500 weekday trips.
+**Status:** the whole network is built: 226 routes and about 12,400 weekday trips. It's a game, so
+"right enough" is the goal.
 
-- **Sourced:** 8 bus routes plus the O-Train follow dated Wikipedia revisions (the `wiki` step).
-- **Approximate:** the rest of the November 2010 route tables are approximated by `approx.py`.
-  Each route is routed between the places its row lists, with service typical of its fare class.
-  It's a game, so "right enough" is the goal.
+- **OC Transpo** runs to its own GTFS timetable of August 2011. No 2010 feed survives, and this
+  is the closest. The `network` step takes it from the `data/gtfs-2010` branch automatically.
+- **STO** and the OC Transpo routes that feed lacks are approximated by `approx.py` from the
+  November 2010 route tables.
+- With `--no-gtfs`: 8 bus routes plus the O-Train follow dated Wikipedia revisions (the `wiki`
+  step) and the rest is approximated.
 
 See [`curation/network2010/README.md`](curation/network2010/README.md).
 
-OC Transpo's own 2010 GTFS would replace the approximations. The Wayback Machine resets
-connections from this build environment, so the **Archive 2010 GTFS** workflow
-(`.github/workflows/archive-2010.yml`) runs the search on GitHub's servers instead. It publishes
-any feeds it finds, with a `report.json` of every capture checked, to the `data/gtfs-2010` branch:
+The Wayback Machine resets connections from this build environment, so the **Archive 2010 GTFS**
+workflow (`.github/workflows/archive-2010.yml`) runs the search on GitHub's servers instead. It
+publishes the closest feeds, with a `report.json` of every capture checked, to the
+`data/gtfs-2010` branch. To use another feed:
 
 ```bash
 git fetch origin data/gtfs-2010 && git archive origin/data/gtfs-2010 | tar -x -C data/raw/archive

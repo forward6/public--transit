@@ -88,7 +88,7 @@ export const STRINGS: Record<Lang, Strings> = {
     networkStatus: {
       'infrastructure-only': '2010 bus routes: awaiting archive access',
       'archive-reconstruction': '2010 network reconstructed from archives',
-      gtfs: '2010 network from OC Transpo GTFS',
+      gtfs: 'Network from archived OC Transpo timetables',
     },
     verified: 'Verified',
     unverified: 'Not yet verified',
@@ -151,7 +151,7 @@ export const STRINGS: Record<Lang, Strings> = {
     networkStatus: {
       'infrastructure-only': 'Lignes d’autobus 2010 : en attente des archives',
       'archive-reconstruction': 'Réseau 2010 reconstitué à partir des archives',
-      gtfs: 'Réseau 2010 tiré du GTFS d’OC Transpo',
+      gtfs: 'Réseau tiré des horaires archivés d’OC Transpo',
     },
     verified: 'Vérifié',
     unverified: 'Pas encore vérifié',

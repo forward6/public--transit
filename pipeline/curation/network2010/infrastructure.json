@@ -1,625 +1,649 @@
 {
-  "snapshot": "2010-12-01",
-  "transitway": {
-    "id": "transitway",
+ "snapshot": "2010-12-01",
+ "transitway": {
+  "id": "transitway",
+  "name": "Transitway",
+  "agency": "octranspo",
+  "provenance": {
+   "source": "Today's busways plus the corridor converted to O-Train Line 1 (Overture/OSM geometry, dated by OSM ID); downtown surface lanes on Albert/Slater",
+   "confidence": "medium",
+   "verified": false,
+   "note": "Alignment to be checked against archived 2010 OC Transpo system maps"
+  },
+  "parts": [
+   {
+    "kind": "busway",
     "name": "Transitway",
-    "agency": "octranspo",
-    "provenance": {
-      "source": "Today's busways plus the corridor converted to O-Train Line 1 (Overture/OSM geometry, dated by OSM ID); downtown surface lanes on Albert/Slater",
-      "confidence": "medium",
-      "verified": false,
-      "note": "Alignment to be checked against archived 2010 OC Transpo system maps"
-    },
-    "parts": [
-      {
-        "kind": "busway",
-        "name": "Transitway",
-        "note": "bus-only sections that still exist (Southeast, Southwest, West); post-2010 sections excluded by OSM-ID dating"
-      },
-      {
-        "kind": "rail",
-        "name": "Confederation Line",
-        "exclude_bbox": [
-          -75.7125,
-          45.4,
-          -75.6835,
-          45.44
-        ],
-        "note": "Tunney's Pasture–Blair was the Transitway until conversion to O-Train Line 1 (2015–2019); the downtown tunnel did not exist"
-      },
-      {
-        "kind": "rail",
-        "name": "Confederation Line - West Extension",
-        "clip_bbox": [
-          -75.756,
-          45.38,
-          -75.734,
-          45.41
-        ],
-        "note": "Tunney's Pasture–Westboro trench (later converted); west of Westboro left for archive verification"
-      },
-      {
-        "kind": "road",
-        "names": [
-          "Albert Street",
-          "Slater Street"
-        ],
-        "clip_bbox": [
-          -75.7155,
-          45.4,
-          -75.6915,
-          45.44
-        ],
-        "note": "downtown reserved bus lanes"
-      },
-      {
-        "kind": "road",
-        "names": [
-          "Mackenzie King Bridge"
-        ]
-      },
-      {
-        "kind": "road",
-        "names": [
-          "Waller Street"
-        ],
-        "clip_bbox": [
-          -75.7,
-          45.4215,
-          -75.68,
-          45.427
-        ]
-      },
-      {
-        "kind": "road",
-        "names": [
-          "Nicholas Street"
-        ],
-        "clip_bbox": [
-          -75.69,
-          45.4185,
-          -75.68,
-          45.4262
-        ]
-      }
+    "note": "bus-only sections that still exist (Southeast, Southwest, West); post-2010 sections excluded by OSM-ID dating"
+   },
+   {
+    "kind": "rail",
+    "name": "Confederation Line",
+    "exclude_bbox": [
+     -75.7125,
+     45.4,
+     -75.6835,
+     45.44
+    ],
+    "note": "Tunney's Pasture–Blair was the Transitway until conversion to O-Train Line 1 (2015–2019); the downtown tunnel did not exist"
+   },
+   {
+    "kind": "rail",
+    "name": "Confederation Line - West Extension",
+    "clip_bbox": [
+     -75.756,
+     45.38,
+     -75.734,
+     45.41
+    ],
+    "note": "Tunney's Pasture–Westboro trench (later converted); west of Westboro left for archive verification"
+   },
+   {
+    "kind": "road",
+    "names": [
+     "Albert Street",
+     "Slater Street"
+    ],
+    "clip_bbox": [
+     -75.7155,
+     45.4,
+     -75.6915,
+     45.44
+    ],
+    "note": "downtown reserved bus lanes"
+   },
+   {
+    "kind": "road",
+    "names": [
+     "Mackenzie King Bridge"
     ]
-  },
-  "otrain": {
-    "id": "otrain-corridor",
-    "name": "O-Train (Bayview–Greenboro)",
-    "agency": "octranspo",
-    "provenance": {
-      "source": "Ellwood Subdivision rail corridor (Overture/OSM), see curation/changes_after_2010.json keep_rail_corridor",
-      "confidence": "high",
-      "verified": false
-    }
-  },
-  "stations": [
-    {
-      "id": "barrhaven-centre",
-      "name": "Barrhaven Centre",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Marketplace station"
-      ],
-      "note": "Also called Marketplace; moved south after 2010"
-    },
-    {
-      "id": "strandherd",
-      "name": "Strandherd",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Strandherd Park and Ride"
-      ]
-    },
-    {
-      "id": "fallowfield",
-      "name": "Fallowfield",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Fallowfield"
-      ]
-    },
-    {
-      "id": "baseline",
-      "name": "Baseline",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Baseline station"
-      ]
-    },
-    {
-      "id": "iris",
-      "name": "Iris",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Iris station"
-      ]
-    },
-    {
-      "id": "queensway",
-      "name": "Queensway",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Queensway station"
-      ]
-    },
-    {
-      "id": "terry-fox",
-      "name": "Terry Fox",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Terry Fox station"
-      ]
-    },
-    {
-      "id": "eagleson",
-      "name": "Eagleson",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Eagleson station"
-      ]
-    },
-    {
-      "id": "bayshore",
-      "name": "Bayshore",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Bayshore station"
-      ]
-    },
-    {
-      "id": "lincoln-fields",
-      "name": "Lincoln Fields",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Lincoln Fields station"
-      ]
-    },
-    {
-      "id": "dominion",
-      "name": "Dominion",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Dominion station"
-      ]
-    },
-    {
-      "id": "westboro",
-      "name": "Westboro",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Westboro station"
-      ]
-    },
-    {
-      "id": "tunneys",
-      "name": "Tunney's Pasture",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Tunney's Pasture station"
-      ]
-    },
-    {
-      "id": "bayview",
-      "name": "Bayview",
-      "corridors": [
-        "transitway",
-        "otrain"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Bayview station (Ottawa)",
-        "Bayview Station"
-      ]
-    },
-    {
-      "id": "lebreton",
-      "name": "Lebreton",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Lebreton station"
-      ]
-    },
-    {
-      "id": "bay",
-      "name": "Bay",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "x": [
-        "Albert Street",
-        "Bay Street"
-      ],
-      "note": "On-street stops on Albert and Slater Streets"
-    },
-    {
-      "id": "kent",
-      "name": "Kent",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "x": [
-        "Albert Street",
-        "Kent Street"
-      ]
-    },
-    {
-      "id": "bank",
-      "name": "Bank",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "x": [
-        "Albert Street",
-        "Bank Street"
-      ]
-    },
-    {
-      "id": "metcalfe",
-      "name": "Metcalfe",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "x": [
-        "Albert Street",
-        "Metcalfe Street"
-      ]
-    },
-    {
-      "id": "mackenzie-king",
-      "name": "Mackenzie King",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Mackenzie King station"
-      ]
-    },
-    {
-      "id": "laurier",
-      "name": "Laurier",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Laurier station (OC Transpo)"
-      ]
-    },
-    {
-      "id": "campus",
-      "name": "Campus",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "uOttawa station"
-      ],
-      "note": "Renamed uOttawa when converted to LRT"
-    },
-    {
-      "id": "lees",
-      "name": "Lees",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "at": [
-        -75.6705,
-        45.4163
-      ]
-    },
-    {
-      "id": "hurdman",
-      "name": "Hurdman",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Hurdman station"
-      ]
-    },
-    {
-      "id": "train",
-      "name": "Train",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Tremblay station"
-      ],
-      "note": "At VIA Rail's Ottawa Station; renamed Tremblay"
-    },
-    {
-      "id": "st-laurent",
-      "name": "St-Laurent",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "St. Laurent station"
-      ]
-    },
-    {
-      "id": "cyrville",
-      "name": "Cyrville",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Cyrville station"
-      ]
-    },
-    {
-      "id": "blair",
-      "name": "Blair",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "OC Transpo Blair Station"
-      ]
-    },
-    {
-      "id": "jeanne-darc",
-      "name": "Jeanne d'Arc",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Jeanne D'Arc Bus Station"
-      ]
-    },
-    {
-      "id": "place-dorleans",
-      "name": "Place d'Orléans",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Place d'Orléans Station"
-      ]
-    },
-    {
-      "id": "trim",
-      "name": "Trim",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Trim station"
-      ]
-    },
-    {
-      "id": "millennium",
-      "name": "Millennium",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "x": [
-        "Innes Road",
-        "Trim Road"
-      ]
-    },
-    {
-      "id": "lycee-claudel",
-      "name": "Lycée Claudel",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "medium",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "at": [
-        -75.6657,
-        45.4066
-      ],
-      "note": "Position approximate (between Hurdman and Smyth on the Southeast Transitway)"
-    },
-    {
-      "id": "smyth",
-      "name": "Smyth",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Smyth station"
-      ]
-    },
-    {
-      "id": "riverside",
-      "name": "Riverside",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Riverside station (OC Transpo)"
-      ]
-    },
-    {
-      "id": "pleasant-park",
-      "name": "Pleasant Park",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Pleasant Park station"
-      ]
-    },
-    {
-      "id": "billings-bridge",
-      "name": "Billings Bridge",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Billings Bridge station"
-      ]
-    },
-    {
-      "id": "heron",
-      "name": "Heron",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Heron station"
-      ]
-    },
-    {
-      "id": "walkley",
-      "name": "Walkley",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Walkley Transitway Station"
-      ]
-    },
-    {
-      "id": "greenboro",
-      "name": "Greenboro",
-      "corridors": [
-        "transitway",
-        "otrain"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Greenboro station"
-      ]
-    },
-    {
-      "id": "south-keys",
-      "name": "South Keys",
-      "corridors": [
-        "transitway"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "South Keys station"
-      ]
-    },
-    {
-      "id": "airport",
-      "name": "Airport",
-      "corridors": [],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Airport Station de l’Aéroport"
-      ]
-    },
-    {
-      "id": "carling",
-      "name": "Carling",
-      "corridors": [
-        "otrain"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Carling station"
-      ]
-    },
-    {
-      "id": "carleton",
-      "name": "Carleton",
-      "corridors": [
-        "otrain"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Carleton station"
-      ]
-    },
-    {
-      "id": "confederation",
-      "name": "Confederation",
-      "corridors": [
-        "otrain"
-      ],
-      "confidence": "high",
-      "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
-      "match": [
-        "Confederation station"
-      ]
-    }
-  ],
-  "to_verify": [
-    "Stittsville station (west terminus of some 96 trips): position not yet found — omitted",
-    "Lycée Claudel station: exact position",
-    "Transitway alignment Westboro → Lincoln Fields (2010: Ottawa River Parkway corridor) — buses are routed on the parkway"
+   },
+   {
+    "kind": "road",
+    "names": [
+     "Waller Street"
+    ],
+    "clip_bbox": [
+     -75.7,
+     45.4215,
+     -75.68,
+     45.427
+    ]
+   },
+   {
+    "kind": "road",
+    "names": [
+     "Nicholas Street"
+    ],
+    "clip_bbox": [
+     -75.69,
+     45.4185,
+     -75.68,
+     45.4262
+    ]
+   }
   ]
+ },
+ "otrain": {
+  "id": "otrain-corridor",
+  "name": "O-Train (Bayview–Greenboro)",
+  "agency": "octranspo",
+  "provenance": {
+   "source": "Ellwood Subdivision rail corridor (Overture/OSM), see curation/changes_after_2010.json keep_rail_corridor",
+   "confidence": "high",
+   "verified": false
+  }
+ },
+ "stations": [
+  {
+   "id": "barrhaven-centre",
+   "name": "Barrhaven Centre",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Marketplace station"
+   ],
+   "note": "Also called Marketplace; moved south after 2010"
+  },
+  {
+   "id": "strandherd",
+   "name": "Strandherd",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Strandherd Park and Ride"
+   ]
+  },
+  {
+   "id": "fallowfield",
+   "name": "Fallowfield",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Fallowfield"
+   ]
+  },
+  {
+   "id": "baseline",
+   "name": "Baseline",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Baseline station"
+   ]
+  },
+  {
+   "id": "iris",
+   "name": "Iris",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Iris station"
+   ]
+  },
+  {
+   "id": "queensway",
+   "name": "Queensway",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Queensway station"
+   ]
+  },
+  {
+   "id": "terry-fox",
+   "name": "Terry Fox",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Terry Fox station"
+   ]
+  },
+  {
+   "id": "eagleson",
+   "name": "Eagleson",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Eagleson station"
+   ]
+  },
+  {
+   "id": "bayshore",
+   "name": "Bayshore",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Bayshore station"
+   ]
+  },
+  {
+   "id": "lincoln-fields",
+   "name": "Lincoln Fields",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Lincoln Fields station"
+   ]
+  },
+  {
+   "id": "dominion",
+   "name": "Dominion",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Dominion station"
+   ]
+  },
+  {
+   "id": "westboro",
+   "name": "Westboro",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Westboro station"
+   ]
+  },
+  {
+   "id": "tunneys",
+   "name": "Tunney's Pasture",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Tunney's Pasture station"
+   ]
+  },
+  {
+   "id": "bayview",
+   "name": "Bayview",
+   "corridors": [
+    "transitway",
+    "otrain"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Bayview station (Ottawa)",
+    "Bayview Station"
+   ]
+  },
+  {
+   "id": "lebreton",
+   "name": "Lebreton",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Lebreton station"
+   ]
+  },
+  {
+   "id": "bay",
+   "name": "Bay",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "x": [
+    "Albert Street",
+    "Bay Street"
+   ],
+   "note": "On-street stops on Albert and Slater Streets",
+   "gtfs_match": [
+    "Albert / Bay",
+    "Slater / Bay"
+   ]
+  },
+  {
+   "id": "kent",
+   "name": "Kent",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "x": [
+    "Albert Street",
+    "Kent Street"
+   ],
+   "gtfs_match": [
+    "Albert / Kent",
+    "Slater / Kent"
+   ]
+  },
+  {
+   "id": "bank",
+   "name": "Bank",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "x": [
+    "Albert Street",
+    "Bank Street"
+   ],
+   "gtfs_match": [
+    "Albert / Bank",
+    "Slater / Bank"
+   ]
+  },
+  {
+   "id": "metcalfe",
+   "name": "Metcalfe",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "x": [
+    "Albert Street",
+    "Metcalfe Street"
+   ],
+   "gtfs_match": [
+    "Albert / Metcalfe",
+    "Slater / Metcalfe"
+   ]
+  },
+  {
+   "id": "mackenzie-king",
+   "name": "Mackenzie King",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Mackenzie King station"
+   ]
+  },
+  {
+   "id": "laurier",
+   "name": "Laurier",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Laurier station (OC Transpo)"
+   ]
+  },
+  {
+   "id": "campus",
+   "name": "Campus",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "uOttawa station"
+   ],
+   "note": "Renamed uOttawa when converted to LRT"
+  },
+  {
+   "id": "lees",
+   "name": "Lees",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "at": [
+    -75.6705,
+    45.4163
+   ]
+  },
+  {
+   "id": "hurdman",
+   "name": "Hurdman",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Hurdman station"
+   ]
+  },
+  {
+   "id": "train",
+   "name": "Train",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Tremblay station"
+   ],
+   "note": "At VIA Rail's Ottawa Station; renamed Tremblay"
+  },
+  {
+   "id": "st-laurent",
+   "name": "St-Laurent",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "St. Laurent station"
+   ]
+  },
+  {
+   "id": "cyrville",
+   "name": "Cyrville",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Cyrville station"
+   ]
+  },
+  {
+   "id": "blair",
+   "name": "Blair",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "OC Transpo Blair Station"
+   ]
+  },
+  {
+   "id": "jeanne-darc",
+   "name": "Jeanne d'Arc",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Jeanne D'Arc Bus Station"
+   ]
+  },
+  {
+   "id": "place-dorleans",
+   "name": "Place d'Orléans",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Place d'Orléans Station"
+   ],
+   "gtfs_match": [
+    "Orléans"
+   ]
+  },
+  {
+   "id": "trim",
+   "name": "Trim",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Trim station"
+   ]
+  },
+  {
+   "id": "millennium",
+   "name": "Millennium",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: platforms MILLENNIUM 1A/2A in OC Transpo GTFS, Aug 2011 (octranspo_20110806.zip on the data/gtfs-2010 branch)",
+   "at": [
+    -75.4486,
+    45.4662
+   ]
+  },
+  {
+   "id": "lycee-claudel",
+   "name": "Lycée Claudel",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "medium",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "at": [
+    -75.6657,
+    45.4066
+   ],
+   "note": "Position approximate (between Hurdman and Smyth on the Southeast Transitway)"
+  },
+  {
+   "id": "smyth",
+   "name": "Smyth",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Smyth station"
+   ]
+  },
+  {
+   "id": "riverside",
+   "name": "Riverside",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Riverside station (OC Transpo)"
+   ]
+  },
+  {
+   "id": "pleasant-park",
+   "name": "Pleasant Park",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Pleasant Park station"
+   ]
+  },
+  {
+   "id": "billings-bridge",
+   "name": "Billings Bridge",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Billings Bridge station"
+   ]
+  },
+  {
+   "id": "heron",
+   "name": "Heron",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Heron station"
+   ]
+  },
+  {
+   "id": "walkley",
+   "name": "Walkley",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: platforms WALKLEY 1A–4C in OC Transpo GTFS, Aug 2011 (octranspo_20110806.zip on the data/gtfs-2010 branch)",
+   "at": [
+    -75.6669,
+    45.3688
+   ]
+  },
+  {
+   "id": "greenboro",
+   "name": "Greenboro",
+   "corridors": [
+    "transitway",
+    "otrain"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Greenboro station"
+   ]
+  },
+  {
+   "id": "south-keys",
+   "name": "South Keys",
+   "corridors": [
+    "transitway"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "South Keys station"
+   ]
+  },
+  {
+   "id": "airport",
+   "name": "Airport",
+   "corridors": [],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: platforms AIRPORT STOP / ARRÊT AÉROPORT in OC Transpo GTFS, Aug 2011 (octranspo_20110806.zip on the data/gtfs-2010 branch)",
+   "at": [
+    -75.6659,
+    45.3222
+   ],
+   "gtfs_match": [
+    "Airport Stop / Arrêt Aéroport"
+   ]
+  },
+  {
+   "id": "carling",
+   "name": "Carling",
+   "corridors": [
+    "otrain"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Carling station"
+   ]
+  },
+  {
+   "id": "carleton",
+   "name": "Carleton",
+   "corridors": [
+    "otrain"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Carleton station"
+   ]
+  },
+  {
+   "id": "confederation",
+   "name": "Confederation",
+   "corridors": [
+    "otrain"
+   ],
+   "confidence": "high",
+   "source": "Station list: Wikipedia 'Transitway (Ottawa)', revision 389051515 (6 Oct 2010), https://en.wikipedia.org/w/index.php?oldid=389051515 · position: Overture places / street intersections (today's map)",
+   "match": [
+    "Confederation station"
+   ]
+  }
+ ],
+ "to_verify": [
+  "Stittsville station (west terminus of some 96 trips): position not yet found — omitted",
+  "Lycée Claudel station: exact position",
+  "Transitway alignment Westboro → Lincoln Fields (2010: Ottawa River Parkway corridor) — buses are routed on the parkway"
+ ]
 }

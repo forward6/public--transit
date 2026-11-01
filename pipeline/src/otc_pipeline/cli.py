@@ -8,7 +8,8 @@ Steps (in order):
   glyphs    SDF label glyphs (Inter, Source Serif 4)              -> apps/web/public/glyphs/
   wiki      2010 route catalogue + Transitway stations (Wikipedia
             revisions as of 1 Dec 2010)                           -> data/build/2010/route_catalogue.json
-  network   the 2010 transit network (+ --gtfs FILE.zip)          -> apps/web/public/data/network-2010.json
+  network   the 2010 transit network (archived GTFS from the
+            data/gtfs-2010 branch; --gtfs FILE.zip, --no-gtfs)    -> apps/web/public/data/network-2010.json
   archive   search the Wayback Machine for 2010 GTFS feeds        -> data/raw/archive/ (not part of `all`)
 """
 
@@ -43,7 +44,7 @@ def run(step: str, args: argparse.Namespace) -> None:
         build_wiki()
     elif step == "network":
         from .network2010 import build_network
-        build_network(gtfs=args.gtfs)
+        build_network(gtfs=args.gtfs, gtfs_date=args.gtfs_date, use_default_feeds=not args.no_gtfs)
     elif step == "archive":
         from .archive import search_and_download
         search_and_download()
@@ -56,6 +57,10 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--layers", help="fetch: comma-separated subset of layers")
     p.add_argument("--workers", type=int, default=0, help="tiles: worker processes (default: CPU count)")
     p.add_argument("--gtfs", action="append", help="network: import a (2010) GTFS zip for the service (repeatable)")
+    p.add_argument("--no-gtfs", action="store_true", help="network: don't import the default archived feeds "
+                                                                   "(approximate every route without a 2010 source)")
+    p.add_argument("--gtfs-date", help="network: the weekday to take from the feeds (default: the snapshot date, "
+                                       "or the nearest weekday they cover)")
     args = p.parse_args(argv)
     for step in STEPS if args.step == "all" else [args.step]:
         run(step, args)
