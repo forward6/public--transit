@@ -11,8 +11,8 @@ import { buildTimetable } from './timetable';
  * skims → one model pass with the calibrated parameters → assignment → indicators.
  */
 
-/** Operating cost per vehicle-hour and weekday-equivalents per year (estimates, 2011 dollars). */
-export const COST_PER_VEHICLE_HOUR = 115;
+/** Operating cost per vehicle-hour and weekday-equivalents per year (estimates, 2011 dollars; as in ECONOMY_2010). */
+export const COST_PER_VEHICLE_HOUR = 135;
 export const WEEKDAYS_PER_YEAR = 300;
 const LAYOVER = 1.12;
 
@@ -33,6 +33,12 @@ export interface Scorecard {
   costPerBoarding: number;
   byDistrict: Record<string, [number, number]>;
   byRoute: Record<string, number>;
+  byAgency: Record<string, number>;
+}
+
+/** Only one agency's routes (e.g. OC Transpo's, for its books). */
+export function agencyOnly(network: Network, agency: 'octranspo' | 'sto'): Network {
+  return { ...network, routes: network.routes.filter((r) => r.agency === agency) };
 }
 
 /** Vehicle-hours and the most vehicles in service at once on a weekday (with layover). */
@@ -144,6 +150,7 @@ export function evaluate(network: Network, inp: EvalInputs, prep?: Prepared): Ev
   lap('assign');
   say('score', 0);
   const trips = MODES.reduce((a, m) => a + res.byMode[m as TravelMode], 0);
+  const agencyOf = new Map(network.routes.map((r) => [r.id, r.agency]));
   const served = servedStops(network);
   const svc = serviceStats(network);
   const annualCost = svc.vehicleHours * COST_PER_VEHICLE_HOUR * WEEKDAYS_PER_YEAR;
@@ -157,6 +164,11 @@ export function evaluate(network: Network, inp: EvalInputs, prep?: Prepared): Ev
     costPerBoarding: annualCost / Math.max(1, boardings * WEEKDAYS_PER_YEAR),
     byDistrict: Object.fromEntries(Object.entries(res.district).map(([d, [t, tr]]) => [d, [t, tr / t]])),
     byRoute: Object.fromEntries(asg.boardingsByRoute),
+    byAgency: [...asg.boardingsByRoute].reduce<Record<string, number>>((a, [rid, b]) => {
+      const ag = agencyOf.get(rid) ?? '?';
+      a[ag] = (a[ag] ?? 0) + b;
+      return a;
+    }, {}),
   };
   lap('score');
   say('done', 1);

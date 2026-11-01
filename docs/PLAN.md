@@ -743,7 +743,7 @@ to keep iteration fast; it expands to the full region afterwards.
 | M2 ✅ | **The 2010 network moves** | 2010 OC Transpo network (Transitway, O-Train, top routes) imported; vehicles animated from timetables; stop and line inspectors | A morning peak plays back on the map | M |
 | M3 🔶 | **People ride** | Zones, synthetic population, demand model, RAPTOR skims, assignment, base-year calibration report | Ridership numbers appear and the 2011 targets are met within tolerance | L |
 | M4 🔶 | **Design tools → FIRST PLAYABLE** | Draw and edit routes, stops and frequencies (mouse, touch and Apple Pencil); live preview; isochrones; coverage and Scorecard v1 | You can redesign the network and see riders respond, on any device | L |
-| M5 | **Money and fleet** | Budget, fares, operating costs, garages, fleet ordering, maintenance, service-change calendar | You can run out of money in an interesting way | M |
+| M5 🔶 | **Money and fleet** | Budget, fares, operating costs, garages, fleet ordering, maintenance, service-change calendar | You can run out of money in an interesting way | M |
 | M6 | **Opinion and media** | Opinion grid, rider diaries, "Follow a rider", headline generator, opinion maps | The public's reaction is visible and explainable | M |
 | M7 | **Council, elections and partners** | Councillors, whip counts, votes, Political Capital, elections, STO AI, funders, NCC, labour | A full four-year term plays out with soft consequences | L |
 | M8 | **Big projects** | LRT, commuter rail, Transitway segments, river crossings; procurement, construction disruption, opening day | You can build a rapid-transit line from proposal to opening | L |
@@ -847,8 +847,35 @@ to keep iteration fast; it expands to the full region afterwards.
      - who loses service (by ward), crowding warnings, and an "unserved demand" assist;
      - infrastructure (bus lanes, Transitway segments, rail);
      - service-change dates and costs (M5).
-7. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
-8. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
+7. 🔶 **M5 (v1):** money and fleet ([screenshots](screenshots/m5/)).
+   - **The calendar** starts on 1 December 2010. A day passes when the service day ends, or about a
+     month per 25 s in fast-forward. Decisions pause the game. The campaign is saved in the
+     browser.
+   - **The books are kept month by month:**
+     - fares, from the demand model's ridership × season × growth × fare elasticity × reliability;
+     - the levy, gas tax and other revenue;
+     - operations, at bus-hours × cost per hour with inflation;
+     - maintenance, Para Transpo, fixed costs and debt service;
+     - the operating and capital reserves.
+   - **The fleet** is the sourced December 2010 fleet: 1,048 buses by model and year. The 2011
+     D60LFR order replaces the high-floor buses as it arrives. Buses age and retire. Orders arrive
+     after their lead time if a garage has room, and garages can be built. A peak requirement above
+     the fleet means missed trips.
+   - **Plans** from Plan mode are scheduled for the next service change (late April, late June, the
+     Sunday before Labour Day, mid-December). When one takes effect, ridership is re-measured.
+   - **Decisions:**
+     - each autumn's budget (levy, fares, maintenance), with a live 12-month projection;
+     - deficits: raise the levy, cut service, defer maintenance (backlog, breakdowns) or borrow;
+     - fleet shortfalls: order, cut, or run short.
+   - **Testing it:** `pnpm --filter @otc/sim economy-demo` plays five years in Node. With a frozen
+     levy, deficits start in 2013 and borrowing snowballs.
+   - **Sources:** in `packages/shared/src/economy.ts`. The fleet, garages and fares are from 2010
+     sources; the budget lines are labelled estimates.
+   - **Still to do:** fare policy detail (passes, U-Pass, concessions), labour contracts, fuel price
+     shocks, capital grants, difficulty presets, council votes on the budget (M7), and costs for
+     changing service between service-change dates.
+8. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
+9. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 
 ---
 

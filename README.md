@@ -33,6 +33,16 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
 
 ![Plan mode: a new route in Kanata, evaluated](docs/screenshots/m4/plan-scorecard.jpg)
 
+- M5 is under way: money and fleet.
+  - **The campaign** starts with the 2011 budget, and the calendar runs (**Fast** skips ahead).
+  - **Your plans** take effect at the next service change.
+  - **The books:** tap the **Reserve** chip to see revenue and costs, and to order buses or
+    build garages.
+  - **Each autumn** brings a budget. Run out of money and you must choose: raise the levy, cut
+    service, defer maintenance or borrow.
+
+![The 2012 budget](docs/screenshots/m5/budget-2012.jpg)
+
 ![The 2010 network at 8:10 am](docs/screenshots/m2/network-2010-overview.jpg)
 
 See the [roadmap](docs/PLAN.md#12-roadmap).

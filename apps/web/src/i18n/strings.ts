@@ -1,4 +1,4 @@
-import type { CatalogueClass, Confidence, District, Lang, NetworkStatus, PlanPeriodId, RouteClass, Season, TimeOfDay, TravelMode } from '@otc/shared';
+import type { CatalogueClass, Confidence, District, GameEventKind, Lang, NetworkStatus, PlanPeriodId, RouteClass, Season, TimeOfDay, TravelMode } from '@otc/shared';
 
 export interface Strings {
   appName: string;
@@ -123,6 +123,62 @@ export interface Strings {
   byDistrictChange: string;
   scorecardNote: string;
   outdated: string;
+  // M5 — money and fleet
+  budgetTitle: string;
+  reserveChip: (m: string) => string;
+  fast: string;
+  fastHint: string;
+  decisionKicker: string;
+  decisionTitle: Partial<Record<GameEventKind, string>>;
+  budgetIntro: (last: string, balancing: string) => string;
+  levyChange: string;
+  fareChange: string;
+  maintenanceFunding: string;
+  projectedYear: (revenue: string, cost: string, balance: string) => string;
+  levyWarning: string;
+  maintenanceWarning: string;
+  approveBudget: string;
+  deficitIntro: (amount: string) => string;
+  deficitChoice: Record<'levy' | 'cut' | 'defer' | 'borrow', { title: string; body: string }>;
+  shortfallIntro: (required: number, buses: number) => string;
+  shortfallChoice: { order: { title: string; body: (n: number, cost: string, date: string) => string }; cut: { title: string; body: string };
+    accept: { title: string; body: (missed: string) => string } };
+  news: Partial<Record<GameEventKind, (d: Record<string, number | string>, lang: Lang) => string>>;
+  reserve: string;
+  debt: string;
+  levyThisYear: string;
+  last12: (n: number) => string;
+  lineFares: string;
+  lineLevy: string;
+  lineGasTax: string;
+  lineOther: string;
+  revenue: string;
+  lineOperations: string;
+  lineMaintenance: string;
+  linePara: string;
+  lineFixed: string;
+  lineDebt: string;
+  costs: string;
+  balance: string;
+  booksNote: (recovery: string, missed: string, backlog: string, projected: string) => string;
+  levers: string;
+  fleet: string;
+  ageYears: (n: number) => string;
+  buses: string;
+  neededAtPeak: string;
+  short: (n: number) => string;
+  spare: (n: number) => string;
+  garageSpace: string;
+  free: (n: number) => string;
+  moreOrders: (n: number) => string;
+  busType: string;
+  orderBuses: (n: number, cost: string, date: string) => string;
+  buildGarage: (cost: string) => string;
+  scheduledNote: (n: number, date: string) => string;
+  schedulePlan: (date: string) => string;
+  economyNote: string;
+  restart: string;
+  restartConfirm: string;
 }
 
 /** 512340 -> "512k", 8450 -> "8.5k" */
@@ -193,6 +249,75 @@ export const STRINGS: Record<Lang, Strings> = {
     catalogueOnMap: 'On the map now',
     catalogueSources: 'Dated sources (Wikipedia revisions)',
     catalogueWayback: 'OC Transpo’s own 2010 timetable data (GTFS) is held by the Wayback Machine, which refuses connections from this build environment; the remaining routes need it or archived route maps.',
+    budgetTitle: 'Budget & fleet',
+    reserveChip: (m) => `Reserve ${m}`,
+    fast: 'Fast',
+    fastHint: 'Fast-forward the calendar: a month in about 25 seconds',
+    decisionKicker: 'Decision needed',
+    decisionTitle: { budget: 'The {year} budget', deficit: 'The reserve has run dry', shortfall: 'Not enough buses' },
+    budgetIntro: (last, bal) => `Council sets the transit levy for the year (now ${last}). A balanced budget needs ${bal}. Fares and maintenance are yours to propose.`,
+    levyChange: 'Transit levy',
+    fareChange: 'Fares',
+    maintenanceFunding: 'Maintenance funding',
+    projectedYear: (r, c, b) => `Next 12 months: revenue ${r}, costs ${c}, balance ${b}`,
+    levyWarning: 'Council and ratepayers will notice a levy increase above 3% (politics arrive in M7).',
+    maintenanceWarning: 'Underfunded maintenance builds a backlog: more breakdowns and missed trips.',
+    approveBudget: 'Send to council',
+    deficitIntro: (a) => `The operating reserve is ${a} short. Council wants it fixed before the auditor's report.`,
+    deficitChoice: {
+      levy: { title: 'Raise the levy mid-year', body: 'Recovers the gap (plus 10%) over the next 12 months. Ratepayers won’t like it.' },
+      cut: { title: 'Cut service 8%', body: 'Fewer bus-hours from next month; riders and fares drop too.' },
+      defer: { title: 'Defer maintenance', body: 'Maintenance at 75%: cheaper now, a growing backlog and breakdowns later.' },
+      borrow: { title: 'Borrow', body: 'Covers the gap at once; debt service grows for 20 years.' },
+    },
+    shortfallIntro: (req, b) => `The peak now needs ${req} buses with spares, and you have ${b}. Trips are being missed.`,
+    shortfallChoice: {
+      order: { title: 'Order buses', body: (n, c, d) => `${n} articulated buses, ${c}, delivered ${d} (if a garage has room).` },
+      cut: { title: 'Cut peak service to fit', body: 'Thin the timetable to the buses you have; riders drop.' },
+      accept: { title: 'Run short', body: (m) => `Keep the timetable and miss trips (${m} of trips now).` },
+    },
+    news: {
+      welcome: () => 'You chair the Transit Commission. First task: the 2011 budget.',
+      delivery: (d) => (d.held ? `${d.count} × ${d.model} held at the factory: no garage space` : `${d.count} new ${d.model} delivered`),
+      serviceChange: (d) => `Service change: your plan (${d.changes} changes) is now running`,
+      garageOpen: (d) => `${d.name} opens: ${d.capacity} more bus places`,
+      retirement: (d) => `${d.count} old buses retired`,
+    },
+    reserve: 'Operating reserve',
+    debt: 'Debt',
+    levyThisYear: 'Levy this year',
+    last12: (n) => (n >= 12 ? 'The last 12 months' : `Since December 2010 (${n} months)`),
+    lineFares: 'Fares',
+    lineLevy: 'Transit levy',
+    lineGasTax: 'Provincial gas tax',
+    lineOther: 'Advertising and other',
+    revenue: 'Revenue',
+    lineOperations: 'Operations (drivers, fuel)',
+    lineMaintenance: 'Maintenance',
+    linePara: 'Para Transpo',
+    lineFixed: 'Administration and facilities',
+    lineDebt: 'Debt service',
+    costs: 'Costs',
+    balance: 'Balance',
+    booksNote: (rec, missed, backlog, proj) => `Fares cover ${rec} of costs · ${missed} of trips missed · maintenance backlog ${backlog} · next 12 months at today’s settings: ${proj}.`,
+    levers: 'Levers',
+    fleet: 'Fleet',
+    ageYears: (n) => `${n.toFixed(1)} yrs`,
+    buses: 'Buses',
+    neededAtPeak: 'Needed at the peak (with spares)',
+    short: (n) => `${n} short`,
+    spare: (n) => `${n} to spare`,
+    garageSpace: 'Garage places',
+    free: (n) => `${n} free`,
+    moreOrders: (n) => `and ${n} more deliveries`,
+    busType: 'Bus type',
+    orderBuses: (n, c, d) => `Order ${n} · ${c} · ${d}`,
+    buildGarage: (c) => `Build a 250-bus garage · ${c}`,
+    scheduledNote: (n, d) => `${n} planned changes take effect at the service change on ${d}. `,
+    schedulePlan: (d) => `Schedule for ${d}`,
+    economyNote: 'The fleet and fares are from 2010 sources; most budget lines are estimates, each with its source in the game data. Ridership comes from the demand model.',
+    restart: 'New game',
+    restartConfirm: 'Start a new campaign from 1 December 2010? This game will be lost.',
     plan: 'Plan',
     planTitle: 'Plan mode',
     planHint: 'The clock is paused. Tap a route to change its service, draw a new one, or see travel times.',
@@ -323,6 +448,75 @@ export const STRINGS: Record<Lang, Strings> = {
     catalogueOnMap: 'Sur la carte',
     catalogueSources: 'Sources datées (révisions de Wikipédia)',
     catalogueWayback: 'Les données d’horaires 2010 d’OC Transpo (GTFS) sont conservées par la Wayback Machine, qui refuse les connexions de cet environnement ; les autres lignes en ont besoin, ou de plans archivés.',
+    budgetTitle: 'Budget et parc',
+    reserveChip: (m) => `Réserve ${m}`,
+    fast: 'Rapide',
+    fastHint: 'Avance rapide du calendrier : un mois en 25 secondes environ',
+    decisionKicker: 'Décision requise',
+    decisionTitle: { budget: 'Le budget {year}', deficit: 'La réserve est à sec', shortfall: 'Pas assez d’autobus' },
+    budgetIntro: (last, bal) => `Le conseil fixe la taxe de transport en commun pour l’année (actuellement ${last}). Un budget équilibré exige ${bal}. Vous proposez les tarifs et l’entretien.`,
+    levyChange: 'Taxe de transport',
+    fareChange: 'Tarifs',
+    maintenanceFunding: 'Financement de l’entretien',
+    projectedYear: (r, c, b) => `12 prochains mois : revenus ${r}, coûts ${c}, solde ${b}`,
+    levyWarning: 'Le conseil et les contribuables remarqueront une hausse de la taxe de plus de 3 % (la politique arrive au jalon M7).',
+    maintenanceWarning: 'Un entretien sous-financé crée un arriéré : plus de pannes et de trajets annulés.',
+    approveBudget: 'Soumettre au conseil',
+    deficitIntro: (a) => `Il manque ${a} à la réserve de fonctionnement. Le conseil veut que ce soit réglé avant le rapport du vérificateur.`,
+    deficitChoice: {
+      levy: { title: 'Hausser la taxe en cours d’année', body: 'Récupère l’écart (plus 10 %) sur les 12 prochains mois. Les contribuables n’aimeront pas.' },
+      cut: { title: 'Réduire le service de 8 %', body: 'Moins d’heures-autobus dès le mois prochain; l’achalandage et les recettes baissent aussi.' },
+      defer: { title: 'Reporter l’entretien', body: 'Entretien à 75 % : moins cher maintenant, un arriéré et des pannes plus tard.' },
+      borrow: { title: 'Emprunter', body: 'Couvre l’écart tout de suite; le service de la dette augmente pendant 20 ans.' },
+    },
+    shortfallIntro: (req, b) => `La pointe exige maintenant ${req} autobus avec la réserve, et vous en avez ${b}. Des trajets sont annulés.`,
+    shortfallChoice: {
+      order: { title: 'Commander des autobus', body: (n, c, d) => `${n} autobus articulés, ${c}, livrés en ${d} (s’il y a de la place au garage).` },
+      cut: { title: 'Réduire le service de pointe', body: 'Alléger l’horaire selon les autobus disponibles; l’achalandage baisse.' },
+      accept: { title: 'Rouler à court d’autobus', body: (m) => `Garder l’horaire et annuler des trajets (${m} des trajets actuellement).` },
+    },
+    news: {
+      welcome: () => 'Vous présidez la Commission du transport en commun. Première tâche : le budget 2011.',
+      delivery: (d) => (d.held ? `${d.count} × ${d.model} retenus à l’usine : pas de place au garage` : `${d.count} nouveaux ${d.model} livrés`),
+      serviceChange: (d) => `Changement de service : votre plan (${d.changes} changements) est en vigueur`,
+      garageOpen: (d) => `${d.name} ouvre : ${d.capacity} places de plus`,
+      retirement: (d) => `${d.count} vieux autobus retirés`,
+    },
+    reserve: 'Réserve de fonctionnement',
+    debt: 'Dette',
+    levyThisYear: 'Taxe cette année',
+    last12: (n) => (n >= 12 ? 'Les 12 derniers mois' : `Depuis décembre 2010 (${n} mois)`),
+    lineFares: 'Tarifs',
+    lineLevy: 'Taxe de transport',
+    lineGasTax: 'Taxe provinciale sur l’essence',
+    lineOther: 'Publicité et autres',
+    revenue: 'Revenus',
+    lineOperations: 'Exploitation (chauffeurs, carburant)',
+    lineMaintenance: 'Entretien',
+    linePara: 'Para Transpo',
+    lineFixed: 'Administration et installations',
+    lineDebt: 'Service de la dette',
+    costs: 'Coûts',
+    balance: 'Solde',
+    booksNote: (rec, missed, backlog, proj) => `Les tarifs couvrent ${rec} des coûts · ${missed} des trajets annulés · arriéré d’entretien ${backlog} · 12 prochains mois aux réglages actuels : ${proj}.`,
+    levers: 'Leviers',
+    fleet: 'Parc d’autobus',
+    ageYears: (n) => `${n.toFixed(1).replace('.', ',')} ans`,
+    buses: 'Autobus',
+    neededAtPeak: 'Requis en pointe (avec réserve)',
+    short: (n) => `${n} manquants`,
+    spare: (n) => `${n} en surplus`,
+    garageSpace: 'Places au garage',
+    free: (n) => `${n} libres`,
+    moreOrders: (n) => `et ${n} autres livraisons`,
+    busType: 'Type d’autobus',
+    orderBuses: (n, c, d) => `Commander ${n} · ${c} · ${d}`,
+    buildGarage: (c) => `Construire un garage de 250 autobus · ${c}`,
+    scheduledNote: (n, d) => `${n} changements prévus entrent en vigueur au changement de service du ${d}. `,
+    schedulePlan: (d) => `Planifier pour le ${d}`,
+    economyNote: 'Le parc et les tarifs proviennent de sources de 2010; la plupart des postes budgétaires sont des estimations, chacune avec sa source dans les données du jeu. L’achalandage vient du modèle de demande.',
+    restart: 'Nouvelle partie',
+    restartConfirm: 'Commencer une nouvelle campagne au 1er décembre 2010? Cette partie sera perdue.',
     plan: 'Planifier',
     planTitle: 'Mode planification',
     planHint: 'L’horloge est en pause. Touchez une ligne pour changer son service, tracez-en une nouvelle ou voyez les temps de trajet.',

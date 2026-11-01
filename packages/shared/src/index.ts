@@ -32,3 +32,4 @@ export type BasemapLayer = keyof typeof tileSchemaJson.layers;
 export * from './network';
 export * from './demand';
 export * from './plan';
+export * from './economy';

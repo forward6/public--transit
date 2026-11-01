@@ -4,7 +4,8 @@
 import type { DemandFile, Edit, Network, ZonesFile } from '@otc/shared';
 import { applyEdits, evaluate, prepare, type DemandParams, type Prepared, type Scorecard } from '@otc/sim';
 
-export type ToWorker = { type: 'evaluate'; id: number; baseUrl: string; edits: Edit[] };
+/** Score `baseEdits` (the network in operation: the 2010 network plus applied plans) and baseEdits + edits (the draft). */
+export type ToWorker = { type: 'evaluate'; id: number; baseUrl: string; baseEdits: Edit[]; edits: Edit[] };
 export type FromWorker =
   | { type: 'progress'; id: number; stage: string; f: number; baseline: boolean }
   | { type: 'result'; id: number; baseline: Scorecard; plan: Scorecard; seconds: number }
@@ -16,7 +17,8 @@ interface Loaded {
   car: Uint8Array;
   params: DemandParams;
   prep: Prepared | null;
-  baseline: Scorecard | null;
+  /** scored networks in operation, by their edits */
+  baselines: Map<string, Scorecard>;
 }
 
 let loaded: Promise<Loaded> | null = null;
@@ -33,7 +35,7 @@ async function load(baseUrl: string): Promise<Loaded> {
     get('demand-2011.json').then((r) => r.json() as Promise<DemandFile>),
   ]);
   if (!demand.params) throw new Error('demand-2011.json has no calibrated parameters; rerun `pnpm --filter @otc/sim demand`');
-  return { network, zones, car, params: demand.params as unknown as DemandParams, prep: null, baseline: null };
+  return { network, zones, car, params: demand.params as unknown as DemandParams, prep: null, baselines: new Map() };
 }
 
 const post = (m: FromWorker) => (self as unknown as DedicatedWorkerGlobalScope).postMessage(m);
@@ -50,9 +52,14 @@ self.onmessage = async (ev: MessageEvent<ToWorker>) => {
       onProgress: (stage: string, f: number) => post({ type: 'progress', id, stage, f, baseline }),
     });
     L.prep ??= prepare({ zones: L.zones.zones, car: L.car, skims: null as never });
-    L.baseline ??= evaluate(L.network, inputs(true), L.prep).score;
-    const plan = msg.edits.length ? evaluate(applyEdits(L.network, msg.edits), inputs(false), L.prep).score : L.baseline;
-    post({ type: 'result', id, baseline: L.baseline, plan, seconds: (performance.now() - t0) / 1000 });
+    const key = JSON.stringify(msg.baseEdits);
+    let baseline = L.baselines.get(key);
+    if (!baseline) {
+      baseline = evaluate(applyEdits(L.network, msg.baseEdits), inputs(true), L.prep).score;
+      L.baselines.set(key, baseline);
+    }
+    const plan = msg.edits.length ? evaluate(applyEdits(L.network, [...msg.baseEdits, ...msg.edits]), inputs(false), L.prep).score : baseline;
+    post({ type: 'result', id, baseline, plan, seconds: (performance.now() - t0) / 1000 });
   } catch (e) {
     post({ type: 'error', id, message: e instanceof Error ? e.message : String(e) });
   }

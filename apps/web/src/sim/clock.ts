@@ -11,6 +11,8 @@ export interface Clock {
   /** advance by `realSeconds` of wall time */
   tick(realSeconds: number): void;
   subscribe(fn: () => void): () => void;
+  /** called when the service day ends (the clock loops back to 04:00): the calendar moves a day */
+  onDayEnd(fn: () => void): () => void;
 }
 
 export const DAY_START = 4 * 3600;
@@ -20,6 +22,7 @@ export function createClock(start: number, speed: SpeedIndex): Clock {
   let t = start;
   let s: SpeedIndex = speed;
   const subs = new Set<() => void>();
+  const dayEnd = new Set<() => void>();
   const emit = () => subs.forEach((f) => f());
   return {
     now: () => t,
@@ -35,11 +38,18 @@ export function createClock(start: number, speed: SpeedIndex): Clock {
     tick(dt) {
       if (s === 0) return;
       t += dt * SPEEDS[s];
-      if (t > DAY_END) t = DAY_START; // loop the service day
+      if (t > DAY_END) {
+        t = DAY_START; // loop the service day
+        dayEnd.forEach((f) => f());
+      }
     },
     subscribe(fn) {
       subs.add(fn);
       return () => subs.delete(fn);
+    },
+    onDayEnd(fn) {
+      dayEnd.add(fn);
+      return () => dayEnd.delete(fn);
     },
   };
 }

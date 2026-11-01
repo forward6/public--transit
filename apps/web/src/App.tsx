@@ -14,6 +14,9 @@ import { Inspector, type Selection } from './ui/Inspector';
 import { Snow } from './ui/Snow';
 import { usePlan } from './plan/usePlan';
 import { PlanDock, ScorecardPanel } from './plan/PlanUI';
+import { useGame } from './game/useGame';
+import { BudgetPanel, DecisionCard, FastButton, NewsToasts, TreasuryChip, fmtDate } from './game/GameUI';
+import { nextServiceChange } from '@otc/sim';
 import { useLayout, type Layout } from './ui/useLayout';
 
 const params = new URLSearchParams(location.search);
@@ -74,7 +77,12 @@ export function App() {
   const still = params.has('still') || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const baseUrl = useMemo(() => new URL(import.meta.env.BASE_URL, location.href).href, []);
   const base = useNetwork(baseUrl);
-  const plan = usePlan(base, baseUrl);
+  // the campaign (M5): the network in operation is the 2010 network plus the plans that have taken effect
+  const measureRef = useRef<ReturnType<typeof usePlan>['measure'] | null>(null);
+  const game = useGame(base, clock, (e) => (measureRef.current ? measureRef.current(e) : Promise.reject(new Error('planner not ready'))),
+    Number(params.get('fastms')) || undefined); // ?fastms= speeds fast-forward up (tests)
+  const plan = usePlan(game.operation, baseUrl, game.state?.applied);
+  measureRef.current = plan.measure;
   const net = plan.view; // the 2010 network with the player's edits applied
   const view = useClockView();
   useVehicleAnimation(map, net?.playback ?? null, clock);
@@ -193,7 +201,18 @@ export function App() {
     return { draftLine: d.line, draftPoints: d.points, iso: isoPolys(net?.zones ?? null, plan.isoMinutes), isoOrigin: plan.isoOrigin };
   }, [plan.active, plan.draft, plan.waypoints, plan.isoMinutes, plan.isoOrigin, net]);
   const routeNames = useMemo(() => new Map((base?.network.routes ?? []).map((r) => [r.id, r.shortName])), [base]);
-  const dock = plan.active ? <PlanDock plan={plan} t={t} onOpenScorecard={() => setSel({ type: 'scorecard', id: 'plan' })} routeNames={routeNames} /> : null;
+  const nextChange = game.state ? fmtDate(nextServiceChange(game.state.date), settings.lang, 'short') : '';
+  const schedule = game.state ? {
+    label: t.schedulePlan(nextChange),
+    onSchedule: () => {
+      game.schedule([...game.state!.pending, ...plan.edits]);
+      plan.reset();
+    },
+    pending: game.state.pending.length ? t.scheduledNote(game.state.pending.length, nextChange) : null,
+    onCancel: game.unschedule,
+  } : undefined;
+  const dock = plan.active ? <PlanDock plan={plan} t={t} onOpenScorecard={() => setSel({ type: 'scorecard', id: 'plan' })} routeNames={routeNames}
+    schedule={schedule} /> : null;
   const inService = useMemo(() => net?.playback.vehiclesAt(view.time).length ?? 0, [net, view.time]);
 
   return (
@@ -207,10 +226,17 @@ export function App() {
         time={view.time} speed={view.speed} onSpeed={(s) => clock.setSpeed(s)} inService={inService}
         status={net?.network.status ?? null} statusNote={net?.network.statusNote}
         inspector={sel && net ? (sel.type === 'scorecard' ? <ScorecardPanel plan={plan} t={t} />
+          : sel.type === 'budget' ? <BudgetPanel game={game} t={t} lang={settings.lang} />
           : <Inspector sel={sel} net={net} t={view.time} s={t} lang={settings.lang} palette={pal} onSelect={setSel} plan={plan} />) : null}
         planActive={plan.active} onTogglePlan={() => plan.setActive(!plan.active)} dock={dock}
+        dateLabel={game.state ? fmtDate(game.state.date, settings.lang) : undefined}
+        dateShort={game.state ? fmtDate(game.state.date, settings.lang, 'short') : undefined}
+        treasury={<TreasuryChip game={game} t={t} lang={settings.lang} onClick={() => setSel({ type: 'budget', id: 'books' })} />}
+        fastButton={<FastButton game={game} t={t} />}
         onCloseInspector={() => setSel(null)} onOpenCatalogue={() => setSel({ type: 'catalogue', id: '2010' })}
         boardings={net?.demand?.summary.boardings ?? null} onOpenRidership={() => setSel({ type: 'ridership', id: '2011' })} />
+      {!params.has('nodecision') && <DecisionCard game={game} t={t} lang={settings.lang} />}
+      <NewsToasts game={game} t={t} lang={settings.lang} />
     </>
   );
 }

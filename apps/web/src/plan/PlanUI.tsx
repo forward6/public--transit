@@ -52,8 +52,16 @@ export function RouteServiceEditor({ route, net, plan, t }: { route: NetRoute; n
 const ISO_BANDS = [['#0E7C86', '10'], ['#36A3A2', '20'], ['#7EC8B2', '30'], ['#C6E7BE', '45']] as const;
 
 /** The planning dock: tools, the draft in progress, and the evaluation status. */
-export function PlanDock({ plan, t, onOpenScorecard, routeNames }: {
-  plan: PlanState; t: Strings; onOpenScorecard: () => void; routeNames: Map<string, string>;
+export interface ScheduleControl {
+  label: string;
+  onSchedule: () => void;
+  /** what's already scheduled, if anything */
+  pending: string | null;
+  onCancel: () => void;
+}
+
+export function PlanDock({ plan, t, onOpenScorecard, routeNames, schedule }: {
+  plan: PlanState; t: Strings; onOpenScorecard: () => void; routeNames: Map<string, string>; schedule?: ScheduleControl;
 }) {
   const { tool, setTool, draft, evalState: ev } = plan;
   const running = ev.status === 'running';
@@ -99,6 +107,10 @@ export function PlanDock({ plan, t, onOpenScorecard, routeNames }: {
             <button className="btn" disabled={!plan.edits.length} onClick={plan.undo}>{t.undo}</button>
             <button className="btn ghost" disabled={!plan.edits.length} onClick={() => confirm(t.resetConfirm) && plan.reset()}>{t.resetPlan}</button>
           </div>
+          {schedule && plan.edits.length > 0 && (
+            <div className="plan-actions"><button className="btn primary" onClick={schedule.onSchedule}>{schedule.label}</button></div>
+          )}
+          {schedule?.pending && <p className="notice small">{schedule.pending}<button className="link" onClick={schedule.onCancel}>{t.cancel}</button></p>}
           {plan.edits.length > 0 && (
             <ul className="edit-list">{plan.edits.map((e, i) => {
               const id = e.kind === 'add' ? e.route.shortName : routeNames.get(e.routeId) ?? e.routeId;

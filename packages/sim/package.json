@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "demand": "tsx scripts/demand.ts",
-    "plan-demo": "tsx scripts/plan-demo.ts"
+    "plan-demo": "tsx scripts/plan-demo.ts",
+    "economy-demo": "tsx scripts/economy-demo.ts"
   },
   "dependencies": {
     "@otc/shared": "workspace:*"

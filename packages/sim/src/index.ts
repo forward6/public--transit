@@ -14,3 +14,4 @@ export * from './demand';
 export * from './streetgraph';
 export * from './plan';
 export * from './evaluate';
+export * from './economy';

@@ -66,10 +66,11 @@ export interface PlanState {
   // evaluation
   evalState: EvalState;
   runEvaluation: () => void;
+  measure: (edits: Edit[]) => Promise<{ baseline: Scorecard; plan: Scorecard }>;
 }
 
 /** The planning session: Plan mode, the player's edits (kept in this browser), drawing, travel times and evaluation. */
-export function usePlan(base: NetworkState | null, baseUrl: string): PlanState {
+export function usePlan(base: NetworkState | null, baseUrl: string, baseEdits: Edit[] = []): PlanState {
   const [active, setActive] = useState(false);
   const [edits, setEdits] = useState<Edit[]>(loadEdits);
   const [tool, setTool] = useState<Tool>('none');
@@ -80,6 +81,7 @@ export function usePlan(base: NetworkState | null, baseUrl: string): PlanState {
   const [evalState, setEvalState] = useState<EvalState>({ status: 'idle' });
   const worker = useRef<Worker | null>(null);
   const reqId = useRef(0);
+  const measures = useRef(new Map<number, { resolve: (r: { baseline: Scorecard; plan: Scorecard }) => void; reject: (e: Error) => void }>());
 
   useEffect(() => saveEdits(edits), [edits]);
 
@@ -99,10 +101,10 @@ export function usePlan(base: NetworkState | null, baseUrl: string): PlanState {
 
   const view = useMemo<NetworkState | null>(() => {
     if (!base) return null;
-    if (!edits.length) return base;
+    if (!edits.length || !active) return base; // drafts show only in Plan mode (they run once scheduled and in effect)
     const network = applyEdits(base.network, edits);
     return { ...base, network, playback: new Playback(network) };
-  }, [base, edits]);
+  }, [base, edits, active]);
 
   const draft = useMemo(() => {
     if (!graph || !view || waypoints.length < 2) return null;
@@ -138,6 +140,13 @@ export function usePlan(base: NetworkState | null, baseUrl: string): PlanState {
       worker.current = new Worker(new URL('./evaluator.worker.ts', import.meta.url), { type: 'module' });
       worker.current.onmessage = (ev: MessageEvent<FromWorker>) => {
         const m = ev.data;
+        const waiting = measures.current.get(m.id);
+        if (waiting) {
+          if (m.type === 'result') waiting.resolve({ baseline: m.baseline, plan: m.plan });
+          else if (m.type === 'error') waiting.reject(new Error(m.message));
+          if (m.type !== 'progress') measures.current.delete(m.id);
+          return;
+        }
         if (m.id !== reqId.current) return; // a newer request superseded this one
         if (m.type === 'progress') setEvalState((s) => ({ ...s, status: 'running', stage: m.baseline ? `baseline-${m.stage}` : m.stage, progress: m.f }));
         else if (m.type === 'result') setEvalState((s) => ({ ...s, status: 'done', baseline: m.baseline, plan: m.plan, seconds: m.seconds }));
@@ -152,13 +161,22 @@ export function usePlan(base: NetworkState | null, baseUrl: string): PlanState {
     if (!w) return setEvalState({ status: 'error', error: 'Web Workers are not available' });
     const id = ++reqId.current;
     setEvalState((s) => ({ ...s, status: 'running', stage: 'load', progress: 0, evaluatedEdits: edits.length }));
-    w.postMessage({ type: 'evaluate', id, baseUrl, edits } satisfies ToWorker);
-  }, [baseUrl, edits, ensureWorker]);
+    w.postMessage({ type: 'evaluate', id, baseUrl, baseEdits, edits } satisfies ToWorker);
+  }, [baseUrl, edits, ensureWorker, baseEdits]);
+
+  /** Score any edits against the 2010 network (used by the game to re-measure the network in operation). */
+  const measure = useCallback((e: Edit[]) => new Promise<{ baseline: Scorecard; plan: Scorecard }>((resolve, reject) => {
+    const w = ensureWorker();
+    if (!w) return reject(new Error('Web Workers are not available'));
+    const id = -2 - measures.current.size - Math.floor(Math.random() * 1e6);
+    measures.current.set(id, { resolve, reject });
+    w.postMessage({ type: 'evaluate', id, baseUrl, baseEdits: [], edits: e } satisfies ToWorker);
+  }), [baseUrl, ensureWorker]);
 
   // warm up: score the 2010 network in the background as soon as Plan mode opens (its result is cached in the worker)
   useEffect(() => {
-    if (active) ensureWorker()?.postMessage({ type: 'evaluate', id: -1, baseUrl, edits: [] } satisfies ToWorker);
-  }, [active, baseUrl, ensureWorker]);
+    if (active) ensureWorker()?.postMessage({ type: 'evaluate', id: -1, baseUrl, baseEdits, edits: [] } satisfies ToWorker);
+  }, [active, baseUrl, ensureWorker, baseEdits]);
 
   useEffect(() => () => worker.current?.terminate(), []);
   useEffect(() => {
@@ -178,7 +196,7 @@ export function usePlan(base: NetworkState | null, baseUrl: string): PlanState {
     waypoints, draft, newHeadways, setNewHeadways,
     addWaypoint: (p) => setWaypoints((w) => [...w, p]),
     undoWaypoint: () => setWaypoints((w) => w.slice(0, -1)),
-    finishDraft, isoOrigin, isoMinutes, setIsoOrigin, evalState, runEvaluation,
+    finishDraft, isoOrigin, isoMinutes, setIsoOrigin, evalState, runEvaluation, measure,
   };
 }
 

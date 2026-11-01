@@ -5,7 +5,7 @@ import type { Palette } from '../map/palettes';
 import type { PlanState } from '../plan/usePlan';
 import { RouteServiceEditor } from '../plan/PlanUI';
 
-export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard'; id: string } | null;
+export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard' | 'budget'; id: string } | null;
 
 interface Props {
   sel: Exclude<Selection, null>;
