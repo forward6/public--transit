@@ -10,6 +10,7 @@ Steps (in order):
             revisions as of 1 Dec 2010)                           -> data/build/2010/route_catalogue.json
   network   the 2010 transit network (archived GTFS from the
             data/gtfs-2010 branch; --gtfs FILE.zip, --no-gtfs)    -> apps/web/public/data/network-2010.json
+  zones     2011 demand zones: residents, jobs, segments, car times -> apps/web/public/data/zones-2011.json
   archive   search the Wayback Machine for 2010 GTFS feeds        -> data/raw/archive/ (not part of `all`)
 """
 
@@ -18,7 +19,7 @@ from __future__ import annotations
 import argparse
 import time
 
-STEPS = ["fetch", "curate", "terrain", "tiles", "glyphs", "wiki", "network"]
+STEPS = ["fetch", "curate", "terrain", "tiles", "glyphs", "wiki", "network", "zones"]
 
 
 def run(step: str, args: argparse.Namespace) -> None:
@@ -45,6 +46,9 @@ def run(step: str, args: argparse.Namespace) -> None:
     elif step == "network":
         from .network2010 import build_network
         build_network(gtfs=args.gtfs, gtfs_date=args.gtfs_date, use_default_feeds=not args.no_gtfs)
+    elif step == "zones":
+        from .zones import build_zones
+        build_zones()
     elif step == "archive":
         from .archive import search_and_download
         search_and_download()

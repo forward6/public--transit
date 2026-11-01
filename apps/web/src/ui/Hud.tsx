@@ -10,6 +10,8 @@ export interface Settings {
   time: TimeOfDay;
   lang: Lang;
   buildings3d: boolean;
+  /** M3 Riders view */
+  riders: boolean;
 }
 
 interface HudProps {
@@ -28,6 +30,9 @@ interface HudProps {
   inspector: ReactNode | null;
   onCloseInspector: () => void;
   onOpenCatalogue: () => void;
+  /** weekday boardings from the demand model (null until it is built) */
+  boardings: number | null;
+  onOpenRidership: () => void;
 }
 
 export function Logo({ size = 42 }: { size?: number }) {
@@ -63,13 +68,15 @@ function Segmented<T extends string>({ label, value, options, onChange, render }
 
 const SEASON_ICON: Record<Season, string> = { winter: '❄', spring: '✿', summer: '☀', autumn: '❦' };
 
-function Controls({ t, settings, onChange, compact }: { t: Strings; settings: Settings; onChange: HudProps['onChange']; compact: boolean }) {
+function Controls({ t, settings, onChange, compact, hasRiders }: { t: Strings; settings: Settings; onChange: HudProps['onChange']; compact: boolean; hasRiders: boolean }) {
   return (
     <div className="controls">
       <Segmented label={t.seasonLabel} value={settings.season} options={SEASONS} onChange={(season) => onChange({ season })}
         render={(s) => (compact ? SEASON_ICON[s] : t.season[s])} />
       <Segmented label={t.timeLabel} value={settings.time} options={TIMES} onChange={(time) => onChange({ time })} render={(v) => t.time[v]} />
       <Segmented label={t.languageLabel} value={settings.lang} options={LANGS} onChange={(lang) => onChange({ lang })} render={(v) => v.toUpperCase()} />
+      {hasRiders && <button className={`toggle ${settings.riders ? 'on' : ''}`} aria-pressed={settings.riders}
+        onClick={() => onChange({ riders: !settings.riders })}>{t.riders}</button>}
       <button className={`toggle ${settings.buildings3d ? 'on' : ''}`} aria-pressed={settings.buildings3d}
         onClick={() => onChange({ buildings3d: !settings.buildings3d })}>{t.buildings3d}</button>
     </div>
@@ -113,7 +120,12 @@ function StatusChip({ t, status, note, onClick }: { t: Strings; status: NetworkS
   return <button className={`status-chip status-${status}`} title={note} onClick={onClick}><i />{t.networkStatus[status]}</button>;
 }
 
-function Legend({ t }: { t: Strings }) {
+function RidersChip({ t, boardings, onClick }: { t: Strings; boardings: number | null; onClick: () => void }) {
+  if (boardings === null) return null;
+  return <button className="status-chip riders" onClick={onClick}><i />{t.ridersChip(boardings)}</button>;
+}
+
+function Legend({ t, riders }: { t: Strings; riders: boolean }) {
   return (
     <section className="legend glass" aria-label={t.legendTitle}>
       <div className="lg-title">{t.legendTitle}</div>
@@ -122,13 +134,16 @@ function Legend({ t }: { t: Strings }) {
       <div className="lg-row"><svg viewBox="0 0 40 12"><circle cx="20" cy="6" r="4" fill="var(--station-fill)" stroke="var(--transitway)" strokeWidth="2" /></svg>{t.legendStation}</div>
       <div className="lg-row"><svg viewBox="0 0 40 12"><line x1="2" y1="6" x2="38" y2="6" stroke="var(--boundary)" strokeWidth="2" strokeDasharray="6 4" /></svg>{t.legendRegion}</div>
       <div className="lg-row"><i className="sw sw-outside" />{t.legendOutside}</div>
+      {riders && <div className="lg-riders"><span className="lg-ramp" />{t.legendRiders}</div>}
       <div className="lg-note">{t.legendNote}</div>
     </section>
   );
 }
 
 export function Hud(props: HudProps) {
-  const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue } = props;
+  const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue,
+    boardings, onOpenRidership } = props;
+  const hasRiders = boardings !== null;
   if (layout === 'phone') {
     return (
       <>
@@ -150,8 +165,9 @@ export function Hud(props: HudProps) {
             <>
               <div className="m-sheet-title">{t.mapStyle}</div>
               <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
-              <Controls t={t} settings={settings} onChange={onChange} compact />
+              <Controls t={t} settings={settings} onChange={onChange} compact hasRiders={hasRiders} />
               <StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} />
+              <RidersChip t={t} boardings={boardings} onClick={onOpenRidership} />
             </>
           )}
         </section>
@@ -175,8 +191,9 @@ export function Hud(props: HudProps) {
           <div className="clock-row"><span className="clock-time">{formatClock(time)}</span><span className="clock-sub">{inService} {t.inService}</span></div>
         </div>
         <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
-        {layout === 'desktop' && <StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} />}
-        <Controls t={t} settings={settings} onChange={onChange} compact={layout === 'tablet'} />
+        {layout === 'desktop' && <div className="chips"><StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} />
+          <RidersChip t={t} boardings={boardings} onClick={onOpenRidership} /></div>}
+        <Controls t={t} settings={settings} onChange={onChange} compact={layout === 'tablet'} hasRiders={hasRiders} />
       </header>
       <MapButtons t={t} map={map} />
       {inspector ? (
@@ -185,7 +202,7 @@ export function Hud(props: HudProps) {
           {inspector}
         </aside>
       ) : null}
-      <Legend t={t} />
+      <Legend t={t} riders={settings.riders && hasRiders} />
     </>
   );
 }

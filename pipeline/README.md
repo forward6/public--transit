@@ -18,6 +18,7 @@ uv run pytest -q             # offline unit tests
 | `glyphs` | SDF label glyphs for Inter and Source Serif 4 | `apps/web/public/glyphs/` (committed) | ~10 s |
 | `wiki` | Wikipedia revisions as of 1 Dec 2010: the 2010 route catalogue (OC Transpo and STO) and the Transitway station list | `data/build/2010/route_catalogue.json` | ~2 min (rate-limited) |
 | `network` | The 2010 transit network: Transitway corridor, stations, O-Train and routes (`--gtfs FILE.zip` imports a feed) | `apps/web/public/data/network-2010.json` | ~10 s |
+| `zones` | 2011 demand zones (H3): residents and jobs from the 2010 buildings, scaled to the 2011 controls in `curation/demand2011/targets.json`; population segments; car travel times | `apps/web/public/data/zones-2011.json`, `car-2011.bin` | ~20 s |
 | `archive` *(not in `all`)* | Searches the Wayback Machine for 2010 OC Transpo and STO GTFS captures and downloads the closest | `data/raw/archive/*.zip` | — |
 
 Generated data is gitignored. Only the glyphs, which are small and stable, are committed.

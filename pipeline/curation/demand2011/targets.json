@@ -1,0 +1,90 @@
+{
+ "_comment": "2011 base-year controls and calibration targets (PLAN §11.4). 'source' says where each number comes from; 'estimate: true' marks numbers still to verify against a primary source. OTC is a game: estimates are fine, as long as they are labelled.",
+ "population": {
+  "ottawa": {
+   "value": 883391,
+   "source": "2011 Census, via Wikipedia 'Ottawa' rev 509189377 (26 Aug 2012) https://en.wikipedia.org/w/index.php?oldid=509189377"
+  },
+  "gatineau": {
+   "value": 265349,
+   "source": "2011 Census, via Wikipedia 'Gatineau' rev 508061538 (19 Aug 2012) https://en.wikipedia.org/w/index.php?oldid=508061538"
+  }
+ },
+ "jobs": {
+  "ottawa": {
+   "value": 540000,
+   "estimate": true,
+   "source": "Estimate: Ottawa–Gatineau CMA employment (~0.56 jobs per resident) split by where the floor space is; to verify against the 2011 census place-of-work tables or the City of Ottawa employment survey."
+  },
+  "gatineau": {
+   "value": 100000,
+   "estimate": true,
+   "source": "Estimate, as above."
+  }
+ },
+ "enrolment": {
+  "post_secondary": {
+   "value": 100000,
+   "estimate": true,
+   "source": "Estimate: uOttawa, Carleton, Algonquin, La Cité, UQO and the Cégep de l'Outaouais, full- and part-time, 2010–11."
+  },
+  "school_share_of_population": {
+   "value": 0.15,
+   "estimate": true,
+   "source": "Estimate: ages 5–17 are about 15% of the population."
+  }
+ },
+ "residents": {
+  "workers_share": {
+   "value": 0.52,
+   "estimate": true,
+   "source": "Estimate: employed residents per resident in the Ottawa–Gatineau CMA."
+  },
+  "post_secondary_share": {
+   "value": 0.07,
+   "estimate": true,
+   "source": "Estimate."
+  }
+ },
+ "calibration": {
+  "transit_share_all_trips": {
+   "value": 0.135,
+   "tolerance": 0.005,
+   "source": "PLAN §11.4: 2011 TRANS NCR Origin-Destination Survey, regional transit share of all trips (to verify against the published survey report)."
+  },
+  "walk_share_all_trips": {
+   "value": 0.09,
+   "tolerance": 0.01,
+   "estimate": true,
+   "source": "Estimate, to verify against the 2011 OD survey."
+  },
+  "bike_share_all_trips": {
+   "value": 0.02,
+   "tolerance": 0.005,
+   "estimate": true,
+   "source": "Estimate (annual average), to verify against the 2011 OD survey."
+  },
+  "octranspo_weekday_boardings": {
+   "value": 535600,
+   "tolerance": 0.1,
+   "source": "APTA Transit Ridership Report, Q1 2010, average weekday unlinked trips, via Wikipedia 'OC Transpo' rev 509566374 (28 Aug 2012) https://en.wikipedia.org/w/index.php?oldid=509566374"
+  },
+  "sto_weekday_boardings": {
+   "value": 75000,
+   "tolerance": 0.2,
+   "estimate": true,
+   "source": "Estimate: 16.3 million passengers in 2006, planned 21 million by 2015 (Wikipedia 'Société de transport de l'Outaouais' (fr) rev 80436278, 3 Jul 2012, https://fr.wikipedia.org/w/index.php?oldid=80436278), so about 18.5 million in 2011, at ~250 weekday-equivalents a year."
+  },
+  "passenger_share_all_trips": {
+   "value": 0.13,
+   "tolerance": 0.01,
+   "estimate": true,
+   "source": "Estimate (car passengers, including children driven to school), to verify against the 2011 OD survey."
+  }
+ },
+ "trips_per_resident": {
+  "value": 2.5,
+  "estimate": true,
+  "source": "Estimate: weekday trips per resident, all modes. Set at 2.5 (a typical North American level) so that OC Transpo's sourced weekday boardings land within tolerance; to verify against the 2011 OD survey."
+ }
+}

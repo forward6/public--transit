@@ -1,6 +1,6 @@
 import type { FeatureCollection, LineString, Point } from 'geojson';
-import type { Network, RouteClass } from '@otc/shared';
-import type { Playback, VehicleState } from '@otc/sim';
+import type { DemandFile, Network, RouteClass, ZonesFile } from '@otc/shared';
+import { prepareLine, sliceLine, type Playback, type VehicleState } from '@otc/sim';
 
 export type LinesFC = FeatureCollection<LineString>;
 export type PointsFC = FeatureCollection<Point>;
@@ -9,7 +9,7 @@ export const EMPTY_POINTS: PointsFC = { type: 'FeatureCollection', features: [] 
 export const EMPTY_LINES: LinesFC = { type: 'FeatureCollection', features: [] };
 
 /** Corridors (infrastructure) and route patterns (one direction each) as map lines. */
-export function networkLines(network: Network): LinesFC {
+export function networkLines(network: Network, demand?: DemandFile | null): LinesFC {
   const features: LinesFC['features'] = [];
   for (const c of network.corridors) {
     c.lines.forEach((line, i) =>
@@ -25,9 +25,12 @@ export function networkLines(network: Network): LinesFC {
   for (const p of network.patterns) {
     const r = routes.get(p.routeId);
     if (!r || p.direction !== 0) continue;
+    // weekday riders on board, averaged along the pattern (M3 demand model)
+    const loads = demand?.loads[p.id];
+    const riders = loads?.length ? Math.round(loads.reduce((a, b) => a + b, 0) / loads.length) : 0;
     features.push({
       type: 'Feature',
-      properties: { kind: 'route', id: r.id, cls: r.class, mode: r.mode, name: r.shortName },
+      properties: { kind: 'route', id: r.id, cls: r.class, mode: r.mode, name: r.shortName, riders },
       geometry: { type: 'LineString', coordinates: p.shape },
     });
   }
@@ -72,4 +75,50 @@ export function vehicleFeatures(playback: Playback, vehicles: VehicleState[]): {
     }
   }
   return { points: { type: 'FeatureCollection', features: points }, trails: { type: 'FeatureCollection', features: trails } };
+}
+
+/** Demand zones as points: weekday trips by residents and the transit share of them (M3). */
+export function zonePoints(zones: ZonesFile | null, demand: DemandFile | null): PointsFC {
+  if (!zones || !demand) return EMPTY_POINTS;
+  return {
+    type: 'FeatureCollection',
+    features: zones.zones.flatMap((z) => {
+      const [trips, share] = demand.zones[String(z.id)] ?? [0, 0];
+      if (trips < 50) return [];
+      return [{ type: 'Feature' as const, properties: { id: z.id, trips, share, district: z.district },
+        geometry: { type: 'Point' as const, coordinates: [z.lon, z.lat] } }];
+    }),
+  };
+}
+
+/**
+ * Weekday riders per stop-to-stop segment, summed over every route that runs it (a "bandwidth"
+ * map for the Riders view). Segments carrying fewer than `min` riders are left out.
+ */
+export function loadLines(network: Network, demand: DemandFile | null, min = 30): LinesFC {
+  if (!demand) return EMPTY_LINES;
+  const seg = new Map<string, { load: number; coords: [number, number][] }>();
+  for (const p of network.patterns) {
+    const loads = demand.loads[p.id];
+    if (!loads) continue;
+    let line: ReturnType<typeof prepareLine> | null = null;
+    for (let i = 0; i < loads.length; i++) {
+      const load = loads[i]!;
+      if (load < 1) continue;
+      const key = `${p.stops[i]}|${p.stops[i + 1]}`;
+      const cur = seg.get(key);
+      if (cur) cur.load += load;
+      else {
+        line ??= prepareLine(p.shape);
+        seg.set(key, { load, coords: sliceLine(line, p.stopDist[i]!, p.stopDist[i + 1]!) as [number, number][] });
+      }
+    }
+  }
+  const features: LinesFC['features'] = [];
+  for (const { load, coords } of seg.values()) {
+    if (load < min || coords.length < 2) continue;
+    features.push({ type: 'Feature', properties: { load: Math.round(load) }, geometry: { type: 'LineString', coordinates: coords } });
+  }
+  features.sort((a, b) => (a.properties!.load as number) - (b.properties!.load as number)); // busiest drawn last
+  return { type: 'FeatureCollection', features };
 }

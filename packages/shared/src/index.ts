@@ -30,3 +30,4 @@ export const tileSchema = tileSchemaJson;
 export type BasemapLayer = keyof typeof tileSchemaJson.layers;
 
 export * from './network';
+export * from './demand';

@@ -309,7 +309,8 @@ def curate() -> dict:
     h = np.where(np.isnan(h), floors * 3.2, h)
     h = np.where(np.isnan(h), np.where(area_m2 > 400, 9.0, 6.5), h)
     h = np.clip(h, 2.5, 160.0).round(1)
-    n = _write("buildings", bld_g[bkeep], {"h": h[bkeep]}, out_dir)
+    cls = np.array([c if isinstance(c, str) else "" for c in bld["class"]], dtype=object)  # used by `zones`, not tiled
+    n = _write("buildings", bld_g[bkeep], {"h": h[bkeep], "c": cls[bkeep]}, out_dir)
     report["layers"]["buildings"] = {"kept": n, "removed": int((~bkeep & (area_m2 >= 15)).sum())}
 
     # 7. water ------------------------------------------------------------------------------------

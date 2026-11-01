@@ -18,8 +18,10 @@ export interface StyleOptions {
   terrain: boolean;
   /** hatch the land that was developed after 2010 (review aid, off in normal play) */
   history?: boolean;
-  /** the transit network (M2): static lines + stops; vehicles are streamed into their sources */
-  network?: { lines: LinesFC; stops: PointsFC };
+  /** the transit network (M2): static lines + stops (+ M3 demand zones); vehicles are streamed into their sources */
+  network?: { lines: LinesFC; stops: PointsFC; zones?: PointsFC; loads?: LinesFC };
+  /** M3 "Riders" view: route widths by weekday riders, zones coloured by transit share */
+  riders?: boolean;
   /** absolute URL prefix where data/ and glyphs/ are served (ends with '/') */
   baseUrl: string;
 }
@@ -29,6 +31,8 @@ export const NET_LINES = 'net-lines';
 export const NET_STOPS = 'net-stops';
 export const NET_VEHICLES = 'net-vehicles';
 export const NET_TRAILS = 'net-trails';
+export const NET_ZONES = 'net-zones';
+export const NET_LOADS = 'net-loads';
 export const CLASSES: RouteClass[] = ['local', 'peak', 'rural', 'sto', 'frequent', 'transitway', 'otrain'];
 /** Interactive layers, top-most first (click priority). */
 export const PICKABLE = ['net-vehicles', 'net-vehicle-dots', 'net-stations', 'net-stops', 'net-routes', 'net-otrain', 'net-transitway'];
@@ -173,7 +177,7 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
       paint: { 'fill-color': ['interpolate', ['linear'], h, 0, p.bldLow, 25, p.bldMid, 90, p.bldHigh], 'fill-opacity': zoomLin(13, 0.5, 15, 1) } });
   }
 
-  if (o.network) addNetworkLayers(L, p);
+  if (o.network) addNetworkLayers(L, p, !!o.riders && !!o.network.zones?.features.length);
 
   // --- labels ---------------------------------------------------------------------------------------
   const halo = { 'text-halo-color': p.halo, 'text-halo-width': 1.6, 'text-halo-blur': 0.4 };
@@ -221,6 +225,8 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
     [NET_STOPS]: { type: 'geojson' as const, data: o.network.stops },
     [NET_VEHICLES]: { type: 'geojson' as const, data: { type: 'FeatureCollection', features: [] } },
     [NET_TRAILS]: { type: 'geojson' as const, data: { type: 'FeatureCollection', features: [] }, lineMetrics: true },
+    [NET_ZONES]: { type: 'geojson' as const, data: o.network.zones ?? { type: 'FeatureCollection', features: [] } },
+    [NET_LOADS]: { type: 'geojson' as const, data: o.network.loads ?? { type: 'FeatureCollection', features: [] } },
   } : {};
 
   return {
@@ -245,7 +251,7 @@ function scale(stops: Stops, k: number): Stops {
 }
 
 /** Transit network layers: corridors, routes, trails, vehicles, stations (VISUAL_DESIGN §3, §5). */
-function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette) {
+function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders: boolean) {
   const T = p.transit;
   const lines = { source: NET_LINES } as const;
   const corridor = (kind: string): ExpressionSpecification => ['all', ['==', ['get', 'kind'], 'corridor'], ['==', ['get', 'corridor'], kind]];
@@ -253,13 +259,26 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette) {
   const w = (...stops: Stops) => zoomExp(...stops);
   const glow = p.night;
 
-  // bus routes (from GTFS / archive reconstruction)
+  // M3 "Riders" view: where people live, coloured by how much of their travel is by transit
+  if (riders) {
+    const size = ['sqrt', ['get', 'trips']];
+    L({ id: 'net-zones', type: 'circle', source: NET_ZONES, minzoom: 8,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['*', 0.02, size], 13, ['*', 0.09, size], 16, ['*', 0.25, size]],
+        'circle-color': ['interpolate', ['linear'], ['get', 'share'], 0, p.night ? '#3A4A63' : '#CBD5E3', 0.06, '#9CC3E4',
+          0.14, '#4E9AD6', 0.25, '#2D6CC0', 0.4, '#1B3E8F'],
+        'circle-opacity': p.night ? 0.55 : 0.6,
+        'circle-blur': 0.25,
+      } as never });
+  }
+
+  // bus routes (from GTFS / archive reconstruction); in the Riders view, wider where more people ride
   L({ id: 'net-routes', type: 'line', ...lines, filter: ['==', ['get', 'kind'], 'route'], layout: round,
     paint: {
       'line-color': ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local] as unknown as ExpressionSpecification,
       'line-width': ['interpolate', ['exponential', 1.55], ['zoom'], 10, ['match', ['get', 'cls'], 'frequent', 1.4, 'sto', 1.3, 0.8],
         16, ['match', ['get', 'cls'], 'frequent', 6, 'sto', 5.5, 3]] as unknown as ExpressionSpecification,
-      'line-opacity': ['match', ['get', 'cls'], 'local', 0.75, 'peak', 0.7, 1] as unknown as ExpressionSpecification,
+      'line-opacity': (riders ? 0.22 : ['match', ['get', 'cls'], 'local', 0.75, 'peak', 0.7, 1]) as unknown as ExpressionSpecification,
     } });
 
   // Transitway: solid red with a fine white centre line (BRT signature)
@@ -287,6 +306,19 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette) {
     paint: { 'line-color': T.otrain, 'line-width': w(9, 1.3, 12, 2.8, 16, 8.5) } });
   L({ id: 'net-otrain-centre', type: 'line', ...lines, filter: corridor('rail'), minzoom: 11.5,
     paint: { 'line-color': '#FFFFFF', 'line-width': w(11.5, 0.6, 16, 2.2), 'line-dasharray': [1, 1.6] } });
+
+  // M3 Riders view: weekday riders per segment, summed over routes ("bandwidth")
+  if (riders) {
+    const bw = (k: number) => ['*', k, ['interpolate', ['linear'], ['get', 'load'], 0, 0.5, 1000, 1.8, 5000, 4.5, 15000, 9, 40000, 17]];
+    L({ id: 'net-loads-case', type: 'line', source: NET_LOADS, layout: round,
+      paint: { 'line-color': p.night ? '#0B1424' : '#FFFFFF', 'line-opacity': 0.85,
+        'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 9, ['+', 1, bw(0.45)], 16, ['+', 2.5, bw(2.4)]] } as never });
+    L({ id: 'net-loads', type: 'line', source: NET_LOADS, layout: round,
+      paint: {
+        'line-color': ['interpolate', ['linear'], ['get', 'load'], 0, '#9CC3E4', 2000, '#4E9AD6', 8000, '#2D6CC0', 25000, '#1B3E8F'],
+        'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 9, bw(0.45), 16, bw(2.4)],
+      } as never });
+  }
 
   // vehicle trails (gradient per class) and vehicles (oriented silhouettes, see textures.ts)
   for (const c of CLASSES) {

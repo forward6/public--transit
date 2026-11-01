@@ -741,7 +741,7 @@ to keep iteration fast; it expands to the full region afterwards.
 | M0 ✅ | **Foundations** | Monorepo (pnpm), Vite/React app, sim package, Python pipeline (uv), CI, attribution | CI is green; the app builds | S |
 | M1 ✅ | **The Map** | 2010 basemap tiles, custom day/night style, terrain, 3D buildings, seasons toggle, EN/FR labels; the responsive shell (desktop, iPad, phone layouts; PWA manifest) | You'd happily leave it open as a screensaver, on a laptop, an iPad and a phone | M |
 | M2 ✅ | **The 2010 network moves** | 2010 OC Transpo network (Transitway, O-Train, top routes) imported; vehicles animated from timetables; stop and line inspectors | A morning peak plays back on the map | M |
-| M3 | **People ride** | Zones, synthetic population, demand model, RAPTOR skims, assignment, base-year calibration report | Ridership numbers appear and the 2011 targets are met within tolerance | L |
+| M3 🔶 | **People ride** | Zones, synthetic population, demand model, RAPTOR skims, assignment, base-year calibration report | Ridership numbers appear and the 2011 targets are met within tolerance | L |
 | M4 | **Design tools → FIRST PLAYABLE** | Draw and edit routes, stops and frequencies (mouse, touch and Apple Pencil); live preview; isochrones; coverage and Scorecard v1 | You can redesign the network and see riders respond, on any device | L |
 | M5 | **Money and fleet** | Budget, fares, operating costs, garages, fleet ordering, maintenance, service-change calendar | You can run out of money in an interesting way | M |
 | M6 | **Opinion and media** | Opinion grid, rider diaries, "Follow a rider", headline generator, opinion maps | The public's reaction is visible and explainable | M |
@@ -810,8 +810,24 @@ to keep iteration fast; it expands to the full region afterwards.
      class. STO's earliest preserved feed (2016) post-dates the Rapibus, so it isn't used.
    - **Without the feed** (`network --no-gtfs`): the Transitway routes follow dated Wikipedia
      revisions and everything else is approximated.
-5. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
-6. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
+5. 🔶 **M3 (v1 done):** people ride ([calibration report](calibration/2011.md)).
+   - **Zones and people:** 1,360 H3 zones. Residents and jobs are placed from the 2010 buildings,
+     scaled to the 2011 census (`otc-pipeline zones`).
+   - **Travel times:** RAPTOR transit skims and car times from the road graph.
+   - **Demand:** trip generation, logit destination and mode choice, and calibration.
+   - **Assignment:** all-or-nothing on RAPTOR journeys (`pnpm --filter @otc/sim demand`, about
+     45 s).
+   - **Result:** 2.87 million weekday trips, 13.7% by transit, about 580,000 boardings. Every
+     calibration row passes, though several targets are still estimates.
+   - **In the game:** the Ridership panel, the Riders map view, and boardings on routes and stops.
+   - **Still to do:**
+     - census dissemination areas and the 2011 OD survey's district tables, instead of estimates;
+     - capacity-constrained assignment (crowding and pass-ups);
+     - more periods (early, PM, evening);
+     - screenline checks;
+     - running the model in Web Workers, ready for M4's live editing.
+6. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
+7. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 
 ---
 

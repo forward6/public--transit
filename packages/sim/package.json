@@ -7,10 +7,14 @@
   "types": "src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "demand": "tsx scripts/demand.ts"
   },
-  "dependencies": { "@otc/shared": "workspace:*" },
+  "dependencies": {
+    "@otc/shared": "workspace:*"
+  },
   "devDependencies": {
+    "tsx": "^4.23.15",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
   }

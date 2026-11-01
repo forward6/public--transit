@@ -1,6 +1,6 @@
 name: Publish the game
 
-# Builds the 2010 map data and the web app, and publishes them to GitHub Pages:
+# Builds the 2010 map data, runs the 2011 demand model, builds the web app and publishes it to GitHub Pages:
 # https://forward6.github.io/public--transit/
 # One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
 on:
@@ -48,9 +48,13 @@ jobs:
           uv sync --frozen
           uv run otc-pipeline all
 
-      - name: Build the web app
+      - name: Run the 2011 demand model (skims, calibration, assignment)
         run: |
           pnpm install --frozen-lockfile
+          pnpm --filter @otc/sim demand
+
+      - name: Build the web app
+        run: |
           pnpm --filter ./apps/web build
           du -sh apps/web/dist apps/web/dist/data/*
 

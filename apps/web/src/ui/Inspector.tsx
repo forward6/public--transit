@@ -1,9 +1,9 @@
-import { formatClock, type CatalogueClass, type Lang, type NetRoute, type Provenance } from '@otc/shared';
+import { MODES, formatClock, type CatalogueClass, type District, type Lang, type NetRoute, type Provenance } from '@otc/shared';
 import type { NetworkState } from '../network/useNetwork';
-import type { Strings } from '../i18n/strings';
+import { fmtK, type Strings } from '../i18n/strings';
 import type { Palette } from '../map/palettes';
 
-export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue'; id: string } | null;
+export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership'; id: string } | null;
 
 interface Props {
   sel: Exclude<Selection, null>;
@@ -92,10 +92,13 @@ export function Inspector({ sel, net, t, s, palette, onSelect }: Props) {
             })}
           </ul>
         ) : <p className="muted">{routes.length ? s.noMoreToday : s.awaitingRoutes}</p>}
+        {net.demand && <p className="riders-line"><b>{(net.demand.stops[stop.id] ?? 0).toLocaleString()}</b> {s.stopBoardings}</p>}
         <ProvenanceNote p={stop.provenance} s={s} />
       </div>
     );
   }
+
+  if (sel.type === 'ridership') return <Ridership net={net} s={s} />;
 
   if (sel.type === 'catalogue') return <Catalogue net={net} s={s} palette={palette} onSelect={onSelect} />;
 
@@ -115,6 +118,7 @@ export function Inspector({ sel, net, t, s, palette, onSelect }: Props) {
           <div><b>{tripsToday}</b><span>{s.tripsToday}</span></div>
           <div><b>{km.toFixed(1)} km</b><span>{s.length}</span></div>
         </div>
+        {net.demand && <p className="riders-line"><b>{(net.demand.routes[route.id] ?? 0).toLocaleString()}</b> {s.routeBoardings}</p>}
         {route.weekday && <>
           <div className="sec">{s.weekdayService}</div>
           <ul className="periods">{route.weekday.map((p) => (
@@ -122,8 +126,9 @@ export function Inspector({ sel, net, t, s, palette, onSelect }: Props) {
           ))}</ul>
         </>}
         <div className="sec">{s.directions}</div>
-        <ul className="periods">{pats.map((p) => (
-          <li key={p.id}><span>→ {p.headsign}</span><b>{p.stops.length} {s.stopsWord}</b></li>
+        <ul className="periods">{[...pats.reduce((m, p) => m.set(p.headsign, [...(m.get(p.headsign) ?? []), p]), new Map<string, typeof pats>())].map(([head, ps]) => (
+          <li key={head}><span>→ {head}{ps.length > 1 && <em className="muted"> · {ps.length} {s.variants}</em>}</span>
+            <b>{Math.max(...ps.map((p) => p.stops.length))} {s.stopsWord}</b></li>
         ))}</ul>
         <ProvenanceNote p={route.provenance} s={s} />
       </div>
@@ -185,6 +190,56 @@ function Catalogue({ net, s, palette, onSelect }: { net: NetworkState; s: String
         <span>{s.catalogueWayback}</span>
       </div>
       {playback.trips.length > 0 && <p className="muted">{playback.trips.length.toLocaleString()} {s.tripsToday}</p>}
+    </div>
+  );
+}
+
+const MODE_COLOR: Record<string, string> = { car: '#8A94A6', passenger: '#B7BFCC', transit: '#2D6CC0', walk: '#3FA66B', bike: '#E0A43A' };
+const DISTRICT_ORDER: District[] = ['downtown', 'inner', 'hull', 'suburbs', 'gatineau', 'rural'];
+
+/** M3: the weekday the demand model produces, and how it compares with 2011. */
+function Ridership({ net, s }: { net: NetworkState; s: Strings }) {
+  const d = net.demand;
+  if (!d) return <Empty s={s} text={s.ridershipNote} />;
+  const sm = d.summary;
+  const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
+  const val = (relative: boolean, x: number) => (relative ? (x >= 100 ? Math.round(x).toLocaleString() : x.toFixed(2)) : pct(x));
+  return (
+    <div className="ins">
+      <div className="ins-head"><div className="ins-icon" style={{ background: MODE_COLOR.transit }} />
+        <div><div className="ins-title">{s.ridershipTitle}</div><div className="ins-sub">{s.ridershipSub}</div></div></div>
+      <div className="grid3">
+        <div><b>{fmtK(sm.trips)}</b><span>{s.tripsWeekday}</span></div>
+        <div><b>{pct(sm.transitTrips / sm.trips)}</b><span>{s.byTransit}</span></div>
+        <div><b>{fmtK(sm.boardings)}</b><span>{s.boardingsWeekday}</span></div>
+      </div>
+      <div className="sec">{s.howPeopleTravel}</div>
+      <div className="modebar" role="img" aria-label={s.howPeopleTravel}>
+        {MODES.map((m) => <i key={m} style={{ flexGrow: sm.tripsByMode[m], background: MODE_COLOR[m] }} />)}
+      </div>
+      <ul className="periods">{MODES.map((m) => (
+        <li key={m}><span><i className="dot" style={{ background: MODE_COLOR[m] }} />{s.modeName[m]}</span><b>{pct(sm.tripsByMode[m] / sm.trips)}</b></li>
+      ))}</ul>
+      <div className="sec">{s.byAgency}</div>
+      <ul className="periods">{Object.entries(sm.boardingsByAgency).map(([a, b]) => (
+        <li key={a}><span>{a === 'sto' ? 'STO' : 'OC Transpo'}</span><b>{Math.round(b).toLocaleString()}</b></li>
+      ))}</ul>
+      <div className="sec">{s.avgTripTitle}</div>
+      <p className="muted">{s.avgTripText(sm.transitTrip.ivtMin, sm.transitTrip.waitMin, sm.transitTrip.walkMin, sm.transitTrip.boardingsPerTrip)}</p>
+      <div className="sec">{s.byDistrict}</div>
+      <ul className="bars">{DISTRICT_ORDER.filter((k) => d.districts[k]).map((k) => {
+        const share = d.districts[k]![1];
+        return <li key={k}><span>{s.districtName[k]}</span><i style={{ width: `${Math.min(100, share * 250)}%` }} /><b>{pct(share)}</b></li>;
+      })}</ul>
+      <div className="sec">{s.calibrationTitle}</div>
+      <ul className="calib">{d.calibration.map((r) => (
+        <li key={r.id} className={r.pass ? 'pass' : 'fail'} title={r.source}>
+          <span>{r.label}{r.estimate && <em> · {s.estimatedTarget}</em>}</span>
+          <b>{val(r.relative, r.model)}</b>
+          <small>{s.targetWord} {val(r.relative, r.target)} ± {r.relative ? pct(r.tolerance) : `${(100 * r.tolerance).toFixed(1)} pts`} {r.pass ? '✓' : '✗'}</small>
+        </li>
+      ))}</ul>
+      <p className="muted small">{s.ridershipNote}</p>
     </div>
   );
 }

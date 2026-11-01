@@ -1,4 +1,4 @@
-import type { CatalogueClass, Confidence, Lang, NetworkStatus, RouteClass, Season, TimeOfDay } from '@otc/shared';
+import type { CatalogueClass, Confidence, District, Lang, NetworkStatus, RouteClass, Season, TimeOfDay, TravelMode } from '@otc/shared';
 
 export interface Strings {
   appName: string;
@@ -45,6 +45,7 @@ export interface Strings {
   every: string;
   directions: string;
   stopsWord: string;
+  variants: string;
   railCorridor: string;
   busway: string;
   close: string;
@@ -59,6 +60,34 @@ export interface Strings {
   catalogueSources: string;
   catalogueWayback: string;
   catalogueClass: Record<CatalogueClass, string>;
+  // M3 — people ride
+  riders: string;
+  ridersChip: (boardings: number) => string;
+  ridershipTitle: string;
+  ridershipSub: string;
+  tripsWeekday: string;
+  byTransit: string;
+  boardingsWeekday: string;
+  modeName: Record<TravelMode, string>;
+  howPeopleTravel: string;
+  byAgency: string;
+  avgTripTitle: string;
+  avgTripText: (ivt: number, wait: number, walk: number, boardings: number) => string;
+  byDistrict: string;
+  districtName: Record<District, string>;
+  calibrationTitle: string;
+  targetWord: string;
+  modelWord: string;
+  estimatedTarget: string;
+  ridershipNote: string;
+  routeBoardings: string;
+  stopBoardings: string;
+  legendRiders: string;
+}
+
+/** 512340 -> "512k", 8450 -> "8.5k" */
+export function fmtK(n: number): string {
+  return n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e4 ? `${Math.round(n / 1e3)}k` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : `${Math.round(n)}`;
 }
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -109,6 +138,7 @@ export const STRINGS: Record<Lang, Strings> = {
     weekdayService: 'Weekday service',
     every: 'every',
     directions: 'Directions',
+    variants: 'variants',
     stopsWord: 'stops',
     railCorridor: 'Rail corridor',
     busway: 'Bus rapid transit corridor',
@@ -123,6 +153,28 @@ export const STRINGS: Record<Lang, Strings> = {
     catalogueOnMap: 'On the map now',
     catalogueSources: 'Dated sources (Wikipedia revisions)',
     catalogueWayback: 'OC Transpo’s own 2010 timetable data (GTFS) is held by the Wayback Machine, which refuses connections from this build environment; the remaining routes need it or archived route maps.',
+    riders: 'Riders',
+    ridersChip: (b) => `${fmtK(b)} boardings a weekday`,
+    ridershipTitle: 'Who rides: a 2011 weekday',
+    ridershipSub: 'Demand model v1 · residents of Ottawa and Gatineau',
+    tripsWeekday: 'trips a weekday',
+    byTransit: 'by transit',
+    boardingsWeekday: 'boardings a weekday',
+    modeName: { car: 'Car (driver)', passenger: 'Car (passenger)', transit: 'Transit', walk: 'Walk', bike: 'Bike' },
+    howPeopleTravel: 'How people travel',
+    byAgency: 'Boardings by agency',
+    avgTripTitle: 'The average transit trip',
+    avgTripText: (ivt, wait, walk, b) => `${ivt} min on board, ${wait} min waiting, ${walk} min walking · ${b} boardings`,
+    byDistrict: 'Transit share, by where people live',
+    districtName: { downtown: 'Downtown', inner: 'Inside the Greenbelt', suburbs: 'Suburbs', rural: 'Rural Ottawa', hull: 'Hull', gatineau: 'Rest of Gatineau' },
+    calibrationTitle: 'Calibration against 2011',
+    targetWord: 'target',
+    modelWord: 'model',
+    estimatedTarget: 'target estimated',
+    ridershipNote: 'Approximate by design: zones, residents and jobs are placed from the 2010 buildings and scaled to the 2011 census; some targets are estimates. Each row says where its number comes from.',
+    routeBoardings: 'boardings a weekday (model)',
+    stopBoardings: 'boardings a weekday here (model)',
+    legendRiders: 'Riders view: lines widen with weekday riders; dots show how much residents use transit',
     catalogueClass: { regular: 'All-day', peak: 'Peak', express: 'Express', event: 'Events', rural: 'Rural partner', school: 'School', early: 'Early morning', interzone: 'Interzone', partner: 'Partner' },
   },
   fr: {
@@ -172,6 +224,7 @@ export const STRINGS: Record<Lang, Strings> = {
     weekdayService: 'Service en semaine',
     every: 'aux',
     directions: 'Directions',
+    variants: 'variantes',
     stopsWord: 'arrêts',
     railCorridor: 'Corridor ferroviaire',
     busway: 'Corridor de transport rapide par autobus',
@@ -186,6 +239,28 @@ export const STRINGS: Record<Lang, Strings> = {
     catalogueOnMap: 'Sur la carte',
     catalogueSources: 'Sources datées (révisions de Wikipédia)',
     catalogueWayback: 'Les données d’horaires 2010 d’OC Transpo (GTFS) sont conservées par la Wayback Machine, qui refuse les connexions de cet environnement ; les autres lignes en ont besoin, ou de plans archivés.',
+    riders: 'Achalandage',
+    ridersChip: (b) => `${fmtK(b)} montées par jour de semaine`,
+    ridershipTitle: 'Qui se déplace : un jour de semaine de 2011',
+    ridershipSub: 'Modèle de demande v1 · résidents d’Ottawa et de Gatineau',
+    tripsWeekday: 'déplacements par jour',
+    byTransit: 'en transport collectif',
+    boardingsWeekday: 'montées par jour de semaine',
+    modeName: { car: 'Auto (conducteur)', passenger: 'Auto (passager)', transit: 'Transport collectif', walk: 'Marche', bike: 'Vélo' },
+    howPeopleTravel: 'Comment les gens se déplacent',
+    byAgency: 'Montées par société',
+    avgTripTitle: 'Le déplacement moyen en transport collectif',
+    avgTripText: (ivt, wait, walk, b) => `${ivt} min à bord, ${wait} min d’attente, ${walk} min de marche · ${b} montées`,
+    byDistrict: 'Part du transport collectif, selon le lieu de résidence',
+    districtName: { downtown: 'Centre-ville', inner: 'Dans la Ceinture de verdure', suburbs: 'Banlieues', rural: 'Ottawa rural', hull: 'Hull', gatineau: 'Reste de Gatineau' },
+    calibrationTitle: 'Calage sur 2011',
+    targetWord: 'cible',
+    modelWord: 'modèle',
+    estimatedTarget: 'cible estimée',
+    ridershipNote: 'Approximatif par conception : zones, résidents et emplois sont placés d’après les bâtiments de 2010 et calés sur le recensement de 2011; certaines cibles sont des estimations. Chaque ligne indique la source de son chiffre.',
+    routeBoardings: 'montées par jour de semaine (modèle)',
+    stopBoardings: 'montées par jour de semaine ici (modèle)',
+    legendRiders: 'Vue achalandage : les lignes s’élargissent selon l’achalandage; les points montrent l’usage du transport collectif par les résidents',
     catalogueClass: { regular: 'Toute la journée', peak: 'Pointe', express: 'Express', event: 'Événements', rural: 'Partenaires ruraux', school: 'Scolaires', early: 'Tôt le matin', interzone: 'Interzones', partner: 'Partenaires' },
   },
 };

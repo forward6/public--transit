@@ -9,3 +9,5 @@ export const SIM_VERSION = '0.1.0';
 export * from './geometry';
 export * from './timetable';
 export * from './playback';
+export * from './raptor';
+export * from './demand';

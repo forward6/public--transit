@@ -20,6 +20,10 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
     Internet Archive preserved. That's August 2011, just before the September 2011 restructuring.
   - **STO** and the few OC Transpo routes missing from that feed are approximated from the
     November 2010 route tables.
+- M3 is under way, and people ride. A first demand model gives 2.87 million weekday trips, 13.7% of
+  them by transit, and about 580,000 boardings, calibrated to 2011
+  ([report](docs/calibration/2011.md)). Open the **Ridership** panel from the top bar, or switch
+  on **Riders** to see where people travel.
 
 ![The 2010 network at 8:10 am](docs/screenshots/m2/network-2010-overview.jpg)
 
@@ -53,7 +57,7 @@ The camera position is kept in `#view=zoom/lat/lng/bearing/pitch`.
 |---|---|
 | [`apps/web`](apps/web) | The game client: Vite, React, MapLibre GL and PMTiles; responsive desktop, iPad and phone layouts |
 | [`packages/shared`](packages/shared) | Region definition and the vector-tile contract (`tile-schema.json`) shared with the pipeline |
-| [`packages/sim`](packages/sim) | Simulation core: weekday timetables and vehicle playback (M2); demand and the rest come later |
+| [`packages/sim`](packages/sim) | Simulation core: weekday timetables and vehicle playback (M2); RAPTOR routing, the demand model and transit assignment (M3) |
 | [`pipeline`](pipeline) | Python data pipeline: Overture data and NRCan elevation, reconstructed to the 2010 city, written as PMTiles |
 | [`docs`](docs) | [Plan](docs/PLAN.md) and [visual design](docs/VISUAL_DESIGN.md) |
 | [`prototype/visual`](prototype/visual) | The throwaway visual prototype behind the design screenshots |

@@ -5,7 +5,7 @@ import { MapView, type CameraPadding } from './map/MapView';
 import { palette } from './map/palettes';
 import { PICKABLE } from './map/style';
 import { STRINGS } from './i18n/strings';
-import { networkLines, networkStops } from './network/geojson';
+import { loadLines, networkLines, networkStops, zonePoints } from './network/geojson';
 import { useNetwork } from './network/useNetwork';
 import { useVehicleAnimation } from './network/useVehicleAnimation';
 import { createClock, type SpeedIndex } from './sim/clock';
@@ -27,6 +27,7 @@ function initialSettings(): Settings {
     time: pick<TimeOfDay>('time', TIMES, 'day'),
     lang: pick<Lang>('lang', LANGS, navLang),
     buildings3d: params.get('3d') !== '0',
+    riders: params.get('riders') === '1',
   };
 }
 
@@ -84,6 +85,8 @@ export function App() {
     q.set('lang', settings.lang);
     if (settings.buildings3d) q.delete('3d');
     else q.set('3d', '0');
+    if (settings.riders) q.set('riders', '1');
+    else q.delete('riders');
     history.replaceState(null, '', `${location.pathname}?${q}${location.hash}`);
   }, [settings, layout, pal.night, t.appName]);
 
@@ -142,13 +145,15 @@ export function App() {
     if (v) map.easeTo({ center: v.lonlat, duration: view.speed === 0 ? 0 : 260, easing: (x) => x });
   }, [map, net, follow, sel, view.time, view.speed]);
 
-  const network = useMemo(() => (net ? { lines: networkLines(net.network), stops: networkStops(net.network, net.playback) } : undefined), [net]);
+  const network = useMemo(() => (net ? { lines: networkLines(net.network, net.demand), stops: networkStops(net.network, net.playback),
+    zones: zonePoints(net.zones, net.demand), loads: loadLines(net.network, net.demand) } : undefined), [net]);
   const padding = useMemo(() => paddingFor(layout, !!sel), [layout, sel]);
   const inService = useMemo(() => net?.playback.vehiclesAt(view.time).length ?? 0, [net, view.time]);
 
   return (
     <>
-      <MapView style={{ palette: pal, lang: settings.lang, buildings3d: settings.buildings3d, terrain: true, baseUrl, history: params.has('history'), network }}
+      <MapView style={{ palette: pal, lang: settings.lang, buildings3d: settings.buildings3d, terrain: true, baseUrl, history: params.has('history'), network,
+        riders: settings.riders }}
         padding={padding} onMap={setMap} />
       <Snow active={pal.snow} night={pal.night} still={still} />
       <div className="vignette" />
@@ -156,7 +161,8 @@ export function App() {
         time={view.time} speed={view.speed} onSpeed={(s) => clock.setSpeed(s)} inService={inService}
         status={net?.network.status ?? null} statusNote={net?.network.statusNote}
         inspector={sel && net ? <Inspector sel={sel} net={net} t={view.time} s={t} lang={settings.lang} palette={pal} onSelect={setSel} /> : null}
-        onCloseInspector={() => setSel(null)} onOpenCatalogue={() => setSel({ type: 'catalogue', id: '2010' })} />
+        onCloseInspector={() => setSel(null)} onOpenCatalogue={() => setSel({ type: 'catalogue', id: '2010' })}
+        boardings={net?.demand?.summary.boardings ?? null} onOpenRidership={() => setSel({ type: 'ridership', id: '2011' })} />
     </>
   );
 }
