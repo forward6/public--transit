@@ -419,3 +419,29 @@ viewport, and `tools/frames.cjs` composites the device mock-ups above. Not yet p
 - the Pencil stroke-to-route snapping
 - the magnifier loupe
 - portrait iPad (it will use the phone structure with a wider, floating sheet).
+
+---
+
+## 13. Built: the 2010 base map (M1)
+
+The real app (`apps/web`) now renders the December-2010 base map with the palettes and layer
+stack above, on real data for the whole region.
+
+| | |
+|---|---|
+| ![Winter overview](screenshots/m1/overview-winter.jpg) | ![Downtown in 3D](screenshots/m1/downtown-3d-day.jpg) |
+| Winter overview: the playable region, with neighbouring municipalities faded | Downtown in 3D, with real building heights |
+| ![Downtown at night](screenshots/m1/downtown-night.jpg) | ![Gatineau Hills in autumn, French](screenshots/m1/hills-autumn-fr.jpg) |
+| Winter night: lit windows and the Skateway | Autumn, in French: hillshading from NRCan elevation |
+| ![Post-2010 development hatched](screenshots/m1/history-south.jpg) | ![Phone](screenshots/m1/phone.jpg) |
+| `?history=1`: post-2010 development hatched (review aid) | Phone layout |
+
+**Differences from the prototype:**
+
+- Labels are real map symbols with collision handling, using generated Inter and Source Serif 4
+  glyphs instead of an HTML overlay.
+- **Built-up areas are tinted** at regional zoom, cut back to their 2010 extent.
+- Farmland gets a seasonal tone.
+- Land developed after 2010 is shown as ordinary fields, because in a player-driven 2010 the
+  future isn't given away. `?history=1` reveals it for review.
+

@@ -1,0 +1,42 @@
+{
+  "snapshot": "2010-12-01",
+  "remove_by_name": [
+    { "match": "Confederation Line", "prefix": true, "layer": "rail", "since": 2019, "note": "O-Train Line 1 (Tunney's Pasture–Blair) opened September 2019; extensions after", "confidence": "high" },
+    { "match": "Line 1", "prefix": true, "layer": "rail", "since": 2019, "note": "O-Train Line 1", "confidence": "high" },
+    { "match": "Line 2", "prefix": true, "layer": "rail", "since": 2025, "note": "Trillium Line Stage 2 naming; 2010 corridor is re-added as 'O-Train' by keep_rail_corridor", "confidence": "high" },
+    { "match": "Line 4", "prefix": true, "layer": "rail", "since": 2025, "note": "Airport link", "confidence": "high" },
+    { "match": "Tramway Gatineau-Ottawa", "layer": "rail", "since": 2030, "note": "proposed tram, not built", "confidence": "high" },
+    { "match": "Rapibus", "layer": "*", "since": 2013, "note": "STO Rapibus busway opened October 2013", "confidence": "high" },
+    { "match": "Vimy Memorial Bridge", "layer": "roads", "since": 2014, "note": "Strandherd–Armstrong bridge over the Rideau, opened 2014", "confidence": "high" },
+    { "match": "Flora Footbridge", "layer": "roads", "since": 2019, "note": "Rideau Canal footbridge at Fifth/Clegg, opened 2019", "confidence": "high" },
+    { "match": "Adàwe Crossing", "layer": "roads", "since": 2015, "note": "Rideau River footbridge, opened 2015", "confidence": "high" },
+    { "match": "Marché Way", "layer": "roads", "since": 2014, "note": "Lansdowne Park redevelopment street", "confidence": "medium" },
+    { "match": "Zibi", "layer": "places", "since": 2018, "note": "Zibi redevelopment of the Domtar lands", "confidence": "high" },
+    { "match": "Wateridge Village", "layer": "places", "since": 2017, "note": "redevelopment of former CFB Rockcliffe", "confidence": "high" }
+  ],
+  "redevelopment_areas": [
+    { "name": "Zibi (Chaudière and Albert islands, Gatineau shore)", "since": 2018, "confidence": "medium",
+      "note": "Newly mapped features inside are removed; features mapped before 2010 (e.g. heritage mill buildings) are kept.",
+      "polygon": [[-75.7222, 45.4182], [-75.7085, 45.4182], [-75.7085, 45.4262], [-75.7222, 45.4262], [-75.7222, 45.4182]] },
+    { "name": "Lansdowne Park redevelopment", "since": 2014, "confidence": "medium",
+      "note": "Retail, condos and the rebuilt stadium; Aberdeen Pavilion pre-dates 2010.",
+      "polygon": [[-75.6872, 45.3960], [-75.6798, 45.3960], [-75.6798, 45.4012], [-75.6872, 45.4012], [-75.6872, 45.3960]] }
+  ],
+  "renames": [
+    { "current": "Kichi Zībī Mīkan", "name_2010": "Ottawa River Parkway", "since": 2012, "note": "renamed Sir John A. Macdonald Parkway in 2012, Kichi Zībī Mīkan in 2023", "confidence": "high" },
+    { "current": "Sir John A. Macdonald Parkway", "name_2010": "Ottawa River Parkway", "since": 2012, "confidence": "high" },
+    { "current": "Sir-George-Étienne-Cartier Parkway", "name_2010": "Rockcliffe Parkway", "since": 2012, "confidence": "high" },
+    { "current": "Sir George-Étienne Cartier Parkway", "name_2010": "Rockcliffe Parkway", "since": 2012, "confidence": "high" }
+  ],
+  "transforms": [
+    { "match": "Chief William Commanda Bridge", "to_layer": "rail", "class": "disused", "name_2010": "Prince of Wales Bridge",
+      "since": 2021, "note": "Disused rail bridge in 2010; reopened as a multi-use path in 2021", "confidence": "high" }
+  ],
+  "keep_rail_corridor": {
+    "name_2010": "O-Train",
+    "note": "The original diesel O-Train, Bayview–Greenboro (opened 2001). Today's Trillium/Line 2 tracks in this corridor are kept as the 2010 line.",
+    "bbox": [-75.7260, 45.3575, -75.6540, 45.4110],
+    "names": ["Ellwood Subdivision", "Trillium Line", "Line 2", "O-Train", "Walkley Interlocking"],
+    "classes": ["light_rail", "standard_gauge"]
+  }
+}

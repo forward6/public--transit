@@ -1,0 +1,11 @@
+{
+  "name": "Ottawa–Gatineau",
+  "snapshotDate": "2010-12-01",
+  "fetchBbox": [-76.42, 44.93, -75.18, 45.66],
+  "regionBbox": [-76.356, 44.962, -75.247, 45.599],
+  "home": { "center": [-75.705, 45.415], "zoom": 11.4, "pitch": 0, "bearing": 0 },
+  "cities": [
+    { "id": "ottawa", "name": "Ottawa", "province": "ON", "overture": { "subtype": "county", "region": "CA-ON" } },
+    { "id": "gatineau", "name": "Gatineau", "province": "QC", "overture": { "subtype": "locality", "region": "CA-QC" } }
+  ]
+}

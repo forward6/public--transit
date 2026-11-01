@@ -1,0 +1,85 @@
+{
+  "name": "otc-basemap-2010",
+  "version": 1,
+  "description": "Vector-tile contract between pipeline/ (writer) and apps/web (style). Ottawa–Gatineau as of 1 December 2010.",
+  "minzoom": 7,
+  "maxzoom": 14,
+  "layers": {
+    "mask": {
+      "geometry": "polygon",
+      "minzoom": 7,
+      "fields": { "kind": "outside" },
+      "description": "Parts of the map outside the playable region (City of Ottawa + Ville de Gatineau), drawn faded."
+    },
+    "boundary": {
+      "geometry": "line",
+      "minzoom": 7,
+      "fields": { "kind": "city | province" }
+    },
+    "landcover": {
+      "geometry": "polygon",
+      "minzoom": 7,
+      "fields": { "kind": "forest | wetland | grass | shrub | field" },
+      "description": "field = land that was still undeveloped in 2010 (later subdivisions, reconstructed by curate2010)"
+    },
+    "landuse": {
+      "geometry": "polygon",
+      "minzoom": 8,
+      "fields": { "kind": "residential | commercial | farmland | park | nature | golf | cemetery | sports | campus | hospital", "name": "string" },
+      "description": "residential/commercial are cut back to their 2010 extent"
+    },
+    "water": {
+      "geometry": "polygon",
+      "minzoom": 7,
+      "fields": { "kind": "river | lake | canal | pond | reservoir | water", "name": "string", "name_en": "string", "name_fr": "string" }
+    },
+    "waterway": {
+      "geometry": "line",
+      "minzoom": 9,
+      "fields": { "kind": "river | stream | canal | drain", "name": "string", "name_en": "string", "name_fr": "string" },
+      "classMinzoom": { "river": 9, "canal": 11, "stream": 12, "drain": 13 }
+    },
+    "roads": {
+      "geometry": "line",
+      "minzoom": 7,
+      "fields": {
+        "class": "motorway | trunk | primary | secondary | tertiary | minor | service",
+        "link": "bool",
+        "bridge": "bool",
+        "tunnel": "bool",
+        "name": "string",
+        "name_en": "string",
+        "name_fr": "string"
+      },
+      "classMinzoom": { "motorway": 7, "trunk": 7, "primary": 9, "secondary": 10, "tertiary": 11, "minor": 12, "service": 14 }
+    },
+    "rail": {
+      "geometry": "line",
+      "minzoom": 9,
+      "fields": { "class": "rail | light_rail | disused", "name": "string" }
+    },
+    "buildings": {
+      "geometry": "polygon",
+      "minzoom": 13,
+      "fields": { "h": "number, metres" },
+      "minAreaByZoom": { "13": 250, "14": 0 }
+    },
+    "places": {
+      "geometry": "point",
+      "minzoom": 7,
+      "fields": {
+        "kind": "city | town | village | district | hamlet | neighbourhood | micro",
+        "rank": "int, 1 = most prominent",
+        "name": "string",
+        "name_en": "string",
+        "name_fr": "string"
+      },
+      "kindMinzoom": { "city": 7, "town": 9, "village": 10, "district": 10, "hamlet": 12, "neighbourhood": 12, "micro": 14 }
+    },
+    "water_labels": {
+      "geometry": "point",
+      "minzoom": 9,
+      "fields": { "kind": "lake | pond | canal | reservoir | river | water", "name": "string", "name_en": "string", "name_fr": "string", "area_km2": "number" }
+    }
+  }
+}
