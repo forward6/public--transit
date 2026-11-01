@@ -34,12 +34,22 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
 ![Plan mode: a new route in Kanata, evaluated](docs/screenshots/m4/plan-scorecard.jpg)
 
 - M5 is under way: money and fleet.
-  - **The campaign** starts with the 2011 budget, and the calendar runs (**Fast** skips ahead).
-  - **Your plans** take effect at the next service change.
+  - **The campaign** starts at 00:01 on Wednesday 1 December 2010, with the 2011 budget to set.
+  - **The calendar runs on the clock.** Watch a day in real time, or speed up to 2 hours or
+    1 day per second to watch the weeks go by. The season follows the date, and night falls at
+    Ottawa's real sunset. Weekends and holidays run fewer buses and carry fewer riders.
+  - **Your plans** take effect at the next service change. The demand model measures them when
+    you schedule them. Riders then find new service over a few weeks, and leave a cut route
+    within days.
+  - **Riders day by day:** the top bar shows yesterday's riders against the same day last week.
+    The **Ridership** panel charts the last twelve weeks with each service change marked, and
+    follows the routes your changes touched.
   - **The books:** tap the **Reserve** chip to see revenue and costs, and to order buses or
     build garages.
   - **Each autumn** brings a budget. Run out of money and you must choose: raise the levy, cut
     service, defer maintenance or borrow.
+
+![Riders day by day: a December service change settling in](docs/screenshots/days/ridership-daily.jpg)
 
 ![The 2012 budget](docs/screenshots/m5/budget-2012.jpg)
 
@@ -57,14 +67,14 @@ pnpm dev                                       # http://127.0.0.1:5173
 
 URL options:
 
-- `?season=winter|spring|summer|autumn`
-- `&time=day|night`
-- `&lang=en|fr`
+- `?lang=en|fr`
+- `&season=winter|spring|summer|autumn` and `&time=day|night` pin the look (the calendar and the
+  sun set it otherwise)
 - `&3d=0`
 - `&history=1` hatches post-2010 development
 - `&layout=phone|tablet|desktop`
-- `&t=HH:MM` sets the start time
-- `&speed=0..3` sets the speed (pause, then 1, 5 or 15 min/s)
+- `&t=HH:MM` sets the time of day (a new game starts at 00:01; a saved one resumes where it was)
+- `&speed=0..5` sets the speed: pause, real time, 1 min/s, 15 min/s (the default), 2 h/s, 1 day/s
 - `&select=stop:carleton|route:oct-otrain|vehicle:oct-otrain` opens an inspector
 - `&riders=1` turns on the Riders view
 - `&plan=1` opens Plan mode. Add `&iso=lon,lat` for travel times from a point, or

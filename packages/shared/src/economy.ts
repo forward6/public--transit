@@ -88,6 +88,11 @@ export interface EconomyStart {
   garageCapacity: BudgetLine;
   /** ridership by month relative to the annual average (Jan..Dec) */
   seasonal: { values: number[]; source: string; estimate: true };
+  /** ridership by day of the week relative to a weekday (Sun..Sat) */
+  dayOfWeek: { values: number[]; source: string; estimate: true };
+  /** days for riders to find a new or better service (time constant), and to leave a worse one */
+  rampUpDays: BudgetLine;
+  rampDownDays: BudgetLine;
 }
 
 export const ECONOMY_2010: EconomyStart = {
@@ -134,6 +139,9 @@ export const ECONOMY_2010: EconomyStart = {
   garageCapacity: { value: 250, estimate: true, source: 'Estimate' },
   seasonal: { values: [1.05, 1.06, 1.02, 0.99, 0.95, 0.88, 0.8, 0.82, 1.06, 1.1, 1.08, 0.97], estimate: true,
     source: 'Estimate: typical northern-city seasonal pattern (students away in summer)' },
+  dayOfWeek: { values: [0.42, 1, 1, 1, 1, 1.02, 0.58], estimate: true, source: 'Estimate: typical weekend share of weekday ridership' },
+  rampUpDays: { value: 21, estimate: true, source: 'Estimate: riders discover new or improved service over several weeks' },
+  rampDownDays: { value: 6, estimate: true, source: 'Estimate: riders leave a cut service within days' },
 };
 
 // ------------------------------------------------------------------------------------------ game state
@@ -177,6 +185,21 @@ export interface BudgetChoice {
   maintenance: number;
 }
 
+export interface DayRecord {
+  date: string;
+  /** OC Transpo boardings that day */
+  boardings: number;
+  /** boardings on routes the player has changed */
+  routes?: Record<string, number>;
+}
+
+/** Riders move from one level to another after a service change (equilibrium from the demand model). */
+export interface Ramp {
+  from: number;
+  to: number;
+  start: string;
+}
+
 export interface GameState {
   version: 1;
   date: string;
@@ -208,4 +231,27 @@ export interface GameState {
   ledger: MonthRecord[];
   events: GameEvent[];
   seed: number;
+  /** ridership day by day (the last ~400 days) */
+  daily?: DayRecord[];
+  /** weekday boardings moving to a new level after the last service change */
+  ramp?: Ramp;
+  /** the same, per route the player has changed (equilibrium weekday boardings) */
+  routeRamps?: Record<string, Ramp>;
+  /** service-change dates and what changed, for charts */
+  changes?: { date: string; label: string }[];
+  /** how many of `applied` the `service` figures account for (re-measure when it lags) */
+  serviceFor?: number;
+  /** the scheduled plan, measured when it was scheduled: applied on the service-change date */
+  pendingFigures?: PendingFigures;
+}
+
+/** What the demand model expects once the scheduled plan is in operation. */
+export interface PendingFigures {
+  /** JSON of the `pending` edits these figures are for */
+  key: string;
+  service: { boardings: number; vehicleHours: number; peakVehicles: number };
+  /** equilibrium weekday boardings of the routes to watch (0 = removed) */
+  routes: Record<string, number>;
+  /** their weekday boardings before the change */
+  routesBefore: Record<string, number>;
 }

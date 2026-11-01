@@ -110,12 +110,12 @@ body.layout-phone .maplibregl-ctrl-bottom-right { bottom: 200px; }
 /* =====================================================================
    M2 — clock, speed, network status, inspector
    ===================================================================== */
-body.theme-day { --transitway: #d7263d; --otrain: #25965a; --station-fill: #fff; --amber: #e08a1e; --good: #25965a; }
-body.theme-night { --transitway: #ff4a5c; --otrain: #38e08a; --station-fill: #0e1828; --amber: #ffb347; --good: #38e08a; }
+body.theme-day { --transitway: #d7263d; --otrain: #25965a; --station-fill: #fff; --amber: #e08a1e; --good: #25965a; --riders: #2d6cc0; }
+body.theme-night { --transitway: #ff4a5c; --otrain: #38e08a; --station-fill: #0e1828; --amber: #ffb347; --good: #38e08a; --riders: #6f98ff; }
 .clock-row { display: flex; align-items: baseline; gap: 10px; }
 .clock-time { font-size: 22px; font-weight: 680; letter-spacing: -0.01em; }
 .speed { display: flex; gap: 2px; background: var(--track); padding: 3px; border-radius: 11px; flex: none; }
-.speed button { border: 0; background: transparent; color: var(--muted); width: 36px; height: 30px; border-radius: 8px; display: grid; place-items: center; }
+.speed button { border: 0; background: transparent; color: var(--muted); width: 32px; height: 30px; border-radius: 8px; display: grid; place-items: center; }
 .speed button svg { width: 15px; height: 15px; }
 .speed button.on { background: var(--glass-strong); color: var(--fg); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14); }
 .status-chip { border: 0; font-family: var(--ui); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: var(--fg2); background: var(--track); padding: 6px 10px; border-radius: 20px; white-space: nowrap; }
@@ -184,7 +184,6 @@ body.layout-phone .m-sheet .close { top: 14px; right: 12px; }
 /* M3 — riders */
 .riders-line { margin: 10px 0 2px; font-size: 13px; color: var(--muted); }
 .riders-line b { color: var(--fg); font-size: 15px; margin-right: 4px; }
-.status-chip.riders i { background: #2D6CC0; }
 .modebar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin: 8px 0 6px; }
 .modebar i { display: block; min-width: 2px; }
 .periods .dot { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
@@ -257,9 +256,6 @@ table.score td:last-child { color: var(--muted); }
 .status-chip.treasury.bad { color: var(--hot); }
 .status-chip.treasury.bad i { background: var(--hot); }
 .topbar > .status-chip.treasury { align-self: center; }
-.toggle.fast { padding: 0 10px; }
-.toggle.fast.on { background: var(--good); }
-.toggle.fast:disabled { opacity: .4; }
 .decision-wrap { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(10, 20, 36, .28); z-index: 40; padding: 16px; }
 .decision { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow: auto; padding: 18px 20px; border-top: 4px solid var(--amber); }
 .decision-kicker { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--amber); }
@@ -294,9 +290,42 @@ table.books tr.total th, table.books tr.total td { font-weight: 700; color: var(
 body.layout-phone .m-row { display: flex; gap: 8px; align-items: center; }
 body.layout-phone .m-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .notice.small { font-size: 12px; }
-.toggle.fast { display: inline-flex; align-items: center; gap: 6px; }
-body.layout-desktop .toggle.fast .fast-label { display: inline; }
-body.layout-tablet .toggle.fast .fast-label { display: none; }
 .legend .lg-status { margin-top: 8px; }
 .legend .lg-status .status-chip { white-space: normal; text-align: left; }
 @media (max-width: 1999px) { body.layout-desktop .brand-sub { display: none; } }
+
+/* daily ridership */
+.status-chip.riders i { background: var(--riders); }
+.delta { font-style: normal; font-weight: 700; margin-left: 6px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.delta.up { color: var(--good); }
+.delta.down { color: var(--hot); }
+.status-chip .measuring { width: 10px; height: 10px; margin-left: 6px; border-radius: 50%; border: 2px solid var(--amber); border-right-color: transparent; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+figure.daily { margin: 4px 0 6px; }
+figure.daily figcaption { display: flex; align-items: baseline; gap: 6px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 20px; }
+figure.daily figcaption span { margin-right: auto; }
+figure.daily figcaption b { color: var(--fg); font-size: 15px; }
+figure.daily svg { display: block; width: 100%; height: auto; touch-action: pan-y; cursor: crosshair; }
+figure.daily .bar { fill: var(--riders); }
+figure.daily .bar.off { fill: color-mix(in srgb, var(--riders) 42%, transparent); }
+figure.daily .bar.on { fill: var(--fg); }
+figure.daily .grid line { stroke: var(--divider); stroke-width: 1; }
+figure.daily .grid text, figure.daily .tick { fill: var(--muted); font-size: 8.5px; font-family: var(--ui); }
+figure.daily .grid text { text-anchor: end; }
+figure.daily .axis { stroke: var(--faint); stroke-width: 1; }
+figure.daily .change line { stroke: var(--amber); stroke-width: 1.2; stroke-dasharray: 3 2.5; }
+figure.daily .change text { fill: var(--fg2); font-size: 8.5px; font-weight: 650; font-family: var(--ui); }
+svg.spark { width: 60px; height: 18px; display: block; }
+svg.spark polyline { fill: none; stroke: var(--riders); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+svg.spark.down polyline { stroke: var(--hot); }
+table.watch { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+table.watch thead th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; text-align: right; padding: 0 0 4px 6px; }
+table.watch thead th:first-child { text-align: left; padding-left: 0; }
+table.watch tbody th { text-align: left; font-weight: 600; padding: 5px 0; }
+table.watch td { text-align: right; padding: 5px 0 5px 6px; white-space: nowrap; }
+table.watch td svg.spark { margin-left: auto; }
+table.watch tr + tr { border-top: 1px solid var(--divider); }
+.route-trend .trend-row { display: flex; align-items: center; gap: 12px; }
+.route-trend .trend-row svg.spark { width: 90px; height: 26px; flex: none; }
+.route-trend .trend-row p { margin: 0; font-size: 13px; color: var(--muted); }
+.route-trend .trend-row b { color: var(--fg); font-size: 15px; }

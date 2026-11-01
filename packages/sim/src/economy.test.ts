@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Edit, GameState } from '@otc/shared';
 import {
-  advanceDay, buildGarage, fleetStatus, newGame, nextServiceChange, openDecision, orderBuses, projectYear, resolve, schedulePlan,
-  serviceChangeDates,
+  advanceDay, buildGarage, dayBoardings, dayFactor, fleetStatus, holidays, newGame, nextServiceChange, openDecision, orderBuses, projectYear,
+  rampValue, resolve, routeDayBoardings, schedulePlan, serviceChangeDates, serviceDay, setPendingFigures, setService,
 } from './economy';
 
 const service = { boardings: 500_000, vehicleHours: 6900, peakVehicles: 700 };
@@ -62,6 +62,7 @@ describe('economy', () => {
     s = days(s, 2);
     expect(s.applied).toEqual([edit]);
     expect(s.events.some((e) => e.kind === 'serviceChange')).toBe(true);
+    expect(s.changes).toEqual([{ date: '2010-12-19', label: '−1' }]);
   });
 
   it('raises a deficit decision when the reserve runs out, and borrowing covers it', () => {
@@ -86,4 +87,60 @@ describe('economy', () => {
     s = days(s, 31 * 31);
     expect(fleetStatus(s).buses).toBeGreaterThan(1048);
   });
+
+  it('records riders day by day, quieter at weekends', () => {
+    const s = days(start(), 14);
+    expect(s.daily).toHaveLength(14);
+    const byDow = new Map(s.daily!.map((r) => [new Date(`${r.date}T12:00:00Z`).getUTCDay(), r.boardings]));
+    expect(byDow.get(0)!).toBeLessThan(0.5 * byDow.get(3)!); // Sunday vs Wednesday
+    expect(dayBoardings(s, undefined, '2011-01-05')).toBeGreaterThan(dayBoardings(s, undefined, '2011-01-08'));
+  });
+
+  it('moves riders to a new level gradually after a service change, faster when service is cut', () => {
+    let s = start();
+    s = { ...s, changes: [{ date: s.date, label: '+N1' }] };
+    s = setService(s, { ...s.service, boardings: s.service.boardings * 1.1 }, { 'plan-1': 2000 }, {});
+    const r = s.ramp!;
+    expect(rampValue(r, s.date, 0)).toBeCloseTo(r.from, 0);
+    const after3w = rampValue(r, '2010-12-22', 0);
+    expect((after3w - r.from) / (r.to - r.from)).toBeCloseTo(1 - Math.exp(-1), 2); // one time constant (21 days)
+    s = days(s, 30);
+    const n1 = s.daily!.filter((d) => new Date(`${d.date}T12:00:00Z`).getUTCDay() === 3).map((d) => d.routes!['plan-1']!);
+    expect(n1[n1.length - 1]!).toBeGreaterThan(n1[0]!); // the new route builds riders week by week
+    expect(s.changes).toEqual([{ date: '2010-12-01', label: '+N1' }]);
+    const cut = setService(s, { ...s.service, boardings: s.service.boardings * 0.9 });
+    expect((rampValue(cut.ramp!, addWeek(cut.date), 0) - cut.ramp!.from) / (cut.ramp!.to - cut.ramp!.from)).toBeGreaterThan(0.6);
+  });
+
+  it('knows Ontario holidays and the Christmas break', () => {
+    expect(holidays(2011)).toEqual(['2011-01-01', '2011-02-21', '2011-04-22', '2011-05-23', '2011-07-01', '2011-08-01', '2011-09-05',
+      '2011-10-10', '2011-12-25', '2011-12-26']);
+    expect(serviceDay('2011-04-22')).toBe('sunday'); // Good Friday
+    expect(serviceDay('2011-04-23')).toBe('saturday');
+    expect(serviceDay('2011-04-26')).toBe('weekday');
+    expect(dayFactor('2010-12-29')).toBeLessThan(dayFactor('2010-12-15'));
+  });
+
+  it('applies a plan measured when scheduled on the service-change date', () => {
+    let s = start();
+    const plan: Edit[] = [{ kind: 'remove', routeId: 'oct-118' }];
+    s = schedulePlan(s, plan);
+    s = setPendingFigures(s, { key: JSON.stringify(plan), service: { ...s.service, boardings: s.service.boardings * 0.99 },
+      routes: { 'oct-118': 0, 'oct-95': 41_000 }, routesBefore: { 'oct-118': 6000, 'oct-95': 40_000 } });
+    expect(setPendingFigures(s, { ...s.pendingFigures!, key: '[]' }).pendingFigures?.key).toBe(JSON.stringify(plan));
+    const change = nextServiceChange(s.date); // 19 Dec 2010
+    while (s.date < change) s = days(s, 1);
+    expect(s.applied).toEqual(plan);
+    expect(s.pendingFigures).toBeUndefined();
+    expect(s.serviceFor).toBe(1);
+    expect(s.ramp).toMatchObject({ start: change, to: s.service.boardings });
+    expect(routeDayBoardings(s, 'oct-118')).toBe(0);
+    expect(routeDayBoardings(s, 'oct-95')).toBeGreaterThan(0);
+    s = days(s, 1);
+    expect(s.daily!.at(-1)!.routes).toMatchObject({ 'oct-118': 0 });
+  });
 });
+
+function addWeek(iso: string): string {
+  return new Date(new Date(`${iso}T12:00:00Z`).getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
+}

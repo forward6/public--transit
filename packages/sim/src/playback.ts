@@ -110,14 +110,14 @@ export class Playback {
     return pp ? sliceLine(pp.line, v.distance - metres, v.distance) : [];
   }
 
-  /** Next departures from a stop at or after t. */
-  departures(stopId: string, t: number, limit = 6): Departure[] {
+  /** Next departures from a stop at or after t, among the trips that run today. */
+  departures(stopId: string, t: number, limit = 6, runs: (tripId: string) => boolean = () => true): Departure[] {
     const list = this.tripsByStop.get(stopId) ?? [];
     const out: Departure[] = [];
     for (const { trip, index } of list) {
       const time = trip.dep[index]!;
       const p = this.patterns.get(trip.patternId)!.pattern;
-      if (time < t || index === p.stops.length - 1) continue;
+      if (time < t || index === p.stops.length - 1 || !runs(trip.id)) continue;
       out.push({ routeId: trip.routeId, patternId: trip.patternId, headsign: p.headsign, time, tripId: trip.id });
       if (out.length >= limit) break;
     }

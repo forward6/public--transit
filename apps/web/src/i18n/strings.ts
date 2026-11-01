@@ -8,8 +8,6 @@ export interface Strings {
   dateShort: string;
   season: Record<Season, string>;
   time: Record<TimeOfDay, string>;
-  seasonLabel: string;
-  timeLabel: string;
   languageLabel: string;
   buildings3d: string;
   zoomIn: string;
@@ -65,6 +63,7 @@ export interface Strings {
   ridersChip: (boardings: number) => string;
   ridershipTitle: string;
   ridershipSub: string;
+  modelWeekday: string;
   tripsWeekday: string;
   byTransit: string;
   boardingsWeekday: string;
@@ -126,8 +125,6 @@ export interface Strings {
   // M5 — money and fleet
   budgetTitle: string;
   reserveChip: (m: string) => string;
-  fast: string;
-  fastHint: string;
   decisionKicker: string;
   decisionTitle: Partial<Record<GameEventKind, string>>;
   budgetIntro: (last: string, balancing: string) => string;
@@ -179,6 +176,26 @@ export interface Strings {
   economyNote: string;
   restart: string;
   restartConfirm: string;
+  // daily ridership
+  ridersYesterday: (b: number) => string;
+  ridersYesterdayShort: string;
+  ridersWord: string;
+  vsLastWeek: string;
+  measuringNote: string;
+  dailyTitle: string;
+  dailyEmpty: string;
+  dailyNote: string;
+  holiday: string;
+  holidayService: string;
+  watchedRoutes: string;
+  routeWord: string;
+  yesterday: string;
+  trend: string;
+  settled: string;
+  watchNote: string;
+  sinceChange: (date: string) => string;
+  expectedWeekday: (n: string) => string;
+  lastWeek: (total: string) => string;
 }
 
 /** 512340 -> "512k", 8450 -> "8.5k" */
@@ -195,8 +212,6 @@ export const STRINGS: Record<Lang, Strings> = {
     dateShort: '1 Dec 2010',
     season: { winter: 'Winter', spring: 'Spring', summer: 'Summer', autumn: 'Autumn' },
     time: { day: 'Day', night: 'Night' },
-    seasonLabel: 'Season',
-    timeLabel: 'Light',
     languageLabel: 'Language',
     buildings3d: '3D',
     zoomIn: 'Zoom in',
@@ -208,7 +223,7 @@ export const STRINGS: Record<Lang, Strings> = {
     legendFields: 'Farmland & fields (incl. land built on after 2010)',
     legendNote: 'Reconstructed from today’s map data. Add ?history=1 to hatch post-2010 development.',
     mapStyle: 'Map style',
-    speed: ['Pause', '1 min/s', '5 min/s', '15 min/s'],
+    speed: ['Pause', 'Real time', '1 min per second', '15 min per second', '2 hours per second', '1 day per second'],
     inService: 'in service',
     networkStatus: {
       'infrastructure-only': '2010 bus routes: awaiting archive access',
@@ -251,8 +266,6 @@ export const STRINGS: Record<Lang, Strings> = {
     catalogueWayback: 'OC Transpo’s own 2010 timetable data (GTFS) is held by the Wayback Machine, which refuses connections from this build environment; the remaining routes need it or archived route maps.',
     budgetTitle: 'Budget & fleet',
     reserveChip: (m) => `Reserve ${m}`,
-    fast: 'Fast',
-    fastHint: 'Fast-forward the calendar: a month in about 25 seconds',
     decisionKicker: 'Decision needed',
     decisionTitle: { budget: 'The {year} budget', deficit: 'The reserve has run dry', shortfall: 'Not enough buses' },
     budgetIntro: (last, bal) => `Council sets the transit levy for the year (now ${last}). A balanced budget needs ${bal}. Fares and maintenance are yours to propose.`,
@@ -318,6 +331,25 @@ export const STRINGS: Record<Lang, Strings> = {
     economyNote: 'The fleet and fares are from 2010 sources; most budget lines are estimates, each with its source in the game data. Ridership comes from the demand model.',
     restart: 'New game',
     restartConfirm: 'Start a new campaign from 1 December 2010? This game will be lost.',
+    ridersYesterday: (b) => `${fmtK(b)} riders yesterday`,
+    ridersYesterdayShort: 'riders yesterday',
+    ridersWord: 'riders',
+    vsLastWeek: 'Change from the same day last week',
+    measuringNote: 'The demand model is measuring your plan…',
+    dailyTitle: 'Riders day by day',
+    dailyEmpty: 'The chart fills in as the days pass. Speed the clock up to 1 day per second to watch weeks go by.',
+    dailyNote: 'OC Transpo boardings each day over the last twelve weeks. Weekends and holidays are lighter. Dashed lines mark service changes: riders take a few weeks to discover new service, and leave within days when it is cut.',
+    holiday: 'holiday',
+    holidayService: 'Holiday · Sunday service',
+    watchedRoutes: 'Routes to watch after your changes',
+    routeWord: 'Route',
+    yesterday: 'Yesterday',
+    trend: 'Weekdays',
+    settled: 'Settled',
+    watchNote: 'The routes each change touched, and the ones it took riders from or brought riders to. “Settled” is how far riders have moved towards the new level the demand model expects.',
+    sinceChange: (d) => `Riders since the change of ${d}`,
+    expectedWeekday: (n) => `heading for ${n} a weekday`,
+    lastWeek: (total) => `${total} riders in the last 7 days`,
     plan: 'Plan',
     planTitle: 'Plan mode',
     planHint: 'The clock is paused. Tap a route to change its service, draw a new one, or see travel times.',
@@ -364,8 +396,9 @@ export const STRINGS: Record<Lang, Strings> = {
     outdated: 'The plan changed since this result. Evaluate again.',
     riders: 'Riders',
     ridersChip: (b) => `${fmtK(b)} boardings a weekday`,
-    ridershipTitle: 'Who rides: a 2011 weekday',
+    ridershipTitle: 'Ridership',
     ridershipSub: 'Demand model v1 · residents of Ottawa and Gatineau',
+    modelWeekday: 'Who rides: the 2011 weekday in the demand model',
     tripsWeekday: 'trips a weekday',
     byTransit: 'by transit',
     boardingsWeekday: 'boardings a weekday',
@@ -394,8 +427,6 @@ export const STRINGS: Record<Lang, Strings> = {
     dateShort: '1er déc. 2010',
     season: { winter: 'Hiver', spring: 'Printemps', summer: 'Été', autumn: 'Automne' },
     time: { day: 'Jour', night: 'Nuit' },
-    seasonLabel: 'Saison',
-    timeLabel: 'Lumière',
     languageLabel: 'Langue',
     buildings3d: '3D',
     zoomIn: 'Zoom avant',
@@ -407,7 +438,7 @@ export const STRINGS: Record<Lang, Strings> = {
     legendFields: 'Terres agricoles et champs (y compris les terrains bâtis après 2010)',
     legendNote: 'Reconstruite à partir des données actuelles. Ajoutez ?history=1 pour voir le développement après 2010.',
     mapStyle: 'Style de carte',
-    speed: ['Pause', '1 min/s', '5 min/s', '15 min/s'],
+    speed: ['Pause', 'Temps réel', '1 min par seconde', '15 min par seconde', '2 heures par seconde', '1 jour par seconde'],
     inService: 'en service',
     networkStatus: {
       'infrastructure-only': 'Lignes d’autobus 2010 : en attente des archives',
@@ -450,8 +481,6 @@ export const STRINGS: Record<Lang, Strings> = {
     catalogueWayback: 'Les données d’horaires 2010 d’OC Transpo (GTFS) sont conservées par la Wayback Machine, qui refuse les connexions de cet environnement ; les autres lignes en ont besoin, ou de plans archivés.',
     budgetTitle: 'Budget et parc',
     reserveChip: (m) => `Réserve ${m}`,
-    fast: 'Rapide',
-    fastHint: 'Avance rapide du calendrier : un mois en 25 secondes environ',
     decisionKicker: 'Décision requise',
     decisionTitle: { budget: 'Le budget {year}', deficit: 'La réserve est à sec', shortfall: 'Pas assez d’autobus' },
     budgetIntro: (last, bal) => `Le conseil fixe la taxe de transport en commun pour l’année (actuellement ${last}). Un budget équilibré exige ${bal}. Vous proposez les tarifs et l’entretien.`,
@@ -517,6 +546,25 @@ export const STRINGS: Record<Lang, Strings> = {
     economyNote: 'Le parc et les tarifs proviennent de sources de 2010; la plupart des postes budgétaires sont des estimations, chacune avec sa source dans les données du jeu. L’achalandage vient du modèle de demande.',
     restart: 'Nouvelle partie',
     restartConfirm: 'Commencer une nouvelle campagne au 1er décembre 2010? Cette partie sera perdue.',
+    ridersYesterday: (b) => `${fmtK(b)} passagers hier`,
+    ridersYesterdayShort: 'passagers hier',
+    ridersWord: 'passagers',
+    vsLastWeek: 'Variation par rapport au même jour la semaine dernière',
+    measuringNote: 'Le modèle de demande mesure votre plan…',
+    dailyTitle: 'Achalandage jour par jour',
+    dailyEmpty: 'Le graphique se remplit à mesure que les jours passent. Réglez l’horloge à 1 jour par seconde pour voir défiler les semaines.',
+    dailyNote: 'Montées à OC Transpo chaque jour, sur les douze dernières semaines. Les fins de semaine et les jours fériés sont plus calmes. Les lignes pointillées marquent les changements de service : les usagers mettent quelques semaines à découvrir un nouveau service et partent en quelques jours lorsqu’il est réduit.',
+    holiday: 'férié',
+    holidayService: 'Férié · service du dimanche',
+    watchedRoutes: 'Lignes à suivre après vos changements',
+    routeWord: 'Ligne',
+    yesterday: 'Hier',
+    trend: 'Semaine',
+    settled: 'Atteint',
+    watchNote: 'Les lignes touchées par chaque changement, et celles qui ont perdu ou gagné des usagers. « Atteint » indique où en sont les usagers par rapport au nouveau niveau prévu par le modèle de demande.',
+    sinceChange: (d) => `Achalandage depuis le changement du ${d}`,
+    expectedWeekday: (n) => `en route vers ${n} par jour de semaine`,
+    lastWeek: (total) => `${total} passagers ces 7 derniers jours`,
     plan: 'Planifier',
     planTitle: 'Mode planification',
     planHint: 'L’horloge est en pause. Touchez une ligne pour changer son service, tracez-en une nouvelle ou voyez les temps de trajet.',
@@ -563,8 +611,9 @@ export const STRINGS: Record<Lang, Strings> = {
     outdated: 'Le plan a changé depuis ce résultat. Évaluez de nouveau.',
     riders: 'Achalandage',
     ridersChip: (b) => `${fmtK(b)} montées par jour de semaine`,
-    ridershipTitle: 'Qui se déplace : un jour de semaine de 2011',
+    ridershipTitle: 'Achalandage',
     ridershipSub: 'Modèle de demande v1 · résidents d’Ottawa et de Gatineau',
+    modelWeekday: 'Qui se déplace : le jour de semaine 2011 du modèle de demande',
     tripsWeekday: 'déplacements par jour',
     byTransit: 'en transport collectif',
     boardingsWeekday: 'montées par jour de semaine',

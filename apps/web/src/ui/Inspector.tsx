@@ -1,9 +1,11 @@
-import { MODES, formatClock, type CatalogueClass, type District, type Lang, type NetRoute, type Provenance } from '@otc/shared';
+import { MODES, formatClock, type CatalogueClass, type District, type GameState, type Lang, type NetRoute, type Provenance } from '@otc/shared';
 import type { NetworkState } from '../network/useNetwork';
 import { fmtK, type Strings } from '../i18n/strings';
 import type { Palette } from '../map/palettes';
 import type { PlanState } from '../plan/usePlan';
 import { RouteServiceEditor } from '../plan/PlanUI';
+import { DailyChart, RouteTrend, WatchedRoutes } from '../game/Ridership';
+import { tripRuns, vehiclesNow, type ServiceDay } from '../sim/service';
 
 export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard' | 'budget'; id: string } | null;
 
@@ -16,6 +18,11 @@ interface Props {
   palette: Palette;
   onSelect: (sel: Selection) => void;
   plan?: PlanState;
+  /** the campaign: riders day by day */
+  game?: GameState | null;
+  routeName?: (id: string) => string;
+  /** today's timetable (weekends run fewer trips) */
+  day?: ServiceDay;
 }
 
 export function RouteBadge({ route, palette, onClick }: { route: NetRoute; palette: Palette; onClick?: () => void }) {
@@ -39,8 +46,9 @@ function ProvenanceNote({ p, s }: { p?: Provenance; s: Strings }) {
 
 const minutesUntil = (from: number, to: number) => Math.max(0, Math.round((to - from) / 60));
 
-export function Inspector({ sel, net, t, s, palette, onSelect, plan }: Props) {
+export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game, routeName, day = 'weekday' }: Props) {
   const { network, playback } = net;
+  const runs = (tripId: string) => tripRuns(tripId, day);
 
   if (sel.type === 'vehicle') {
     const trip = playback.trips.find((x) => x.id === sel.id);
@@ -73,7 +81,7 @@ export function Inspector({ sel, net, t, s, palette, onSelect, plan }: Props) {
     const stop = playback.stops.get(sel.id);
     if (!stop) return <Empty s={s} text={sel.id} />;
     const routes = playback.routesAt(stop.id);
-    const deps = playback.departures(stop.id, t, 6);
+    const deps = playback.departures(stop.id, t, 6, runs);
     return (
       <div className="ins">
         <div className="ins-head"><div className="ins-icon station" /><div><div className="ins-title">{stop.name}</div>
@@ -101,7 +109,14 @@ export function Inspector({ sel, net, t, s, palette, onSelect, plan }: Props) {
     );
   }
 
-  if (sel.type === 'ridership') return <Ridership net={net} s={s} />;
+  if (sel.type === 'ridership') {
+    return <Ridership net={net} s={s} daily={game ? <>
+      <div className="sec">{s.dailyTitle}</div>
+      <DailyChart state={game} t={s} lang={lang} />
+      <p className="muted small">{s.dailyNote}</p>
+      <WatchedRoutes state={game} t={s} lang={lang} routeName={routeName ?? ((id) => id)} onSelect={(id) => onSelect({ type: 'route', id })} />
+    </> : null} />;
+  }
 
   if (sel.type === 'catalogue') return <Catalogue net={net} s={s} palette={palette} onSelect={onSelect} />;
 
@@ -109,8 +124,8 @@ export function Inspector({ sel, net, t, s, palette, onSelect, plan }: Props) {
     const route = playback.routes.get(sel.id);
     if (!route) return <Empty s={s} text={sel.id} />;
     const pats = route.patterns.map((id) => playback.pattern(id)!).filter(Boolean);
-    const now = playback.vehiclesAt(t).filter((v) => v.routeId === route.id).length;
-    const tripsToday = playback.trips.filter((x) => x.routeId === route.id).length;
+    const now = vehiclesNow(playback, t, day).filter((v) => v.routeId === route.id).length;
+    const tripsToday = playback.trips.filter((x) => x.routeId === route.id && runs(x.id)).length;
     const km = Math.max(...pats.map((p) => p.stopDist[p.stopDist.length - 1] ?? 0)) / 1000;
     return (
       <div className="ins">
@@ -121,7 +136,8 @@ export function Inspector({ sel, net, t, s, palette, onSelect, plan }: Props) {
           <div><b>{tripsToday}</b><span>{s.tripsToday}</span></div>
           <div><b>{km.toFixed(1)} km</b><span>{s.length}</span></div>
         </div>
-        {net.demand && <p className="riders-line"><b>{(net.demand.routes[route.id] ?? 0).toLocaleString()}</b> {s.routeBoardings}</p>}
+        {game?.routeRamps?.[route.id] ? <RouteTrend state={game} routeId={route.id} t={s} lang={lang} />
+          : net.demand && <p className="riders-line"><b>{(net.demand.routes[route.id] ?? 0).toLocaleString()}</b> {s.routeBoardings}</p>}
         {plan?.active && <RouteServiceEditor route={route} net={net} plan={plan} t={s} />}
         {route.weekday && <>
           <div className="sec">{s.weekdayService}</div>
@@ -202,7 +218,7 @@ const MODE_COLOR: Record<string, string> = { car: '#8A94A6', passenger: '#B7BFCC
 const DISTRICT_ORDER: District[] = ['downtown', 'inner', 'hull', 'suburbs', 'gatineau', 'rural'];
 
 /** M3: the weekday the demand model produces, and how it compares with 2011. */
-function Ridership({ net, s }: { net: NetworkState; s: Strings }) {
+function Ridership({ net, s, daily }: { net: NetworkState; s: Strings; daily: React.ReactNode }) {
   const d = net.demand;
   if (!d) return <Empty s={s} text={s.ridershipNote} />;
   const sm = d.summary;
@@ -212,6 +228,8 @@ function Ridership({ net, s }: { net: NetworkState; s: Strings }) {
     <div className="ins">
       <div className="ins-head"><div className="ins-icon" style={{ background: MODE_COLOR.transit }} />
         <div><div className="ins-title">{s.ridershipTitle}</div><div className="ins-sub">{s.ridershipSub}</div></div></div>
+      {daily}
+      {daily && <div className="sec">{s.modelWeekday}</div>}
       <div className="grid3">
         <div><b>{fmtK(sm.trips)}</b><span>{s.tripsWeekday}</span></div>
         <div><b>{pct(sm.transitTrips / sm.trips)}</b><span>{s.byTransit}</span></div>

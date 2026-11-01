@@ -1,6 +1,6 @@
 import {
   BUS_TYPES, ECONOMY_2010,
-  type BudgetChoice, type BusType, type Edit, type EconomyStart, type FleetGroup, type GameEvent, type GameState, type MonthRecord,
+  type BudgetChoice, type BusType, type Edit, type EconomyStart, type FleetGroup, type GameEvent, type GameState, type MonthRecord, type PendingFigures, type Ramp,
 } from '@otc/shared';
 
 /**
@@ -98,11 +98,78 @@ function yearsSince2011(iso: string): number {
   return d.getUTCFullYear() - 2011 + d.getUTCMonth() / 12;
 }
 
-/** The weekday boardings the network in operation carries this month. */
-export function monthBoardings(s: GameState, start: EconomyStart = ECONOMY_2010, iso = s.date): number {
+/** Where a ramp stands on a date: from → to, quickly when riders leave, over weeks when they arrive. */
+export function rampValue(r: Ramp | undefined, iso: string, fallback: number, start: EconomyStart = ECONOMY_2010): number {
+  if (!r) return fallback;
+  const days = Math.max(0, (toDate(iso).getTime() - toDate(r.start).getTime()) / DAY);
+  const tau = r.to >= r.from ? start.rampUpDays.value : start.rampDownDays.value;
+  return r.to + (r.from - r.to) * Math.exp(-days / tau);
+}
+
+/** Everything but the network: season, growth, fares, reliability and cuts. */
+function ridershipFactor(s: GameState, start: EconomyStart, iso: string): number {
   const m = toDate(iso).getUTCMonth();
-  return s.service.boardings * start.seasonal.values[m]! * (1 + start.ridershipGrowth.value) ** Math.max(0, yearsSince2011(iso))
+  return start.seasonal.values[m]! * (1 + start.ridershipGrowth.value) ** Math.max(0, yearsSince2011(iso))
     * s.fareIndex ** start.fareElasticity.value * (1 - missedShare(s, start)) * s.serviceLevel ** 0.6;
+}
+
+/** The weekday boardings the network in operation carries this month (riders still settling after a change included). */
+export function monthBoardings(s: GameState, start: EconomyStart = ECONOMY_2010, iso = s.date): number {
+  return rampValue(s.ramp, iso, s.service.boardings, start) * ridershipFactor(s, start, iso);
+}
+
+/** Easter Sunday (anonymous Gregorian algorithm). */
+function easter(y: number): Date {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  return new Date(Date.UTC(y, month - 1, ((h + l - 7 * m + 114) % 31) + 1, 12));
+}
+
+/** The k-th Monday of a month (k = 1…) */
+const nthMonday = (y: number, month: number, k: number) => {
+  const first = new Date(Date.UTC(y, month, 1, 12));
+  return new Date(first.getTime() + (((8 - first.getUTCDay()) % 7) + 7 * (k - 1)) * DAY);
+};
+
+/** Ontario public holidays (Sunday service, Sunday riders). */
+export function holidays(y: number): string[] {
+  const victoria = new Date(Date.UTC(y, 4, 24, 12));
+  victoria.setTime(victoria.getTime() - ((victoria.getUTCDay() + 6) % 7) * DAY); // the Monday on or before 24 May
+  return [
+    `${y}-01-01`, isoDate(nthMonday(y, 1, 3)), isoDate(new Date(easter(y).getTime() - 2 * DAY)), isoDate(victoria), `${y}-07-01`,
+    isoDate(nthMonday(y, 7, 1)), isoDate(nthMonday(y, 8, 1)), isoDate(nthMonday(y, 9, 2)), `${y}-12-25`, `${y}-12-26`,
+  ];
+}
+
+/** Which timetable runs: weekday, Saturday or Sunday (public holidays run Sunday service). */
+export function serviceDay(iso: string): 'weekday' | 'saturday' | 'sunday' {
+  const dow = toDate(iso).getUTCDay();
+  if (dow === 0 || holidays(toDate(iso).getUTCFullYear()).includes(iso)) return 'sunday';
+  return dow === 6 ? 'saturday' : 'weekday';
+}
+
+/** One day's riders relative to an ordinary weekday: the day of the week, holidays and the Christmas break. */
+export function dayFactor(iso: string, start: EconomyStart = ECONOMY_2010): number {
+  const d = toDate(iso);
+  const sd = serviceDay(iso);
+  const f = sd === 'sunday' ? start.dayOfWeek.values[0]! : start.dayOfWeek.values[d.getUTCDay()]!;
+  const md = iso.slice(5);
+  const christmasBreak = md >= '12-24' || md <= '01-02'; // schools, universities and many offices close
+  return f * (christmasBreak && sd === 'weekday' ? 0.72 : 1) * (md === '12-25' ? 0.6 : 1);
+}
+
+/** Boardings on one day: the month's weekday level × the day of the week. */
+export function dayBoardings(s: GameState, start: EconomyStart = ECONOMY_2010, iso = s.date): number {
+  return monthBoardings(s, start, iso) * dayFactor(iso, start);
+}
+
+/** Boardings on a changed route on one day (a removed route carries no one from the change on). */
+export function routeDayBoardings(s: GameState, routeId: string, start: EconomyStart = ECONOMY_2010, iso = s.date): number {
+  const r = s.routeRamps?.[routeId];
+  if (!r || (r.to === 0 && iso >= r.start)) return 0;
+  return rampValue(r, iso, r.to, start) * ridershipFactor(s, start, iso) * dayFactor(iso, start);
 }
 
 /** One month's revenues and costs (no deliveries or borrowing): the monthly part of the books. */
@@ -175,7 +242,7 @@ export function newGame(service: ServiceFigures, start: EconomyStart = ECONOMY_2
   const s: GameState = {
     version: 1, date: start.date, reserve: start.reserve.value, capitalReserve: 0, debt: 0, levy: 0, costIndex: 1, fareIndex: 1,
     maintenance: 1, serviceLevel: 1, backlog: 0, fleet: structuredClone(start.fleet), orders, garages: structuredClone(start.garages),
-    applied: [], pending: [], service, ledger: [], events: [], seed: 2010,
+    applied: [], pending: [], service, serviceFor: 0, ledger: [], events: [], seed: 2010,
   };
   s.levy = balancingLevy(s, start, '2011-01-01');
   s.events.push(ev('welcome', s.date, false), ev('budget', s.date, true, { year: 2011, balancing: Math.round(s.levy), last: Math.round(s.levy) }));
@@ -190,6 +257,13 @@ export function openDecision(s: GameState): GameEvent | undefined {
 export function advanceDay(prev: GameState, start: EconomyStart = ECONOMY_2010): GameState {
   if (openDecision(prev)) return prev; // the game waits for the player
   const s: GameState = structuredClone(prev);
+  // the day that ends: record its riders
+  const routes = Object.keys(s.routeRamps ?? {});
+  (s.daily ??= []).push({
+    date: s.date, boardings: Math.round(dayBoardings(s, start)),
+    ...(routes.length ? { routes: Object.fromEntries(routes.map((r) => [r, Math.round(routeDayBoardings(s, r, start))])) } : {}),
+  });
+  if (s.daily.length > 400) s.daily.shift();
   const today = addDays(s.date, 1);
   const d = toDate(today);
   // news fades after two months (decisions stay until answered)
@@ -225,9 +299,16 @@ export function advanceDay(prev: GameState, start: EconomyStart = ECONOMY_2010):
   for (const g of s.garages) if (g.opens === today) s.events.push(ev('garageOpen', today, false, { name: g.name, capacity: g.capacity }));
   // service change: the scheduled plan goes into operation
   if (serviceChangeDates(d.getUTCFullYear()).includes(today) && s.pending.length) {
+    const label = s.pending.map((e) => (e.kind === 'add' ? `+${e.route.shortName}` : e.kind === 'remove'
+      ? `−${e.routeId.replace(/^oct-/, '')}` : `${e.routeId.replace(/^oct-/, '')}±`)).join(' ');
+    (s.changes ??= []).push({ date: today, label });
+    const figs = s.pendingFigures?.key === JSON.stringify(s.pending) ? s.pendingFigures : undefined;
     s.applied = [...s.applied, ...s.pending];
     s.events.push(ev('serviceChange', today, false, { changes: s.pending.length }));
     s.pending = [];
+    delete s.pendingFigures;
+    // measured when it was scheduled: riders start moving today (otherwise the game measures it now)
+    if (figs) applyService(s, figs.service, figs.routes, figs.routesBefore, start);
   }
   // the autumn budget for next year
   if (d.getUTCMonth() === 10 && d.getUTCDate() === 1) {
@@ -247,6 +328,13 @@ function payCapital(s: GameState, start: EconomyStart, amount: number): number {
 
 function closeMonth(s: GameState, start: EconomyStart, lastDay: string) {
   const fl = monthFlows(s, start, lastDay);
+  // fares from the riders who actually rode this month, day by day (weekends included)
+  const month = lastDay.slice(0, 7);
+  const days = (s.daily ?? []).filter((r) => r.date.startsWith(month));
+  if (days.length >= 20) {
+    fl.fares = days.reduce((a, r) => a + r.boardings, 0) * start.revenuePerBoarding.value * s.fareIndex;
+    fl.boardings = days.reduce((a, r) => a + r.boardings, 0) / days.length;
+  }
   s.capitalReserve += start.capitalEnvelope.value / 12;
   const debtBefore = s.debt;
   // maintenance below need builds a backlog; above need works it off
@@ -357,12 +445,44 @@ export function buildGarage(prev: GameState, start: EconomyStart = ECONOMY_2010)
 
 /** Schedule a plan for the next service change. */
 export function schedulePlan(prev: GameState, edits: Edit[]): GameState {
-  return { ...prev, pending: [...edits] };
+  const { pendingFigures: _, ...rest } = prev;
+  return { ...rest, pending: [...edits] };
 }
 
-/** The demand model has re-measured the network in operation. */
-export function setService(prev: GameState, service: ServiceFigures): GameState {
-  return { ...prev, service };
+/** The demand model has measured the scheduled plan (ignored if the plan changed meanwhile). */
+export function setPendingFigures(prev: GameState, figures: PendingFigures): GameState {
+  return figures.key === JSON.stringify(prev.pending) ? { ...prev, pendingFigures: figures } : prev;
+}
+
+/**
+ * The demand model has re-measured the network in operation (after a service change). Riders move
+ * to the new level gradually (see `rampValue`); `routes` are the new equilibrium weekday boardings
+ * of routes the change touched (0 for a removed route), and `routesBefore` their old level.
+ */
+export function setService(prev: GameState, service: ServiceFigures, routes?: Record<string, number>,
+  routesBefore?: Record<string, number>, start: EconomyStart = ECONOMY_2010): GameState {
+  const s: GameState = structuredClone(prev);
+  applyService(s, service, routes, routesBefore, start);
+  return s;
+}
+
+function applyService(s: GameState, service: ServiceFigures, routes: Record<string, number> | undefined,
+  routesBefore: Record<string, number> | undefined, start: EconomyStart) {
+  // riders start moving on the service-change date (measuring may finish a few game days later)
+  const lastChange = s.changes?.at(-1)?.date;
+  const from = lastChange && lastChange <= s.date && lastChange >= addDays(s.date, -60) ? lastChange : s.date;
+  const now = rampValue(s.ramp, from, s.service.boardings, start);
+  if (Math.abs(service.boardings - now) > 1) s.ramp = { from: now, to: service.boardings, start: from };
+  s.service = service;
+  if (routes) {
+    s.routeRamps ??= {};
+    for (const [rid, to] of Object.entries(routes)) {
+      const cur = s.routeRamps[rid];
+      const before = cur ? rampValue(cur, from, cur.to, start) : routesBefore?.[rid] ?? 0;
+      s.routeRamps[rid] = { from: before, to, start: from };
+    }
+  }
+  s.serviceFor = s.applied.length;
 }
 
 /** Change a running lever between budgets (maintenance funding, or fares from next month). */

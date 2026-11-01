@@ -3,11 +3,13 @@ import { BUS_TYPES, ECONOMY_2010, type BusType, type GameEvent, type Lang } from
 import { addMonths, fleetStatus, missedShare, nextServiceChange, projectYear } from '@otc/sim';
 import type { Strings } from '../i18n/strings';
 import type { GameApi } from './useGame';
+import { Delta, weekOnWeek } from './Ridership';
 
-export function fmtDate(iso: string, lang: Lang, style: 'long' | 'short' | 'month' = 'long'): string {
+export function fmtDate(iso: string, lang: Lang, style: 'long' | 'short' | 'month' | 'day' | 'mon' = 'long'): string {
   const d = new Date(`${iso}T12:00:00Z`);
   const opts: Intl.DateTimeFormatOptions = style === 'long' ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
-    : style === 'short' ? { day: 'numeric', month: 'short', year: 'numeric' } : { month: 'short', year: 'numeric' };
+    : style === 'short' ? { day: 'numeric', month: 'short', year: 'numeric' } : style === 'day' ? { weekday: 'short', day: 'numeric', month: 'short' }
+    : style === 'mon' ? { month: 'short' } : { month: 'short', year: 'numeric' };
   // build from parts, without the commas some locales add ("Wednesday, 1 December 2010")
   const parts = new Intl.DateTimeFormat(lang === 'fr' ? 'fr-CA' : 'en-GB', { ...opts, timeZone: 'UTC' }).formatToParts(d);
   const s = parts.filter((p) => p.type !== 'literal').map((p) => p.value).join(' ');
@@ -28,13 +30,16 @@ export function TreasuryChip({ game, t, lang, onClick }: { game: GameApi; t: Str
   return <button className={`status-chip treasury ${tone}`} onClick={onClick} title={t.budgetTitle}><i />{t.reserveChip(money(s.reserve, lang))}</button>;
 }
 
-export function FastButton({ game, t }: { game: GameApi; t: Strings }) {
-  if (!game.state) return null;
+/** Yesterday's riders, and the change from the same day a week before. */
+export function DailyRidersChip({ game, t, lang, fallback, onClick }: { game: GameApi; t: Strings; lang: Lang; fallback: number | null; onClick: () => void }) {
+  const daily = game.state?.daily ?? [];
+  const last = daily.at(-1);
+  const spinner = game.measuring && <span className="measuring" title={t.measuringNote} aria-label={t.measuringNote} />;
+  if (!last) return fallback === null ? null : <button className="status-chip riders" onClick={onClick}><i />{t.ridersChip(fallback)}{spinner}</button>;
   return (
-    <button className={`toggle fast ${game.fast ? 'on' : ''}`} aria-pressed={game.fast} disabled={!!game.decision} onClick={() => game.setFast(!game.fast)}
-      title={t.fastHint} aria-label={t.fastHint}>
-      <svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor"><path d="M2 4l6 6-6 6zM9 4l6 6-6 6z" /><rect x="16" y="4" width="2.2" height="12" rx="1" /></svg>
-      <span className="fast-label">{t.fast}</span></button>
+    <button className="status-chip riders" onClick={onClick} title={t.vsLastWeek}>
+      <i />{t.ridersYesterday(last.boardings)}<Delta pct={weekOnWeek(daily)} lang={lang} />{spinner}
+    </button>
   );
 }
 

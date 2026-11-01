@@ -66,7 +66,7 @@ export interface PlanState {
   // evaluation
   evalState: EvalState;
   runEvaluation: () => void;
-  measure: (edits: Edit[]) => Promise<{ baseline: Scorecard; plan: Scorecard }>;
+  measure: (baseEdits: Edit[], edits: Edit[]) => Promise<{ baseline: Scorecard; plan: Scorecard }>;
 }
 
 /** The planning session: Plan mode, the player's edits (kept in this browser), drawing, travel times and evaluation. */
@@ -164,13 +164,13 @@ export function usePlan(base: NetworkState | null, baseUrl: string, baseEdits: E
     w.postMessage({ type: 'evaluate', id, baseUrl, baseEdits, edits } satisfies ToWorker);
   }, [baseUrl, edits, ensureWorker, baseEdits]);
 
-  /** Score any edits against the 2010 network (used by the game to re-measure the network in operation). */
-  const measure = useCallback((e: Edit[]) => new Promise<{ baseline: Scorecard; plan: Scorecard }>((resolve, reject) => {
+  /** Score edits on top of other edits (used by the game to measure a scheduled plan against the network in operation). */
+  const measure = useCallback((be: Edit[], e: Edit[]) => new Promise<{ baseline: Scorecard; plan: Scorecard }>((resolve, reject) => {
     const w = ensureWorker();
     if (!w) return reject(new Error('Web Workers are not available'));
     const id = -2 - measures.current.size - Math.floor(Math.random() * 1e6);
     measures.current.set(id, { resolve, reject });
-    w.postMessage({ type: 'evaluate', id, baseUrl, baseEdits: [], edits: e } satisfies ToWorker);
+    w.postMessage({ type: 'evaluate', id, baseUrl, baseEdits: be, edits: e } satisfies ToWorker);
   }), [baseUrl, ensureWorker]);
 
   // warm up: score the 2010 network in the background as soon as Plan mode opens (its result is cached in the worker)

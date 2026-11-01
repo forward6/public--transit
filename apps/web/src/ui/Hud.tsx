@@ -1,13 +1,11 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import type { Map as MLMap } from 'maplibre-gl';
-import { LANGS, SEASONS, TIMES, formatClock, region, type Lang, type NetworkStatus, type Season, type TimeOfDay } from '@otc/shared';
+import { LANGS, formatClock, region, type Lang, type NetworkStatus } from '@otc/shared';
 import type { Strings } from '../i18n/strings';
 import type { SpeedIndex } from '../sim/clock';
 import type { Layout } from './useLayout';
 
 export interface Settings {
-  season: Season;
-  time: TimeOfDay;
   lang: Lang;
   buildings3d: boolean;
   /** M3 Riders view */
@@ -32,16 +30,17 @@ interface HudProps {
   onOpenCatalogue: () => void;
   /** weekday boardings from the demand model (null until it is built) */
   boardings: number | null;
-  onOpenRidership: () => void;
+  /** the riders chip (yesterday's riders once the campaign runs) */
+  ridersChip?: ReactNode;
   /** M4 Plan mode */
   planActive: boolean;
   onTogglePlan: () => void;
   dock: ReactNode | null;
-  /** M5: the game date, and the treasury chip / fast-forward button */
+  /** M5: the game date (and a note such as a holiday timetable), and the treasury chip */
   dateLabel?: string;
   dateShort?: string;
+  dayNote?: string;
   treasury?: ReactNode;
-  fastButton?: ReactNode;
 }
 
 export function Logo({ size = 42 }: { size?: number }) {
@@ -75,16 +74,11 @@ function Segmented<T extends string>({ label, value, options, onChange, render }
   );
 }
 
-const SEASON_ICON: Record<Season, string> = { winter: '❄', spring: '✿', summer: '☀', autumn: '❦' };
-
-function Controls({ t, settings, onChange, compact, hasRiders, plan }: { t: Strings; settings: Settings; onChange: HudProps['onChange']; compact: boolean;
+function Controls({ t, settings, onChange, hasRiders, plan }: { t: Strings; settings: Settings; onChange: HudProps['onChange'];
   hasRiders: boolean; plan?: { active: boolean; toggle: () => void } }) {
   return (
     <div className="controls">
       {plan && <button className={`toggle plan-toggle ${plan.active ? 'on' : ''}`} aria-pressed={plan.active} onClick={plan.toggle}>{t.plan}</button>}
-      <Segmented label={t.seasonLabel} value={settings.season} options={SEASONS} onChange={(season) => onChange({ season })}
-        render={(s) => (compact ? SEASON_ICON[s] : t.season[s])} />
-      <Segmented label={t.timeLabel} value={settings.time} options={TIMES} onChange={(time) => onChange({ time })} render={(v) => t.time[v]} />
       <Segmented label={t.languageLabel} value={settings.lang} options={LANGS} onChange={(lang) => onChange({ lang })} render={(v) => v.toUpperCase()} />
       {hasRiders && <button className={`toggle ${settings.riders ? 'on' : ''}`} aria-pressed={settings.riders}
         onClick={() => onChange({ riders: !settings.riders })}>{t.riders}</button>}
@@ -106,11 +100,16 @@ function MapButtons({ t, map }: { t: Strings; map: MLMap | null }) {
   );
 }
 
+/** pause · real time · 1 min/s · 15 min/s · 2 h/s (watch the day go by) · 1 day/s (watch the weeks go by) */
 const SPEED_ICONS = [
   <path key="p" d="M5 4h3.2v12H5zM11.8 4H15v12h-3.2z" />,
   <path key="1" d="M6 4l10 6-10 6z" />,
   <path key="2" d="M3 4l7 6-7 6zM10 4l7 6-7 6z" />,
   <path key="3" d="M1 5l5.5 5L1 15zM7 5l5.5 5L7 15zM13 5l5.5 5-5.5 5z" />,
+  <g key="4"><path fillRule="evenodd" d="M10 1.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 1 0 0-17zm0 2.2a6.3 6.3 0 1 1 0 12.6a6.3 6.3 0 1 1 0-12.6z" />
+    <path d="M9 5h2v4.6l3.4 2.1-1.05 1.7L9 10.8z" /></g>,
+  <g key="5"><path fillRule="evenodd" d="M2.5 5.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v10.5a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2zm2.2 3v7.3h10.6V8.5z" />
+    <path d="M6 1h2.2v4.5H6zM11.8 1H14v4.5h-2.2zM6.5 10h3v3h-3z" /></g>,
 ];
 
 function SpeedControl({ t, speed, onSpeed }: { t: Strings; speed: SpeedIndex; onSpeed: (s: SpeedIndex) => void }) {
@@ -131,11 +130,6 @@ function StatusChip({ t, status, note, onClick }: { t: Strings; status: NetworkS
   return <button className={`status-chip status-${status}`} title={note} onClick={onClick}><i />{t.networkStatus[status]}</button>;
 }
 
-function RidersChip({ t, boardings, onClick }: { t: Strings; boardings: number | null; onClick: () => void }) {
-  if (boardings === null) return null;
-  return <button className="status-chip riders" onClick={onClick}><i />{t.ridersChip(boardings)}</button>;
-}
-
 function Legend({ t, riders, status }: { t: Strings; riders: boolean; status?: ReactNode }) {
   return (
     <section className="legend glass" aria-label={t.legendTitle}>
@@ -153,8 +147,11 @@ function Legend({ t, riders, status }: { t: Strings; riders: boolean; status?: R
 }
 
 export function Hud(props: HudProps) {
+  // the phone's play button resumes at the last speed used
+  const lastSpeed = useRef<SpeedIndex>(3);
+  if (props.speed !== 0) lastSpeed.current = props.speed;
   const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue,
-    boardings, onOpenRidership, planActive, onTogglePlan, dock, dateLabel, dateShort, treasury, fastButton } = props;
+    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury } = props;
   const hasRiders = boardings !== null;
   const planCtl = hasRiders ? { active: planActive, toggle: onTogglePlan } : undefined;
   if (layout === 'phone') {
@@ -162,8 +159,8 @@ export function Hud(props: HudProps) {
       <>
         <header className="m-top glass">
           <Logo size={38} />
-          <div className="m-title"><span>{dateShort ?? t.dateShort} · {inService} {t.inService}</span><b>{formatClock(time)}</b></div>
-          <button className="m-play" aria-label={t.speed[speed === 0 ? 1 : 0]} onClick={() => onSpeed(speed === 0 ? 1 : 0)}>
+          <div className="m-title"><span>{dateShort ?? t.dateShort} · {dayNote ?? `${inService} ${t.inService}`}</span><b>{formatClock(time)}</b></div>
+          <button className="m-play" aria-label={t.speed[speed === 0 ? 3 : 0]} onClick={() => onSpeed(speed === 0 ? (lastSpeed.current || 3) : 0)}>
             <svg viewBox="0 0 20 20" fill="currentColor">{SPEED_ICONS[speed === 0 ? 1 : 0]}</svg>
           </button>
         </header>
@@ -177,10 +174,9 @@ export function Hud(props: HudProps) {
           ) : dock ? dock : (
             <>
               <div className="m-sheet-title">{t.mapStyle}</div>
-              <div className="m-row"><SpeedControl t={t} speed={speed} onSpeed={onSpeed} />{fastButton}</div>
-              <Controls t={t} settings={settings} onChange={onChange} compact hasRiders={hasRiders} plan={planCtl} />
-              <div className="m-chips">{treasury}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} />
-                <RidersChip t={t} boardings={boardings} onClick={onOpenRidership} /></div>
+              <div className="m-row"><SpeedControl t={t} speed={speed} onSpeed={onSpeed} /></div>
+              <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} plan={planCtl} />
+              <div className="m-chips">{treasury}{ridersChip}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></div>
             </>
           )}
         </section>
@@ -201,13 +197,12 @@ export function Hud(props: HudProps) {
         </div>
         <div className="clock">
           <div className="clock-date">{dateLabel ?? t.date}</div>
-          <div className="clock-row"><span className="clock-time">{formatClock(time)}</span><span className="clock-sub">{inService} {t.inService}</span></div>
+          <div className="clock-row"><span className="clock-time">{formatClock(time)}</span>
+            <span className="clock-sub">{dayNote ?? `${inService} ${t.inService}`}</span></div>
         </div>
         <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
-        {fastButton}
-        {layout === 'desktop' && <div className="chips">{treasury}<RidersChip t={t} boardings={boardings} onClick={onOpenRidership} /></div>}
-        {layout !== 'desktop' && treasury}
-        <Controls t={t} settings={settings} onChange={onChange} compact hasRiders={hasRiders} plan={planCtl} />
+        {layout === 'desktop' ? <div className="chips">{treasury}{ridersChip}</div> : treasury}
+        <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} plan={planCtl} />
       </header>
       <MapButtons t={t} map={map} />
       {inspector ? (
@@ -217,7 +212,8 @@ export function Hud(props: HudProps) {
         </aside>
       ) : null}
       {dock}
-      {!dock && <Legend t={t} riders={settings.riders && hasRiders} status={<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} />} />}
+      {!dock && <Legend t={t} riders={settings.riders && hasRiders}
+        status={<>{layout !== 'desktop' && ridersChip}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></>} />}
     </>
   );
 }

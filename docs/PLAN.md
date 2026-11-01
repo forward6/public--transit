@@ -99,8 +99,8 @@ You propose, council decides.
 
 ### 2.3 Calendar and pacing
 
-- **Start date: 1 December 2010**, the first day of the 2010–2014 council term. Your first task is
-  the 2011 budget. *(Open question 2)*
+- **Start date: Wednesday 1 December 2010 at 00:01**, the first day of the 2010–2014 council term.
+  Your first task is the 2011 budget. *(Open question 2)*
 - **The yearly rhythm:**
   - Winter: operations and storms.
   - Spring: service change.
@@ -108,12 +108,14 @@ You propose, council decides.
   - September: service change. Students return, which brings the biggest jump in demand.
   - Autumn: budget.
   - December: holiday service.
-- **Time controls:**
+- **Time controls:** one clock, running continuously through the days.
   - Pause.
-  - **1×:** watch a representative day in about 4 minutes.
-  - **Fast:** a month passes in about 30 seconds.
-  - **Skip to next decision.**
-  - The game auto-pauses on decisions and events.
+  - **Real time**, to watch a day as it happens.
+  - **1 min/s and 15 min/s** to watch buses, and **2 h/s** to watch the day go by.
+  - **1 day/s:** the weeks go by and the riders chart fills; vehicles are hidden.
+  - The game auto-pauses on decisions.
+  - The calendar sets the season and the sun sets day and night; there are no toggles.
+  - **Still to do:** skip to the next decision.
 - **Campaign length:** December 2010 to the end of 2030 (five council terms), then endless mode.
   A full campaign should take roughly 15–25 hours of play. *(Open question 6)*
 - **Election calendar:**
@@ -848,9 +850,24 @@ to keep iteration fast; it expands to the full region afterwards.
      - infrastructure (bus lanes, Transitway segments, rail);
      - service-change dates and costs (M5).
 7. 🔶 **M5 (v1):** money and fleet ([screenshots](screenshots/m5/)).
-   - **The calendar** starts on 1 December 2010. A day passes when the service day ends, or about a
-     month per 25 s in fast-forward. Decisions pause the game. The campaign is saved in the
-     browser.
+   - **The calendar** starts at 00:01 on Wednesday 1 December 2010 and runs on the game clock, which
+     crosses midnight (late trips run on the timetable's 24:00+ times). Speeds: pause, real time,
+     1 min/s, 15 min/s, 2 h/s and 1 day/s; vehicles are hidden at 1 day/s. Decisions pause the
+     game. The campaign and the time of day are saved in the browser.
+   - **The look follows the calendar:** the season from the month (snow from December to March) and
+     night from Ottawa's sunrise and sunset (with daylight saving time). There are no season or
+     day/night buttons any more; `?season=` and `?time=` still pin the look for screenshots.
+   - **Riders day by day:** each day's OC Transpo boardings = the weekday level × season, growth,
+     fares and reliability × the day of the week (Saturday 0.58, Sunday 0.42). Ontario holidays run
+     Sunday service, and the Christmas break is quieter. Saturdays run 60% of weekday trips and
+     Sundays 45%. The Ridership panel charts the last twelve weeks with service changes marked, and
+     the top bar shows yesterday's riders against the same day last week. Monthly fares are the
+     sum of the days.
+   - **Riders take time to respond.** A scheduled plan is measured by the demand model when it is
+     scheduled. From the change date, riders move towards the new level over weeks when service
+     improves (time constant 21 days) and within days when it is cut (6 days). A removed route
+     carries no one from the first day. The routes a change touches, and the four others whose
+     riders move most, are followed day by day.
    - **The books are kept month by month:**
      - fares, from the demand model's ridership × season × growth × fare elasticity × reliability;
      - the levy, gas tax and other revenue;
@@ -862,7 +879,7 @@ to keep iteration fast; it expands to the full region afterwards.
      after their lead time if a garage has room, and garages can be built. A peak requirement above
      the fleet means missed trips.
    - **Plans** from Plan mode are scheduled for the next service change (late April, late June, the
-     Sunday before Labour Day, mid-December). When one takes effect, ridership is re-measured.
+     Sunday before Labour Day, mid-December).
    - **Decisions:**
      - each autumn's budget (levy, fares, maintenance), with a live 12-month projection;
      - deficits: raise the levy, cut service, defer maintenance (backlog, breakdowns) or borrow;
@@ -872,8 +889,9 @@ to keep iteration fast; it expands to the full region afterwards.
    - **Sources:** in `packages/shared/src/economy.ts`. The fleet, garages and fares are from 2010
      sources; the budget lines are labelled estimates.
    - **Still to do:** fare policy detail (passes, U-Pass, concessions), labour contracts, fuel price
-     shocks, capital grants, difficulty presets, council votes on the budget (M7), and costs for
-     changing service between service-change dates.
+     shocks, capital grants, difficulty presets, council votes on the budget (M7), costs for
+     changing service between service-change dates, real Saturday and Sunday timetables, and
+     weather (snowstorms) in the daily riders.
 8. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
 9. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 

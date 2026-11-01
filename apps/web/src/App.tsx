@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MapMouseEvent, Map as MLMap } from 'maplibre-gl';
 import { LANGS, SEASONS, TIMES, parseClock, type Lang, type Season, type TimeOfDay } from '@otc/shared';
 import { MapView, type CameraPadding } from './map/MapView';
@@ -8,15 +8,16 @@ import { STRINGS } from './i18n/strings';
 import { draftFeatures, isoPolys, loadLines, networkLines, networkStops, zonePoints } from './network/geojson';
 import { useNetwork } from './network/useNetwork';
 import { useVehicleAnimation } from './network/useVehicleAnimation';
-import { createClock, type SpeedIndex } from './sim/clock';
+import { DAYS_SPEED, createClock, isNight, seasonOf, type SpeedIndex } from './sim/clock';
+import { serviceDayAt, vehiclesNow } from './sim/service';
 import { Hud, type Settings } from './ui/Hud';
 import { Inspector, type Selection } from './ui/Inspector';
 import { Snow } from './ui/Snow';
 import { usePlan } from './plan/usePlan';
 import { PlanDock, ScorecardPanel } from './plan/PlanUI';
-import { useGame } from './game/useGame';
-import { BudgetPanel, DecisionCard, FastButton, NewsToasts, TreasuryChip, fmtDate } from './game/GameUI';
-import { nextServiceChange } from '@otc/sim';
+import { loadGame, useGame, type Measure } from './game/useGame';
+import { BudgetPanel, DailyRidersChip, DecisionCard, NewsToasts, TreasuryChip, fmtDate } from './game/GameUI';
+import { nextServiceChange, serviceDay } from '@otc/sim';
 import { useLayout, type Layout } from './ui/useLayout';
 
 const params = new URLSearchParams(location.search);
@@ -28,8 +29,6 @@ const pick = <T extends string>(key: string, allowed: readonly T[], fallback: T)
 function initialSettings(): Settings {
   const navLang: Lang = navigator.language?.toLowerCase().startsWith('fr') ? 'fr' : 'en';
   return {
-    season: pick<Season>('season', SEASONS, 'winter'),
-    time: pick<TimeOfDay>('time', TIMES, 'day'),
     lang: pick<Lang>('lang', LANGS, navLang),
     buildings3d: params.get('3d') !== '0',
     riders: params.get('riders') === '1',
@@ -43,8 +42,24 @@ if (params.get('safe')) {
   document.documentElement.style.setProperty('--safe-bottom', `${bottom}px`);
 }
 
-// The game clock: ?t=HH:MM sets the start time (default: the AM peak), ?speed=0..3
-const clock = createClock(parseClock(params.get('t') ?? '07:15'), Math.min(3, Math.max(0, Number(params.get('speed') ?? 1))) as SpeedIndex);
+// The calendar and the sun set the look; ?season= and ?time= pin it (screenshots)
+const seasonPin = params.get('season') && (SEASONS as readonly string[]).includes(params.get('season')!) ? params.get('season') as Season : null;
+const timePin = params.get('time') && (TIMES as readonly string[]).includes(params.get('time')!) ? params.get('time') as TimeOfDay : null;
+
+// The game clock: a new campaign starts at 00:01 on Wednesday 1 December 2010; a saved one resumes
+// where it was. ?t=HH:MM sets the time, ?speed=0..5 the speed (default 15 min per second).
+const CLOCK_KEY = 'otc.clock.v1';
+function startTime(): number {
+  if (params.get('t')) return parseClock(params.get('t')!);
+  try {
+    const saved = JSON.parse(localStorage.getItem(CLOCK_KEY) ?? 'null') as { date: string; t: number } | null;
+    if (saved && saved.date === loadGame()?.date) return saved.t;
+  } catch {
+    /* no saved clock */
+  }
+  return 60;
+}
+const clock = createClock(startTime(), Math.min(5, Math.max(0, Math.round(Number(params.get('speed') ?? 3)) || 0)) as SpeedIndex);
 
 function paddingFor(layout: Layout, inspecting: boolean): CameraPadding {
   const safeTop = Number(params.get('safe')?.split(',')[0] ?? 0);
@@ -55,10 +70,11 @@ function paddingFor(layout: Layout, inspecting: boolean): CameraPadding {
 
 /** Re-render a few times per second with the clock's time (the map animates independently). */
 function useClockView() {
-  const [view, setView] = useState({ time: clock.now(), speed: clock.speed() });
+  const read = () => ({ time: clock.now(), service: clock.serviceTime(), speed: clock.speed() });
+  const [view, setView] = useState(read);
   useEffect(() => {
-    const id = setInterval(() => setView({ time: clock.now(), speed: clock.speed() }), 250);
-    const unsub = clock.subscribe(() => setView({ time: clock.now(), speed: clock.speed() }));
+    const id = setInterval(() => setView(read()), 250);
+    const unsub = clock.subscribe(() => setView(read()));
     return () => {
       clearInterval(id);
       unsub();
@@ -72,20 +88,45 @@ export function App() {
   const [settings, setSettings] = useState<Settings>(initialSettings);
   const [map, setMap] = useState<MLMap | null>(null);
   const [sel, setSel] = useState<Selection>(null);
-  const pal = palette(settings.season, settings.time);
   const t = STRINGS[settings.lang];
   const still = params.has('still') || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const baseUrl = useMemo(() => new URL(import.meta.env.BASE_URL, location.href).href, []);
   const base = useNetwork(baseUrl);
   // the campaign (M5): the network in operation is the 2010 network plus the plans that have taken effect
-  const measureRef = useRef<ReturnType<typeof usePlan>['measure'] | null>(null);
-  const game = useGame(base, clock, (e) => (measureRef.current ? measureRef.current(e) : Promise.reject(new Error('planner not ready'))),
-    Number(params.get('fastms')) || undefined); // ?fastms= speeds fast-forward up (tests)
+  const measureRef = useRef<Measure | null>(null);
+  const measure = useCallback<Measure>((b, e) => (measureRef.current ? measureRef.current(b, e) : Promise.reject(new Error('planner not ready'))), []);
+  const game = useGame(base, clock, measure);
   const plan = usePlan(game.operation, baseUrl, game.state?.applied);
   measureRef.current = plan.measure;
   const net = plan.view; // the 2010 network with the player's edits applied
   const view = useClockView();
-  useVehicleAnimation(map, net?.playback ?? null, clock);
+  const date = game.state?.date ?? '2010-12-01';
+  const dateRef = useRef(date);
+  dateRef.current = date;
+  const serviceDayNow = useCallback(() => serviceDayAt(dateRef.current, clock.now()), []);
+  useVehicleAnimation(map, net?.playback ?? null, clock, serviceDayNow);
+
+  // the look follows the calendar (season) and the sun (night), except when days fly by
+  const night = timePin ? timePin === 'night' : view.speed < DAYS_SPEED && isNight(date, view.time);
+  const pal = palette(seasonPin ?? seasonOf(date), night ? 'night' : 'day');
+
+  // keep the time of day with the saved game
+  useEffect(() => {
+    const save = () => {
+      if (clock.now() < 120) return; // just past midnight: the new date may not be saved yet
+      try {
+        localStorage.setItem(CLOCK_KEY, JSON.stringify({ date: dateRef.current, t: Math.floor(clock.now()) }));
+      } catch {
+        /* storage blocked */
+      }
+    };
+    const id = setInterval(save, 2000);
+    addEventListener('pagehide', save);
+    return () => {
+      clearInterval(id);
+      removeEventListener('pagehide', save);
+    };
+  }, []);
 
   // Plan mode pauses the clock (and restores the speed afterwards)
   const speedBeforePlan = useRef<number | null>(null);
@@ -124,8 +165,6 @@ export function App() {
     document.documentElement.lang = settings.lang;
     document.title = `${t.appName} — 2010`;
     const q = new URLSearchParams(location.search);
-    q.set('season', settings.season);
-    q.set('time', settings.time);
     q.set('lang', settings.lang);
     if (settings.buildings3d) q.delete('3d');
     else q.set('3d', '0');
@@ -140,7 +179,8 @@ export function App() {
     if (s && net) {
       const [type, id] = s.split(':') as [Exclude<Selection, null>['type'], string];
       if (type === 'vehicle') {
-        const v = net.playback.vehiclesAt(clock.now()).find((x) => x.routeId === id) ?? net.playback.vehiclesAt(clock.now())[0];
+        const now = vehiclesNow(net.playback, clock.serviceTime(), serviceDayNow());
+        const v = now.find((x) => x.routeId === id) ?? now[0];
         if (v) setSel({ type: 'vehicle', id: v.tripId });
       } else setSel({ type, id });
     }
@@ -188,9 +228,9 @@ export function App() {
   useEffect(() => {
     if (!map || !net || !follow || sel?.type !== 'vehicle') return;
     const trip = net.playback.trips.find((x) => x.id === sel.id);
-    const v = trip && net.playback.stateOf(trip, view.time);
+    const v = trip && net.playback.stateOf(trip, view.service);
     if (v) map.easeTo({ center: v.lonlat, duration: view.speed === 0 ? 0 : 260, easing: (x) => x });
-  }, [map, net, follow, sel, view.time, view.speed]);
+  }, [map, net, follow, sel, view.service, view.speed]);
 
   const network = useMemo(() => (net ? { lines: networkLines(net.network, net.demand), stops: networkStops(net.network, net.playback),
     zones: zonePoints(net.zones, net.demand), loads: loadLines(net.network, net.demand) } : undefined), [net]);
@@ -213,7 +253,13 @@ export function App() {
   } : undefined;
   const dock = plan.active ? <PlanDock plan={plan} t={t} onOpenScorecard={() => setSel({ type: 'scorecard', id: 'plan' })} routeNames={routeNames}
     schedule={schedule} /> : null;
-  const inService = useMemo(() => net?.playback.vehiclesAt(view.time).length ?? 0, [net, view.time]);
+  const inService = useMemo(() => (net ? vehiclesNow(net.playback, view.service, serviceDayNow()).length : 0), [net, view.service, serviceDayNow]);
+  const routeName = useCallback((id: string) => {
+    const r = game.operation?.network.routes.find((x) => x.id === id) ?? base?.network.routes.find((x) => x.id === id);
+    return r?.shortName ?? id.replace(/^oct-/, '');
+  }, [game.operation, base]);
+  const holiday = game.state && serviceDay(date) === 'sunday' && new Date(`${date}T12:00:00Z`).getUTCDay() !== 0;
+  const openRidership = () => setSel({ type: 'ridership', id: '2011' });
 
   return (
     <>
@@ -223,18 +269,20 @@ export function App() {
       <Snow active={pal.snow} night={pal.night} still={still} />
       <div className="vignette" />
       <Hud layout={layout} t={t} settings={settings} map={map} onChange={(s) => setSettings((prev) => ({ ...prev, ...s }))}
-        time={view.time} speed={view.speed} onSpeed={(s) => clock.setSpeed(s)} inService={inService}
+        time={view.time} speed={view.speed} onSpeed={(s) => !game.decision && clock.setSpeed(s)} inService={inService}
         status={net?.network.status ?? null} statusNote={net?.network.statusNote}
         inspector={sel && net ? (sel.type === 'scorecard' ? <ScorecardPanel plan={plan} t={t} />
           : sel.type === 'budget' ? <BudgetPanel game={game} t={t} lang={settings.lang} />
-          : <Inspector sel={sel} net={net} t={view.time} s={t} lang={settings.lang} palette={pal} onSelect={setSel} plan={plan} />) : null}
+          : <Inspector sel={sel} net={net} t={view.service} s={t} lang={settings.lang} palette={pal} onSelect={setSel} plan={plan}
+            game={game.state} routeName={routeName} day={serviceDayNow()} />) : null}
         planActive={plan.active} onTogglePlan={() => plan.setActive(!plan.active)} dock={dock}
         dateLabel={game.state ? fmtDate(game.state.date, settings.lang) : undefined}
         dateShort={game.state ? fmtDate(game.state.date, settings.lang, 'short') : undefined}
+        dayNote={holiday ? t.holidayService : undefined}
         treasury={<TreasuryChip game={game} t={t} lang={settings.lang} onClick={() => setSel({ type: 'budget', id: 'books' })} />}
-        fastButton={<FastButton game={game} t={t} />}
         onCloseInspector={() => setSel(null)} onOpenCatalogue={() => setSel({ type: 'catalogue', id: '2010' })}
-        boardings={net?.demand?.summary.boardings ?? null} onOpenRidership={() => setSel({ type: 'ridership', id: '2011' })} />
+        boardings={net?.demand?.summary.boardings ?? null}
+        ridersChip={<DailyRidersChip game={game} t={t} lang={settings.lang} fallback={net?.demand?.summary.boardings ?? null} onClick={openRidership} />} />
       {!params.has('nodecision') && <DecisionCard game={game} t={t} lang={settings.lang} />}
       <NewsToasts game={game} t={t} lang={settings.lang} />
     </>
