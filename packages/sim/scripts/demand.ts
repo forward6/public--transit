@@ -11,6 +11,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import type { DemandFile, Network, TravelMode, ZonesFile } from '@otc/shared';
 import { MODES } from '@otc/shared';
 import { DEFAULT_PARAMS, assign, calibrate, calibrationRow, transitSkims, withTripRate } from '../src/demand';
+import { zoneLos } from '../src/evaluate';
 
 const root = new URL('../../../', import.meta.url);
 const data = new URL('apps/web/public/data/', root);
@@ -84,6 +85,10 @@ const out: DemandFile = {
   zones: Object.fromEntries(zones.map((z, i) => [String(z.id), [round(result.zoneTrips[i]!),
     result.zoneTrips[i]! > 0 ? +(result.zoneTransit[i]! / result.zoneTrips[i]!).toFixed(3) : 0]])),
   districts: Object.fromEntries(Object.entries(result.district).map(([d, [t, tr]]) => [d, [round(t), +(tr / t).toFixed(3)]])),
+  los: (() => {
+    const l = zoneLos(zones, skims.peak);
+    return { access: Array.from(l.access, round), wait: Array.from(l.wait, (w) => Math.round(w * 10) / 10) };
+  })(),
   params: params as unknown as Record<string, unknown>,
 };
 writeFileSync(new URL('demand-2011.json', data), JSON.stringify(out));

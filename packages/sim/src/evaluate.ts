@@ -32,6 +32,9 @@ export interface Scorecard {
   annualCost: number;
   costPerBoarding: number;
   byDistrict: Record<string, [number, number]>;
+  /** per zone (zones file order): jobs within 45 min by transit, and the average wait (min) */
+  zoneAccess?: number[];
+  zoneWait?: number[];
   byRoute: Record<string, number>;
   byAgency: Record<string, number>;
 }
@@ -115,6 +118,35 @@ export function jobsWithin(zones: Zone[], skim: TransitSkim, minutes = 45): numb
   return pop > 0 ? sum / pop : 0;
 }
 
+/**
+ * Each zone's level of service (M6, what residents feel): jobs reachable within `minutes` by transit
+ * at the peak (its own jobs included), and the average wait for those trips (job-weighted, minutes).
+ * Zones with no transit get only their own jobs and a 30-minute wait.
+ */
+export function zoneLos(zones: Zone[], skim: TransitSkim, minutes = 45): { access: Float32Array; wait: Float32Array } {
+  const n = zones.length;
+  const jobs = zones.map((z) => (z.jobs.office ?? 0) + (z.jobs.retail ?? 0) + (z.jobs.institutional ?? 0) + (z.jobs.industrial ?? 0));
+  const access = new Float32Array(n);
+  const wait = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let reach = jobs[i]!;
+    let w = 0;
+    let wj = 0;
+    for (let j = 0; j < n; j++) {
+      if (j === i) continue;
+      const ij = i * n + j;
+      const t = skim.ivt[ij]! + skim.wait[ij]! + skim.walk[ij]!;
+      if (!(t === t) || t > minutes) continue;
+      reach += jobs[j]!;
+      w += jobs[j]! * skim.wait[ij]!;
+      wj += jobs[j]!;
+    }
+    access[i] = reach;
+    wait[i] = wj > 0 ? w / wj : 30;
+  }
+  return { access, wait };
+}
+
 export interface EvalInputs {
   zones: Zone[];
   car: Uint8Array;
@@ -155,6 +187,7 @@ export function evaluate(network: Network, inp: EvalInputs, prep?: Prepared): Ev
   const svc = serviceStats(network);
   const annualCost = svc.vehicleHours * COST_PER_VEHICLE_HOUR * WEEKDAYS_PER_YEAR;
   const boardings = asg.totals.boardings;
+  const los = zoneLos(zones, skims.peak);
   const score: Scorecard = {
     trips, transitTrips: res.byMode.transit, transitShare: res.byMode.transit / trips, boardings,
     coverage: coverageShare(zones, network, served.any),
@@ -163,6 +196,8 @@ export function evaluate(network: Network, inp: EvalInputs, prep?: Prepared): Ev
     vehicleHours: svc.vehicleHours, peakVehicles: svc.peakVehicles, annualCost,
     costPerBoarding: annualCost / Math.max(1, boardings * WEEKDAYS_PER_YEAR),
     byDistrict: Object.fromEntries(Object.entries(res.district).map(([d, [t, tr]]) => [d, [t, tr / t]])),
+    zoneAccess: Array.from(los.access, Math.round),
+    zoneWait: Array.from(los.wait, (w) => Math.round(w * 10) / 10),
     byRoute: Object.fromEntries(asg.boardingsByRoute),
     byAgency: [...asg.boardingsByRoute].reduce<Record<string, number>>((a, [rid, b]) => {
       const ag = agencyOf.get(rid) ?? '?';

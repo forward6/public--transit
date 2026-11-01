@@ -3,6 +3,7 @@
 // (OC Transpo / City of Ottawa 2010–2011 budget documents). It's a game: estimates are fine, as long
 // as they are labelled.
 import type { Edit } from './plan';
+import type { DiaryEntry, FrontPage, OpinionState, Post } from './opinion';
 
 const WIKI_2010 = "Wikipedia 'OC Transpo' rev 399504447 (29 Nov 2010) https://en.wikipedia.org/w/index.php?oldid=399504447";
 
@@ -243,6 +244,21 @@ export interface GameState {
   serviceFor?: number;
   /** the scheduled plan, measured when it was scheduled: applied on the service-change date */
   pendingFigures?: PendingFigures;
+  /** each zone's level of service for the network in operation (absent: the 2010 network) */
+  los?: ZoneLos;
+  /** M6: public opinion, riders' diaries, front pages and the social feed */
+  opinion?: OpinionState;
+  diaries?: Record<string, DiaryEntry[]>;
+  press?: FrontPage[];
+  posts?: Post[];
+  /** each persona's usual door-to-door minutes, to notice when a change makes it better or worse */
+  routines?: Record<string, { minutes: number; prev?: number; since: string }>;
+}
+
+/** Per zone (zones file order): jobs within 45 min by transit, and the average wait (min). */
+export interface ZoneLos {
+  access: number[];
+  wait: number[];
 }
 
 /** What the demand model expects once the scheduled plan is in operation. */
@@ -254,4 +270,6 @@ export interface PendingFigures {
   routes: Record<string, number>;
   /** their weekday boardings before the change */
   routesBefore: Record<string, number>;
+  /** zones' level of service once the plan runs */
+  los?: ZoneLos;
 }

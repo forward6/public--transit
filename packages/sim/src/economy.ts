@@ -1,7 +1,8 @@
 import {
   BUS_TYPES, ECONOMY_2010,
-  type BudgetChoice, type BusType, type Edit, type EconomyStart, type FleetGroup, type GameEvent, type GameState, type MonthRecord, type PendingFigures, type Ramp,
+  type BudgetChoice, type BusType, type Edit, type EconomyStart, type FleetGroup, type GameEvent, type GameState, type MonthRecord, type PendingFigures, type Ramp, type ZoneLos,
 } from '@otc/shared';
+import { weatherOn, weatherRiders } from './weather';
 
 /**
  * Money and fleet (PLAN §6, M5): a pure, deterministic monthly simulation of OC Transpo's books
@@ -160,16 +161,16 @@ export function dayFactor(iso: string, start: EconomyStart = ECONOMY_2010): numb
   return f * (christmasBreak && sd === 'weekday' ? 0.72 : 1) * (md === '12-25' ? 0.6 : 1);
 }
 
-/** Boardings on one day: the month's weekday level × the day of the week. */
+/** Boardings on one day: the month's weekday level × the day of the week × the weather. */
 export function dayBoardings(s: GameState, start: EconomyStart = ECONOMY_2010, iso = s.date): number {
-  return monthBoardings(s, start, iso) * dayFactor(iso, start);
+  return monthBoardings(s, start, iso) * dayFactor(iso, start) * weatherRiders(weatherOn(iso, s.seed));
 }
 
 /** Boardings on a changed route on one day (a removed route carries no one from the change on). */
 export function routeDayBoardings(s: GameState, routeId: string, start: EconomyStart = ECONOMY_2010, iso = s.date): number {
   const r = s.routeRamps?.[routeId];
   if (!r || (r.to === 0 && iso >= r.start)) return 0;
-  return rampValue(r, iso, r.to, start) * ridershipFactor(s, start, iso) * dayFactor(iso, start);
+  return rampValue(r, iso, r.to, start) * ridershipFactor(s, start, iso) * dayFactor(iso, start) * weatherRiders(weatherOn(iso, s.seed));
 }
 
 /** One month's revenues and costs (no deliveries or borrowing): the monthly part of the books. */
@@ -308,7 +309,7 @@ export function advanceDay(prev: GameState, start: EconomyStart = ECONOMY_2010):
     s.pending = [];
     delete s.pendingFigures;
     // measured when it was scheduled: riders start moving today (otherwise the game measures it now)
-    if (figs) applyService(s, figs.service, figs.routes, figs.routesBefore, start);
+    if (figs) applyService(s, figs.service, figs.routes, figs.routesBefore, start, figs.los);
   }
   // the autumn budget for next year
   if (d.getUTCMonth() === 10 && d.getUTCDate() === 1) {
@@ -460,14 +461,15 @@ export function setPendingFigures(prev: GameState, figures: PendingFigures): Gam
  * of routes the change touched (0 for a removed route), and `routesBefore` their old level.
  */
 export function setService(prev: GameState, service: ServiceFigures, routes?: Record<string, number>,
-  routesBefore?: Record<string, number>, start: EconomyStart = ECONOMY_2010): GameState {
+  routesBefore?: Record<string, number>, start: EconomyStart = ECONOMY_2010, los?: ZoneLos): GameState {
   const s: GameState = structuredClone(prev);
-  applyService(s, service, routes, routesBefore, start);
+  applyService(s, service, routes, routesBefore, start, los);
   return s;
 }
 
 function applyService(s: GameState, service: ServiceFigures, routes: Record<string, number> | undefined,
-  routesBefore: Record<string, number> | undefined, start: EconomyStart) {
+  routesBefore: Record<string, number> | undefined, start: EconomyStart, los?: ZoneLos) {
+  if (los) s.los = los;
   // riders start moving on the service-change date (measuring may finish a few game days later)
   const lastChange = s.changes?.at(-1)?.date;
   const from = lastChange && lastChange <= s.date && lastChange >= addDays(s.date, -60) ? lastChange : s.date;

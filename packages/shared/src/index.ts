@@ -33,3 +33,5 @@ export * from './network';
 export * from './demand';
 export * from './plan';
 export * from './economy';
+export * from './opinion';
+export * from './personas';

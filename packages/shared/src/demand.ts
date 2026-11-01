@@ -80,6 +80,8 @@ export interface DemandFile {
   zones: Record<string, [number, number]>;
   /** per home district: [weekday trips made by residents, transit share of them] */
   districts: Record<string, [number, number]>;
+  /** each zone's level of service at the peak, in zones file order (M6): jobs within 45 min, average wait (min) */
+  los?: { access: number[]; wait: number[] };
   /** the calibrated model parameters (packages/sim DemandParams), so the game can re-run the model */
   params?: Record<string, unknown>;
 }
