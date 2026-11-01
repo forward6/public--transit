@@ -297,14 +297,14 @@ export const OPINION_FR: OpinionStrings = {
     quiet: () => ({ head: 'Un mois tranquille dans les autobus', deck: 'Aucune perturbation majeure, constatent nos journalistes.' }),
   },
   diary: {
-    great: (n) => `Parti à ${hhmm(n?.depart ?? 0)}, attendu ${n?.waitMin ?? 0} min, ${routes(n)}. ${n?.minutes} minutes porte à porte. Facile.`,
+    great: (n) => `Départ à ${hhmm(n?.depart ?? 0)}, ${n?.waitMin ?? 0} min d’attente, ${routes(n)}. ${n?.minutes} minutes porte à porte. Facile.`,
     fine: (n) => `${n?.minutes} minutes porte à porte avec la ${routes(n)}; attendu ${n?.waitMin} min.`,
     cold: (n) => `Attendu ${n?.waitMin} min à ${n?.stop} par ${n?.temp} °C. Je ne sentais plus mes orteils.`,
     storm: (n) => `De la neige partout : la ${r1(n)} avait ${n?.late} min de retard.`,
     late: (n) => `La ${r1(n)} avait ${n?.late} min de retard.`,
     missed: (n) => `Mon autobus n’est jamais venu. ${n?.waitMin} min à ${n?.stop} avant le suivant.`,
     highFloor: (n) => `Un vieil autobus à plancher élevé est arrivé et je n’ai pas pu monter. Attendu ${n?.waitMin} min pour un autre.`,
-    noBus: (_n, p) => `Aucun autobus possible depuis ${p.home.name} à cette heure. Une voisine m’a conduit.`,
+    noBus: (_n, p) => `Aucun autobus possible depuis ${p.home.name} à cette heure. Une voisine a dû me conduire.`,
     long: (n) => `${n?.minutes} minutes dans chaque sens. Adieu mon après-midi.`,
     better: (_n, _p, d) => `Depuis le changement de service, mon trajet est ${Math.abs(d)} minutes plus court!`,
     worse: (_n, _p, d) => `Depuis le changement de service, mon trajet prend ${Math.abs(d)} minutes de plus.`,
@@ -326,7 +326,7 @@ export const OPINION_FR: OpinionStrings = {
   reasonGood: {
     frequency: 'Un autobus aux quelques minutes chez moi. J’adore.', reach: 'Je peux aller tellement plus loin en autobus maintenant.',
     waits: 'J’attends moins qu’avant.', events: 'Bon de voir la Commission tenir ses promesses.', fares: 'Les tarifs sont raisonnables pour ce qu’on a.',
-    taxes: 'Contente que la taxe de transport n’ait pas augmenté.', spillover: 'L’autobus, ça marche bien pour moi ces temps-ci.', reliability: 'Les autobus passent quand ils doivent.',
+    taxes: 'Bonne nouvelle : la taxe de transport n’a pas augmenté.', spillover: 'L’autobus, ça marche bien pour moi ces temps-ci.', reliability: 'Les autobus passent quand ils doivent.',
   },
   reasonBad: {
     frequency: 'Mon autobus passe aux demi-heures. Pas assez.', reach: 'Aller n’importe où en autobus d’ici prend une éternité depuis les changements.',

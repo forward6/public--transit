@@ -29,7 +29,7 @@ export function weekOnWeek(daily: DayRecord[]): number | null {
 }
 
 export function Delta({ pct, lang }: { pct: number | null; lang: Lang }) {
-  if (pct === null || !Number.isFinite(pct)) return null;
+  if (pct === null || !Number.isFinite(pct) || Math.abs(pct) < 0.05) return null;
   const tone = Math.abs(pct) < 0.05 ? '' : pct > 0 ? 'up' : 'down';
   const txt = `${pct > 0 ? '+' : pct < 0 ? '−' : ''}${Math.abs(pct).toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { maximumFractionDigits: 1 })}${lang === 'fr' ? ' %' : '%'}`;
   return <em className={`delta ${tone}`}>{tone === 'up' ? '▲' : tone === 'down' ? '▼' : ''}{txt}</em>;

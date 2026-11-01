@@ -140,7 +140,9 @@ export function PersonaCard({ p, s, t, lang, onClick }: { p: Persona; s: GameSta
 function diaryLine(e: NonNullable<GameState['diaries']>[string][number], p: Persona, s: GameState, t: Strings): string {
   const rt = s.routines?.[p.id];
   const delta = rt?.prev !== undefined ? rt.minutes - rt.prev : 0;
-  const pickNote = e.out?.none ? e.out : [e.out, e.back].filter(Boolean).sort((a, b) => (b!.waitMin + b!.late) - (a!.waitMin + a!.late))[0];
+  // good days quote the trip out; bad days the worse of the two
+  const calm = ['great', 'fine', 'long', 'better', 'worse', 'noBus'].includes(e.kind);
+  const pickNote = calm ? e.out : [e.out, e.back].filter(Boolean).sort((a, b) => (b!.waitMin + b!.late) - (a!.waitMin + a!.late))[0];
   return t.op.diary[e.kind](pickNote, p, delta);
 }
 

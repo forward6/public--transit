@@ -13,6 +13,8 @@ const { chromium } = require('playwright');
   await ctx.addInitScript(([g, t]) => {
     localStorage.setItem('otc.game.v1', g);
     localStorage.setItem('otc.clock.v1', JSON.stringify({ date: JSON.parse(g).date, t }));
+    const press = JSON.parse(g).press || [];
+    if (press.length) localStorage.setItem('otc.press.seen', press[press.length - 1].month); // don't pop the paper up
   }, [game, h * 3600 + m * 60]);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log('pageerror:', e.message));

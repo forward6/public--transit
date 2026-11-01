@@ -370,7 +370,8 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders
       'circle-color': ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local] as unknown as ExpressionSpecification,
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['match', ['get', 'cls'], 'otrain', 3.4, 2.4], 13.6, ['match', ['get', 'cls'], 'otrain', 7, 5]] as unknown as ExpressionSpecification,
       'circle-stroke-color': p.night ? '#FFFFFF' : '#14213A',
-      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 1.4, 13.6, 2.2],
+      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, muted ? 0.6 : 1.4, 13.6, 2.2],
+      ...(muted ? { 'circle-opacity': 0.35, 'circle-stroke-opacity': 0.35 } : {}),
     } });
   L({ id: 'net-vehicles', type: 'symbol', source: NET_VEHICLES, minzoom: 13.5,
     layout: {

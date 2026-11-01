@@ -164,6 +164,8 @@ export function App() {
   }, [base]);
   const planRef = useRef(plan);
   planRef.current = plan;
+  const opinionRef = useRef(false);
+  opinionRef.current = settings.opinion;
   // the Riders and Opinion views are alternatives
   const changeSettings = (s: Partial<Settings>) => setSettings((prev) => ({ ...prev, ...s, ...(s.opinion ? { riders: false } : {}),
     ...(s.riders ? { opinion: false } : {}) }));
@@ -203,7 +205,8 @@ export function App() {
       const pl = planRef.current;
       if (pl.active && pl.tool === 'draw') return pl.addWaypoint([e.lngLat.lng, e.lngLat.lat]);
       if (pl.active && pl.tool === 'iso') return pl.setIsoOrigin([e.lngLat.lng, e.lngLat.lat]);
-      const layers = PICKABLE.filter((l) => map.getLayer(l));
+      // in the Opinion view a tap means "this neighbourhood" (routes are muted underneath)
+      const layers = (opinionRef.current ? ['rider-pos', 'net-stations', 'op-zones'] : PICKABLE).filter((l) => map.getLayer(l));
       const box: [[number, number], [number, number]] = [[e.point.x - 8, e.point.y - 8], [e.point.x + 8, e.point.y + 8]];
       const f = map.queryRenderedFeatures(box, { layers })[0];
       if (!f) return setSel(null);
