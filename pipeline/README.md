@@ -16,6 +16,8 @@ uv run pytest -q             # offline unit tests
 | `terrain` | NRCan CDEM 16 m window → Terrarium elevation tiles z7–12 | `apps/web/public/data/terrain.pmtiles` (~5 MB) | ~45 s |
 | `tiles` | Vector tiles z7–14 per `packages/shared/src/tile-schema.json` | `apps/web/public/data/basemap-2010.pmtiles` (~26 MB) | ~30 s |
 | `glyphs` | SDF label glyphs for Inter and Source Serif 4 | `apps/web/public/glyphs/` (committed) | ~10 s |
+| `network` | The 2010 transit network: Transitway corridor, stations, O-Train and routes (`--gtfs FILE.zip` imports a feed) | `apps/web/public/data/network-2010.json` | ~10 s |
+| `archive` *(not in `all`)* | Searches the Wayback Machine for 2010 OC Transpo and STO GTFS captures and downloads the closest | `data/raw/archive/*.zip` | — |
 
 Generated data is gitignored. Only the glyphs, which are small and stable, are committed.
 
@@ -45,6 +47,37 @@ kept and removed streets. In the app, add `?history=1` to hatch post-2010 develo
 
 **Known limits:** buildings demolished since 2010 can't be recovered. Towers added in already
 developed areas, such as downtown infill, aren't detected. Fidelity tiers are in `docs/PLAN.md` §3.3.
+
+## The 2010 transit network (M2)
+
+`network2010.py` builds a routable 2010 street and Transitway graph (55k nodes) and
+assembles the **Transitway** from three sources:
+
+- today's busways, dated by OSM ID
+- the corridor later converted to O-Train Line 1, with the downtown tunnel removed
+- the Albert/Slater surface lanes.
+
+It places **26 stations** using Overture place positions snapped to the corridor, and routes each
+pattern's shape along the graph. Running times come from road-class speeds (12 km/h downtown)
+plus dwell. Curation lives in [`curation/network2010/`](curation/network2010/).
+
+**Status:** infrastructure and the original O-Train only. The **2010 bus routes are pending
+archive access**: `web.archive.org` and Wikipedia are blocked by the build environment's
+network policy. Once they're reachable, run:
+
+```bash
+uv run otc-pipeline archive                    # finds and downloads a 2010 GTFS capture
+uv run otc-pipeline network --gtfs data/raw/archive/octranspo_2010MMDD.zip
+```
+
+The GTFS importer (`gtfs.py`) does the following:
+
+- picks the weekday service of 1 December 2010 (or the nearest weekday)
+- groups trips into stop patterns and keeps every departure
+- derives AM-peak run times and dwells
+- classifies routes as Transitway, frequent, local or peak.
+
+It is tested on a synthetic feed.
 
 ## Sources and licences
 

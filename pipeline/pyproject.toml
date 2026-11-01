@@ -13,6 +13,7 @@ dependencies = [
   "pillow>=10",
   "freetype-py>=2.4",
   "fonttools[woff]>=4.50",
+  "scipy>=1.11",
 ]
 
 [project.scripts]

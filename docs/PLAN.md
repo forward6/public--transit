@@ -1,6 +1,6 @@
 # Ottawa Transit Commissioner (OTC)
 
-**Game design & technical plan · v0.4 · 1 November 2026**
+**Game design & technical plan · v0.5 · 1 November 2026**
 
 > An Ottawa–Gatineau transit simulator. The look is defined in [`VISUAL_DESIGN.md`](VISUAL_DESIGN.md),
 > with screenshots from the working visual prototype.
@@ -740,7 +740,7 @@ to keep iteration fast; it expands to the full region afterwards.
 |---|---|---|---|---|
 | M0 ✅ | **Foundations** | Monorepo (pnpm), Vite/React app, sim package, Python pipeline (uv), CI, attribution | CI is green; the app builds | S |
 | M1 ✅ | **The Map** | 2010 basemap tiles, custom day/night style, terrain, 3D buildings, seasons toggle, EN/FR labels; the responsive shell (desktop, iPad, phone layouts; PWA manifest) | You'd happily leave it open as a screensaver, on a laptop, an iPad and a phone | M |
-| M2 | **The 2010 network moves** | 2010 OC Transpo network (Transitway, O-Train, top routes) imported; vehicles animated from timetables; stop and line inspectors | A morning peak plays back on the map | M |
+| M2 🔶 | **The 2010 network moves** | 2010 OC Transpo network (Transitway, O-Train, top routes) imported; vehicles animated from timetables; stop and line inspectors | A morning peak plays back on the map | M |
 | M3 | **People ride** | Zones, synthetic population, demand model, RAPTOR skims, assignment, base-year calibration report | Ridership numbers appear and the 2011 targets are met within tolerance | L |
 | M4 | **Design tools → FIRST PLAYABLE** | Draw and edit routes, stops and frequencies (mouse, touch and Apple Pencil); live preview; isochrones; coverage and Scorecard v1 | You can redesign the network and see riders respond, on any device | L |
 | M5 | **Money and fleet** | Budget, fares, operating costs, garages, fleet ordering, maintenance, service-change calendar | You can run out of money in an interesting way | M |
@@ -798,10 +798,13 @@ to keep iteration fast; it expands to the full region afterwards.
 2. ✅ **M0:** the project skeleton and CI.
 3. ✅ **M1:** the 2010 base map ([screenshots](screenshots/m1/)). Run it with `pnpm dev` after
    `uv run otc-pipeline all`.
-4. Send the **data requests** in §11.3, because their lead times are the longest. The 2010
-   OC Transpo GTFS is the key input for M2.
-5. **M2:** the 2010 network moves: the Transitway, the O-Train and the top routes, with vehicles
-   animated from timetables.
+4. 🔶 **M2 (in progress):** the engine is done. That covers the network format, timetable
+   playback, moving vehicles, the game clock, inspectors and camera-follow, plus the Transitway
+   corridor, 26 stations and the original O-Train ([screenshots](screenshots/m2/)). **Still to
+   do: the 2010 bus routes.** They need `web.archive.org` (and ideally `en/fr.wikipedia.org`)
+   allowed in the environment's network settings. Then `otc-pipeline archive` and
+   `network --gtfs` load them. See `pipeline/README.md`.
+5. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
 6. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 
 ---

@@ -1,0 +1,24 @@
+{
+  "snapshot": "2010-12-01",
+  "note": "Service definitions. Bus routes are added from archived 2010 sources (OC Transpo GTFS, system maps, timetables) — see README.md. Do not add routes without a source.",
+  "routes": [
+    {
+      "id": "oct-otrain",
+      "agency": "octranspo",
+      "shortName": "O",
+      "longName": "O-Train · Bayview – Greenboro",
+      "mode": "rail",
+      "class": "otrain",
+      "color": "#25965A",
+      "patterns": [{ "headsign": "Greenboro", "stops": ["bayview", "carling", "carleton", "confederation", "greenboro"] }],
+      "bidirectional": true,
+      "weekday": [{ "from": "06:00", "to": "23:30", "headwayMin": 15 }],
+      "provenance": {
+        "source": "Claude's knowledge of the 2010 service (diesel O-Train every 15 minutes) — provisional",
+        "confidence": "medium",
+        "verified": false,
+        "note": "Check headway and span against the archived 2010 timetable"
+      }
+    }
+  ]
+}

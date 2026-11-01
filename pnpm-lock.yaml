@@ -19,6 +19,9 @@ importers:
       '@otc/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@otc/sim':
+        specifier: workspace:*
+        version: link:../../packages/sim
       maplibre-gl:
         specifier: ^5.24.0
         version: 5.24.0
@@ -35,6 +38,9 @@ importers:
       '@maplibre/maplibre-gl-style-spec':
         specifier: ^24.10.0
         version: 24.10.0
+      '@types/geojson':
+        specifier: ^7946.0.16
+        version: 7946.0.16
       '@types/node':
         specifier: ^22.20.5
         version: 22.20.5

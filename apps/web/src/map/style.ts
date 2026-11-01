@@ -7,7 +7,8 @@ import type {
   LayerSpecification,
   StyleSpecification,
 } from 'maplibre-gl';
-import type { Lang } from '@otc/shared';
+import type { Lang, RouteClass } from '@otc/shared';
+import type { LinesFC, PointsFC } from '../network/geojson';
 import type { Palette } from './palettes';
 
 export interface StyleOptions {
@@ -17,11 +18,20 @@ export interface StyleOptions {
   terrain: boolean;
   /** hatch the land that was developed after 2010 (review aid, off in normal play) */
   history?: boolean;
+  /** the transit network (M2): static lines + stops; vehicles are streamed into their sources */
+  network?: { lines: LinesFC; stops: PointsFC };
   /** absolute URL prefix where data/ and glyphs/ are served (ends with '/') */
   baseUrl: string;
 }
 
 export const BASEMAP = 'basemap';
+export const NET_LINES = 'net-lines';
+export const NET_STOPS = 'net-stops';
+export const NET_VEHICLES = 'net-vehicles';
+export const NET_TRAILS = 'net-trails';
+export const CLASSES: RouteClass[] = ['local', 'peak', 'rural', 'sto', 'frequent', 'transitway', 'otrain'];
+/** Interactive layers, top-most first (click priority). */
+export const PICKABLE = ['net-vehicles', 'net-vehicle-dots', 'net-stations', 'net-routes', 'net-otrain', 'net-transitway'];
 export const TERRAIN = 'terrain';
 
 type Stops = number[];
@@ -163,6 +173,8 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
       paint: { 'fill-color': ['interpolate', ['linear'], h, 0, p.bldLow, 25, p.bldMid, 90, p.bldHigh], 'fill-opacity': zoomLin(13, 0.5, 15, 1) } });
   }
 
+  if (o.network) addNetworkLayers(L, p);
+
   // --- labels ---------------------------------------------------------------------------------------
   const halo = { 'text-halo-color': p.halo, 'text-halo-width': 1.6, 'text-halo-blur': 0.4 };
   L({ id: 'label-road', type: 'symbol', ...src, 'source-layer': 'roads', minzoom: 12,
@@ -204,6 +216,13 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
       'text-transform': 'uppercase', 'text-letter-spacing': 0.42 },
     paint: { 'text-color': p.labelCity, 'text-opacity': zoomLin(7, 0.9, 11, 0.55, 12.4, 0.2), ...halo } });
 
+  const netSources = o.network ? {
+    [NET_LINES]: { type: 'geojson' as const, data: o.network.lines },
+    [NET_STOPS]: { type: 'geojson' as const, data: o.network.stops },
+    [NET_VEHICLES]: { type: 'geojson' as const, data: { type: 'FeatureCollection', features: [] } },
+    [NET_TRAILS]: { type: 'geojson' as const, data: { type: 'FeatureCollection', features: [] }, lineMetrics: true },
+  } : {};
+
   return {
     version: 8,
     name: `OTC base map 2010 · ${p.id}`,
@@ -215,6 +234,7 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · <a href="https://overturemaps.org">Overture Maps</a>' },
       ...(o.terrain ? { [TERRAIN]: { type: 'raster-dem' as const, url: `pmtiles://${o.baseUrl}data/terrain.pmtiles`, encoding: 'terrarium' as const, tileSize: 256,
         attribution: 'CDEM © Natural Resources Canada' } } : {}),
+      ...netSources,
     },
     layers,
   } as StyleSpecification;
@@ -222,4 +242,100 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
 
 function scale(stops: Stops, k: number): Stops {
   return stops.map((v, i) => (i % 2 ? v * k : v));
+}
+
+/** Transit network layers: corridors, routes, trails, vehicles, stations (VISUAL_DESIGN §3, §5). */
+function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette) {
+  const T = p.transit;
+  const lines = { source: NET_LINES } as const;
+  const corridor = (kind: string): ExpressionSpecification => ['all', ['==', ['get', 'kind'], 'corridor'], ['==', ['get', 'corridor'], kind]];
+  const round = { 'line-join': 'round', 'line-cap': 'round' } as const;
+  const w = (...stops: Stops) => zoomExp(...stops);
+  const glow = p.night;
+
+  // bus routes (from GTFS / archive reconstruction)
+  L({ id: 'net-routes', type: 'line', ...lines, filter: ['==', ['get', 'kind'], 'route'], layout: round,
+    paint: {
+      'line-color': ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local] as unknown as ExpressionSpecification,
+      'line-width': ['interpolate', ['exponential', 1.55], ['zoom'], 10, ['match', ['get', 'cls'], 'frequent', 1.4, 'sto', 1.3, 0.8],
+        16, ['match', ['get', 'cls'], 'frequent', 6, 'sto', 5.5, 3]] as unknown as ExpressionSpecification,
+      'line-opacity': ['match', ['get', 'cls'], 'local', 0.75, 'peak', 0.7, 1] as unknown as ExpressionSpecification,
+    } });
+
+  // Transitway: solid red with a fine white centre line (BRT signature)
+  if (glow) {
+    L({ id: 'net-transitway-glow', type: 'line', ...lines, filter: corridor('busway'), layout: round,
+      paint: { 'line-color': T.transitway, 'line-width': w(10, 8, 16, 34), 'line-blur': w(10, 6, 16, 24), 'line-opacity': 0.35 } });
+  } else {
+    L({ id: 'net-transitway-case', type: 'line', ...lines, filter: corridor('busway'), layout: round,
+      paint: { 'line-color': '#FFFFFF', 'line-width': w(9, 2.6, 12, 5, 16, 14) } });
+  }
+  L({ id: 'net-transitway', type: 'line', ...lines, filter: corridor('busway'), layout: round,
+    paint: { 'line-color': T.transitway, 'line-width': w(9, 1.4, 12, 3, 16, 9.5) } });
+  L({ id: 'net-transitway-centre', type: 'line', ...lines, filter: corridor('busway'), minzoom: 11.5, layout: round,
+    paint: { 'line-color': '#FFFFFF', 'line-opacity': 0.6, 'line-width': w(11.5, 0.5, 16, 2) } });
+
+  // O-Train: green with a dashed white centre line (rail ties)
+  if (glow) {
+    L({ id: 'net-otrain-glow', type: 'line', ...lines, filter: corridor('rail'), layout: round,
+      paint: { 'line-color': T.otrain, 'line-width': w(10, 8, 16, 30), 'line-blur': w(10, 6, 16, 22), 'line-opacity': 0.35 } });
+  } else {
+    L({ id: 'net-otrain-case', type: 'line', ...lines, filter: corridor('rail'), layout: round,
+      paint: { 'line-color': '#FFFFFF', 'line-width': w(9, 2.4, 12, 4.6, 16, 13) } });
+  }
+  L({ id: 'net-otrain', type: 'line', ...lines, filter: corridor('rail'), layout: round,
+    paint: { 'line-color': T.otrain, 'line-width': w(9, 1.3, 12, 2.8, 16, 8.5) } });
+  L({ id: 'net-otrain-centre', type: 'line', ...lines, filter: corridor('rail'), minzoom: 11.5,
+    paint: { 'line-color': '#FFFFFF', 'line-width': w(11.5, 0.6, 16, 2.2), 'line-dasharray': [1, 1.6] } });
+
+  // vehicle trails (gradient per class) and vehicles (oriented silhouettes, see textures.ts)
+  for (const c of CLASSES) {
+    L({ id: `net-trail-${c}`, type: 'line', source: NET_TRAILS, filter: ['==', ['get', 'cls'], c], layout: round,
+      paint: {
+        'line-width': w(10, c === 'otrain' ? 2.5 : 1.6, 16, c === 'otrain' ? 8 : 5.5),
+        'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, rgba(T[c], 0), 0.75, rgba(T[c], glow ? 0.5 : 0.32), 1, rgba(T[c], glow ? 0.9 : 0.6)],
+        'line-blur': glow ? 1.5 : 0.5,
+      } });
+  }
+  if (glow) {
+    L({ id: 'net-vehicle-halo', type: 'circle', source: NET_VEHICLES,
+      paint: { 'circle-color': ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local] as unknown as ExpressionSpecification,
+        'circle-radius': w(10, 5, 16, 20), 'circle-blur': 1, 'circle-opacity': 0.5 } });
+  }
+  // regional zooms: vehicles as bright dots (silhouettes would be specks)
+  L({ id: 'net-vehicle-dots', type: 'circle', source: NET_VEHICLES, maxzoom: 13.6,
+    paint: {
+      'circle-color': ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local] as unknown as ExpressionSpecification,
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['match', ['get', 'cls'], 'otrain', 3.4, 2.4], 13.6, ['match', ['get', 'cls'], 'otrain', 7, 5]] as unknown as ExpressionSpecification,
+      'circle-stroke-color': p.night ? '#FFFFFF' : '#14213A',
+      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 1.4, 13.6, 2.2],
+    } });
+  L({ id: 'net-vehicles', type: 'symbol', source: NET_VEHICLES, minzoom: 13.5,
+    layout: {
+      'icon-image': ['concat', 'veh-', ['get', 'cls'], p.night ? '-n' : '-d'],
+      'icon-rotate': ['get', 'bearing'],
+      'icon-rotation-alignment': 'map',
+      'icon-pitch-alignment': 'map',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      'icon-size': ['interpolate', ['exponential', 1.6], ['zoom'], 13.5, 0.85, 15, 1.1, 17, 1.9],
+    } });
+
+  // stations
+  L({ id: 'net-stations', type: 'circle', source: NET_STOPS, minzoom: 10,
+    paint: {
+      'circle-color': p.stationFill,
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, ['case', ['get', 'transfer'], 3.6, 2.4], 16, ['case', ['get', 'transfer'], 11, 8]],
+      'circle-stroke-color': ['case', ['get', 'transfer'], p.labelCity, ['match', ['get', 'cls'], 'otrain', T.otrain, T.transitway]],
+      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 1.3, 16, 3.2],
+    } });
+  L({ id: 'net-station-labels', type: 'symbol', source: NET_STOPS, minzoom: 12.3,
+    layout: { 'text-field': ['get', 'name'], 'text-font': ['Inter SemiBold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10.5, 16, 13],
+      'text-anchor': 'left', 'text-offset': [0.9, 0], 'text-optional': true, 'text-max-width': 9 },
+    paint: { 'text-color': p.stationText, 'text-halo-color': p.halo, 'text-halo-width': 1.8 } });
+}
+
+function rgba(hex: string, a: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }

@@ -88,6 +88,8 @@ SCHEMAS = {
     "division": pa.schema([("geometry", pa.binary()), ("name", _S), ("name_en", _S), ("name_fr", _S),
                            ("subtype", _S), ("class", _S), ("population", _I), ("region", _S), ("local_type", _S)]),
     "division_area": pa.schema([("geometry", pa.binary()), ("name", _S), ("subtype", _S), ("region", _S)]),
+    "transit_place": pa.schema([("geometry", pa.binary()), ("name", _S), ("name_en", _S), ("name_fr", _S),
+                                ("category", _S), ("confidence", _F)]),
 }
 
 
@@ -189,6 +191,19 @@ def t_division_area(r: Row) -> Row | None:
     return {"geometry": r["geometry"], "name": name, "subtype": r.get("subtype"), "region": r.get("region")}
 
 
+TRANSIT_CATEGORIES = {"bus_station", "train_station", "light_rail_and_subway_stations", "metro_station",
+                      "public_transit_facility_or_service", "transportation"}
+
+
+def t_transit_place(r: Row) -> Row | None:
+    cat = (r.get("taxonomy") or {}).get("primary")
+    if cat not in TRANSIT_CATEGORIES:
+        return None
+    name, en, fr = names_of(r.get("names"))
+    return {"geometry": r["geometry"], "name": name, "name_en": en, "name_fr": fr,
+            "category": cat, "confidence": r.get("confidence")}
+
+
 LAYERS: dict[str, tuple[str, str, list[str], Transform]] = {
     "division_area": ("divisions", "division_area", ["geometry", "names", "subtype", "class", "region"], t_division_area),
     "division": ("divisions", "division", ["geometry", "names", "subtype", "class", "population", "region", "local_type"], t_division),
@@ -198,6 +213,7 @@ LAYERS: dict[str, tuple[str, str, list[str], Transform]] = {
     "segment": ("transportation", "segment",
                 ["geometry", "names", "subtype", "class", "subclass", "road_flags", "rail_flags", "sources"], t_segment),
     "building": ("buildings", "building", ["geometry", "height", "num_floors", "class", "sources"], t_building),
+    "transit_place": ("places", "place", ["geometry", "names", "taxonomy", "confidence"], t_transit_place),
 }
 
 

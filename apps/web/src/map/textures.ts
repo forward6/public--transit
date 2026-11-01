@@ -52,3 +52,47 @@ export function hatchTexture(): ImageData {
   }
   return g.getImageData(0, 0, size, size);
 }
+
+/**
+ * Oriented vehicle silhouette (front = top of the image): articulated buses are longer,
+ * trains are two-car sets. Image ids look like `veh-<class>-<d|n>` (day / night).
+ */
+export function vehicleIcon(cls: string, color: string, night: boolean): ImageData {
+  const train = cls === 'otrain';
+  const w = train ? 18 : cls === 'local' || cls === 'rural' ? 14 : 16;
+  const h = train ? 74 : cls === 'transitway' ? 44 : cls === 'local' || cls === 'rural' ? 30 : 36;
+  const pad = 7;
+  const c = document.createElement('canvas');
+  c.width = w + pad * 2;
+  c.height = h + pad * 2;
+  const g = c.getContext('2d')!;
+  const rr = (x: number, y: number, ww: number, hh: number, r: number) => {
+    g.beginPath();
+    g.roundRect(x, y, ww, hh, r);
+  };
+  // contrast rings: dark outline, then white (day) / dark (night) border, so a vehicle stands out on its own line
+  g.fillStyle = night ? 'rgba(255,255,255,0.85)' : 'rgba(20,33,58,0.9)';
+  rr(pad - 4, pad - 4, w + 8, h + 8, 10);
+  g.fill();
+  g.fillStyle = night ? '#0B1220' : '#FFFFFF';
+  rr(pad - 2.2, pad - 2.2, w + 4.4, h + 4.4, 8);
+  g.fill();
+  g.fillStyle = color;
+  rr(pad, pad, w, h, 6);
+  g.fill();
+  g.fillStyle = 'rgba(255,255,255,0.32)';
+  rr(pad + w * 0.28, pad + 6, w * 0.44, h - 12, 3);
+  g.fill();
+  g.fillStyle = night ? 'rgba(255,250,225,0.95)' : 'rgba(20,33,58,0.55)';
+  rr(pad + 2.5, pad + 2, w - 5, 5, 2);
+  g.fill();
+  if (cls === 'transitway') {
+    g.fillStyle = 'rgba(0,0,0,0.18)';
+    g.fillRect(pad + 1, pad + h * 0.55, w - 2, 1.6); // articulation joint
+  }
+  if (train) {
+    g.fillStyle = 'rgba(0,0,0,0.25)';
+    g.fillRect(pad, pad + h / 2 - 1, w, 2);
+  }
+  return g.getImageData(0, 0, c.width, c.height);
+}

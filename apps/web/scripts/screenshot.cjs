@@ -12,7 +12,8 @@ const { chromium } = require('playwright');
   page.on('pageerror', (e) => console.log('pageerror:', e.message));
   const t = Date.now();
   await page.goto(url);
-  await page.waitForFunction('window.__otc && window.__otc.ready === true', null, { timeout: 300000, polling: 500 });
+  // ready = base map idle; vehicles = first vehicle frame rendered (undefined when there is no network)
+  await page.waitForFunction('window.__otc && window.__otc.ready === true && window.__otc.vehicles !== false', null, { timeout: 300000, polling: 500 });
   await page.waitForTimeout(600);
   await page.screenshot({ path: out });
   console.log(`${out} (${((Date.now() - t) / 1000).toFixed(0)}s)`);

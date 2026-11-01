@@ -1,8 +1,11 @@
 /**
  * @otc/sim — the OTC simulation core (pure TypeScript, no DOM).
  *
- * Placeholder until milestone M2/M3 (see docs/PLAN.md §4 and §12). It will hold the
- * network model, demand model, RAPTOR assignment, operations, civic layer and economy,
- * and run inside Web Workers.
+ * M2: weekday timetables and vehicle playback. Later milestones add demand, assignment,
+ * operations, the civic layer and the economy (docs/PLAN.md §4).
  */
-export const SIM_VERSION = '0.0.1';
+export const SIM_VERSION = '0.1.0';
+
+export * from './geometry';
+export * from './timetable';
+export * from './playback';

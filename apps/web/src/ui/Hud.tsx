@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react';
 import type { Map as MLMap } from 'maplibre-gl';
-import { LANGS, SEASONS, TIMES, region, type Lang, type Season, type TimeOfDay } from '@otc/shared';
+import { LANGS, SEASONS, TIMES, formatClock, region, type Lang, type NetworkStatus, type Season, type TimeOfDay } from '@otc/shared';
 import type { Strings } from '../i18n/strings';
+import type { SpeedIndex } from '../sim/clock';
 import type { Layout } from './useLayout';
 
 export interface Settings {
@@ -16,6 +18,15 @@ interface HudProps {
   settings: Settings;
   onChange: (s: Partial<Settings>) => void;
   map: MLMap | null;
+  /** game clock (seconds after midnight) and speed */
+  time: number;
+  speed: SpeedIndex;
+  onSpeed: (s: SpeedIndex) => void;
+  inService: number;
+  status: NetworkStatus | null;
+  statusNote?: string;
+  inspector: ReactNode | null;
+  onCloseInspector: () => void;
 }
 
 export function Logo({ size = 42 }: { size?: number }) {
@@ -76,31 +87,72 @@ function MapButtons({ t, map }: { t: Strings; map: MLMap | null }) {
   );
 }
 
+const SPEED_ICONS = [
+  <path key="p" d="M5 4h3.2v12H5zM11.8 4H15v12h-3.2z" />,
+  <path key="1" d="M6 4l10 6-10 6z" />,
+  <path key="2" d="M3 4l7 6-7 6zM10 4l7 6-7 6z" />,
+  <path key="3" d="M1 5l5.5 5L1 15zM7 5l5.5 5L7 15zM13 5l5.5 5-5.5 5z" />,
+];
+
+function SpeedControl({ t, speed, onSpeed }: { t: Strings; speed: SpeedIndex; onSpeed: (s: SpeedIndex) => void }) {
+  return (
+    <div className="speed" role="radiogroup" aria-label="Speed">
+      {SPEED_ICONS.map((icon, i) => (
+        <button key={i} role="radio" aria-checked={speed === i} aria-label={t.speed[i]} title={t.speed[i]}
+          className={speed === i ? 'on' : ''} onClick={() => onSpeed(i as SpeedIndex)}>
+          <svg viewBox="0 0 20 20" fill="currentColor">{icon}</svg>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function StatusChip({ t, status, note }: { t: Strings; status: NetworkStatus | null; note?: string }) {
+  if (!status) return null;
+  return <div className={`status-chip status-${status}`} title={note}><i />{t.networkStatus[status]}</div>;
+}
+
 function Legend({ t }: { t: Strings }) {
   return (
     <section className="legend glass" aria-label={t.legendTitle}>
       <div className="lg-title">{t.legendTitle}</div>
+      <div className="lg-row"><svg viewBox="0 0 40 12"><line x1="3" y1="6" x2="37" y2="6" stroke="var(--transitway)" strokeWidth="6" strokeLinecap="round" /><line x1="5" y1="6" x2="35" y2="6" stroke="#fff" strokeWidth="1.3" opacity="0.7" /></svg>{t.legendTransitway}</div>
+      <div className="lg-row"><svg viewBox="0 0 40 12"><line x1="3" y1="6" x2="37" y2="6" stroke="var(--otrain)" strokeWidth="6" strokeLinecap="round" /><line x1="5" y1="6" x2="35" y2="6" stroke="#fff" strokeWidth="1.4" strokeDasharray="2.5 3.5" /></svg>{t.legendOTrain}</div>
+      <div className="lg-row"><svg viewBox="0 0 40 12"><circle cx="20" cy="6" r="4" fill="var(--station-fill)" stroke="var(--transitway)" strokeWidth="2" /></svg>{t.legendStation}</div>
       <div className="lg-row"><svg viewBox="0 0 40 12"><line x1="2" y1="6" x2="38" y2="6" stroke="var(--boundary)" strokeWidth="2" strokeDasharray="6 4" /></svg>{t.legendRegion}</div>
       <div className="lg-row"><i className="sw sw-outside" />{t.legendOutside}</div>
-      <div className="lg-row"><i className="sw sw-field" />{t.legendFields}</div>
       <div className="lg-note">{t.legendNote}</div>
     </section>
   );
 }
 
-export function Hud({ layout, t, settings, onChange, map }: HudProps) {
+export function Hud(props: HudProps) {
+  const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector } = props;
   if (layout === 'phone') {
     return (
       <>
         <header className="m-top glass">
           <Logo size={38} />
-          <div className="m-title"><span>{t.dateShort}</span><b>{t.appShort} · 2010</b></div>
+          <div className="m-title"><span>{t.dateShort} · {inService} {t.inService}</span><b>{formatClock(time)}</b></div>
+          <button className="m-play" aria-label={t.speed[speed === 0 ? 1 : 0]} onClick={() => onSpeed(speed === 0 ? 1 : 0)}>
+            <svg viewBox="0 0 20 20" fill="currentColor">{SPEED_ICONS[speed === 0 ? 1 : 0]}</svg>
+          </button>
         </header>
         <section className="m-sheet">
           <div className="m-grab" />
-          <div className="m-sheet-title">{t.mapStyle}</div>
-          <Controls t={t} settings={settings} onChange={onChange} compact />
-          <div className="m-legend"><i className="sw sw-field" />{t.legendFields}</div>
+          {inspector ? (
+            <>
+              <button className="close" aria-label={t.close} onClick={onCloseInspector}>×</button>
+              {inspector}
+            </>
+          ) : (
+            <>
+              <div className="m-sheet-title">{t.mapStyle}</div>
+              <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
+              <Controls t={t} settings={settings} onChange={onChange} compact />
+              <StatusChip t={t} status={status} note={statusNote} />
+            </>
+          )}
         </section>
       </>
     );
@@ -119,11 +171,19 @@ export function Hud({ layout, t, settings, onChange, map }: HudProps) {
         </div>
         <div className="clock">
           <div className="clock-date">{t.date}</div>
-          <div className="clock-sub">{layout === 'desktop' ? 'M1 · 2010 base map' : t.subtitle}</div>
+          <div className="clock-row"><span className="clock-time">{formatClock(time)}</span><span className="clock-sub">{inService} {t.inService}</span></div>
         </div>
+        <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
+        {layout === 'desktop' && <StatusChip t={t} status={status} note={statusNote} />}
         <Controls t={t} settings={settings} onChange={onChange} compact={layout === 'tablet'} />
       </header>
       <MapButtons t={t} map={map} />
+      {inspector ? (
+        <aside className="inspector glass">
+          <button className="close" aria-label={t.close} onClick={onCloseInspector}>×</button>
+          {inspector}
+        </aside>
+      ) : null}
       <Legend t={t} />
     </>
   );

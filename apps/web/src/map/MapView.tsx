@@ -4,7 +4,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
 import { region } from '@otc/shared';
 import { buildStyle, type StyleOptions } from './style';
-import { hatchTexture, isWindowImage, windowTexture } from './textures';
+import { TRANSIT_DAY, TRANSIT_NIGHT } from './palettes';
+import { hatchTexture, isWindowImage, vehicleIcon, windowTexture } from './textures';
 
 let protocolRegistered = false;
 
@@ -23,7 +24,7 @@ interface Props {
 
 declare global {
   interface Window {
-    __otc?: { map: MLMap; ready: boolean };
+    __otc?: { map: MLMap; ready: boolean; vehicles?: boolean };
   }
 }
 
@@ -32,7 +33,9 @@ const [W, S, E, N] = region.fetchBbox;
 export function MapView({ style, padding, onMap }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MLMap | null>(null);
-  const styleKey = JSON.stringify({ ...style, palette: style.palette.id });
+  const { network, ...rest } = style;
+  const styleKey = JSON.stringify({ ...rest, palette: style.palette.id,
+    net: network ? `${network.lines.features.length}:${network.stops.features.length}` : 0 });
   const appliedKey = useRef(styleKey);
 
   useEffect(() => {
@@ -62,6 +65,11 @@ export function MapView({ style, padding, onMap }: Props) {
       if (map.hasImage(e.id)) return;
       if (isWindowImage(e.id)) map.addImage(e.id, windowTexture(e.id), { pixelRatio: 2 });
       else if (e.id === 'hatch-history') map.addImage(e.id, hatchTexture(), { pixelRatio: 2 });
+      else if (e.id.startsWith('veh-')) {
+        const [, cls = 'local', dn] = e.id.split('-');
+        const colors = (dn === 'n' ? TRANSIT_NIGHT : TRANSIT_DAY) as Record<string, string>;
+        map.addImage(e.id, vehicleIcon(cls, colors[cls] ?? '#8794AB', dn === 'n'), { pixelRatio: 2 });
+      }
     });
     window.__otc = { map, ready: false };
     const markReady = () => {

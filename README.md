@@ -8,8 +8,14 @@ on desktop, iPad and phone.
 
 ![The 2010 base map, winter](docs/screenshots/m1/overview-winter.jpg)
 
-**Status:** M0 (project skeleton) and M1 (the 2010 base map) are done. Next is M2: the 2010
-OC Transpo and STO network moving on the map. See the [roadmap](docs/PLAN.md#12-roadmap).
+**Status:**
+
+- M0 (project skeleton) and M1 (the 2010 base map) are done.
+- M2 is in progress. The Transitway, stations and the original O-Train run on a game clock,
+  with moving vehicles and inspectors. The 2010 bus routes are waiting on access to archived
+  sources.
+
+See the [roadmap](docs/PLAN.md#12-roadmap).
 
 ## Run it
 
@@ -27,6 +33,9 @@ URL options:
 - `&3d=0`
 - `&history=1` hatches post-2010 development
 - `&layout=phone|tablet|desktop`
+- `&t=HH:MM` sets the start time
+- `&speed=0..3` sets the speed (pause, then 1, 5 or 15 min/s)
+- `&select=stop:carleton|route:oct-otrain|vehicle:oct-otrain` opens an inspector
 
 The camera position is kept in `#view=zoom/lat/lng/bearing/pitch`.
 
@@ -36,7 +45,7 @@ The camera position is kept in `#view=zoom/lat/lng/bearing/pitch`.
 |---|---|
 | [`apps/web`](apps/web) | The game client: Vite, React, MapLibre GL and PMTiles; responsive desktop, iPad and phone layouts |
 | [`packages/shared`](packages/shared) | Region definition and the vector-tile contract (`tile-schema.json`) shared with the pipeline |
-| [`packages/sim`](packages/sim) | Simulation core, a placeholder until M2/M3 |
+| [`packages/sim`](packages/sim) | Simulation core: weekday timetables and vehicle playback (M2); demand and the rest come later |
 | [`pipeline`](pipeline) | Python data pipeline: Overture data and NRCan elevation, reconstructed to the 2010 city, written as PMTiles |
 | [`docs`](docs) | [Plan](docs/PLAN.md) and [visual design](docs/VISUAL_DESIGN.md) |
 | [`prototype/visual`](prototype/visual) | The throwaway visual prototype behind the design screenshots |

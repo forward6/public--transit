@@ -2,7 +2,16 @@
 // Tokens follow docs/VISUAL_DESIGN.md §3 (winter day, winter night and summer day are the
 // designed looks; spring, autumn and the other nights are derived from them).
 
-import type { Season, TimeOfDay } from '@otc/shared';
+import type { RouteClass, Season, TimeOfDay } from '@otc/shared';
+
+/** Line colours by route class — real-world OC Transpo / STO colours (VISUAL_DESIGN §3). */
+export type TransitColors = Record<RouteClass, string>;
+export const TRANSIT_DAY: TransitColors = {
+  transitway: '#D7263D', otrain: '#25965A', frequent: '#2856B8', local: '#8794AB', peak: '#6E7FA0', rural: '#9A8C7A', sto: '#0B97A3',
+};
+export const TRANSIT_NIGHT: TransitColors = {
+  transitway: '#FF4A5C', otrain: '#38E08A', frequent: '#5F8DFF', local: '#7E8CA8', peak: '#8C9BC0', rural: '#B8A890', sto: '#22D4E2',
+};
 
 export interface Palette {
   id: string;
@@ -55,6 +64,9 @@ export interface Palette {
   labelRoad: string;
   labelPark: string;
   halo: string;
+  transit: TransitColors;
+  stationFill: string;
+  stationText: string;
   light: { anchor: 'viewport' | 'map'; color: string; intensity: number; position: [number, number, number] };
   sky: Record<string, string | number>;
 }
@@ -110,6 +122,9 @@ const winterDay: Palette = {
   labelRoad: '#5C6B82',
   labelPark: '#4F7A5C',
   halo: '#F1F4F6',
+  transit: TRANSIT_DAY,
+  stationFill: '#FFFFFF',
+  stationText: '#1B2A44',
   light: { anchor: 'viewport', color: '#ffffff', intensity: 0.38, position: [1.35, 205, 38] },
   sky: { 'sky-color': '#C9DCEA', 'horizon-color': '#F1F5F8', 'fog-color': '#EEF2F4', 'sky-horizon-blend': 0.7, 'horizon-fog-blend': 0.7, 'fog-ground-blend': 0.55, 'atmosphere-blend': 0 },
 };
@@ -244,6 +259,9 @@ const winterNight: Palette = {
   labelRoad: '#9AA6BC',
   labelPark: '#7FB59A',
   halo: '#0E1828',
+  transit: TRANSIT_NIGHT,
+  stationFill: '#0E1828',
+  stationText: '#EEF3FB',
   light: { anchor: 'viewport', color: '#9FB7FF', intensity: 0.22, position: [1.2, 160, 50] },
   sky: { 'sky-color': '#050A13', 'horizon-color': '#22304D', 'fog-color': '#0E1828', 'sky-horizon-blend': 0.55, 'horizon-fog-blend': 0.55, 'fog-ground-blend': 0.35, 'atmosphere-blend': 0 },
 };

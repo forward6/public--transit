@@ -1,0 +1,66 @@
+{
+  "snapshot": "2010-12-01",
+  "transitway": {
+    "id": "transitway",
+    "name": "Transitway",
+    "agency": "octranspo",
+    "provenance": {
+      "source": "Today's busways plus the corridor converted to O-Train Line 1 (Overture/OSM geometry, dated by OSM ID); downtown surface lanes on Albert/Slater",
+      "confidence": "medium",
+      "verified": false,
+      "note": "Alignment to be checked against archived 2010 OC Transpo system maps"
+    },
+    "parts": [
+      { "kind": "busway", "name": "Transitway", "note": "bus-only sections that still exist (Southeast, Southwest, West); post-2010 sections excluded by OSM-ID dating" },
+      { "kind": "rail", "name": "Confederation Line", "exclude_bbox": [-75.7125, 45.400, -75.6835, 45.440],
+        "note": "Tunney's Pasture–Blair was the Transitway until conversion to O-Train Line 1 (2015–2019); the downtown tunnel did not exist" },
+      { "kind": "rail", "name": "Confederation Line - West Extension", "clip_bbox": [-75.7560, 45.380, -75.7340, 45.410],
+        "note": "Tunney's Pasture–Westboro trench (later converted); west of Westboro left for archive verification" },
+      { "kind": "road", "names": ["Albert Street", "Slater Street"], "clip_bbox": [-75.7155, 45.400, -75.6915, 45.440], "note": "downtown reserved bus lanes" },
+      { "kind": "road", "names": ["Mackenzie King Bridge"] },
+      { "kind": "road", "names": ["Waller Street"], "clip_bbox": [-75.700, 45.4215, -75.680, 45.4270] },
+      { "kind": "road", "names": ["Nicholas Street"], "clip_bbox": [-75.690, 45.4185, -75.680, 45.4262] }
+    ]
+  },
+  "otrain": {
+    "id": "otrain-corridor",
+    "name": "O-Train (Bayview–Greenboro)",
+    "agency": "octranspo",
+    "provenance": { "source": "Ellwood Subdivision rail corridor (Overture/OSM), see curation/changes_after_2010.json keep_rail_corridor", "confidence": "high", "verified": false }
+  },
+  "stations": [
+    { "id": "westboro", "name": "Westboro", "match": ["Westboro station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "dominion", "name": "Dominion", "match": ["Dominion station"], "corridors": ["transitway"], "confidence": "medium" },
+    { "id": "tunneys", "name": "Tunney's Pasture", "match": ["Tunney's Pasture station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "bayview", "name": "Bayview", "match": ["Bayview station (Ottawa)", "Bayview Station"], "corridors": ["transitway", "otrain"], "confidence": "high" },
+    { "id": "lebreton", "name": "LeBreton", "match": ["Lebreton station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "mackenzie-king", "name": "Mackenzie King", "match": ["Mackenzie King station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "campus", "name": "Campus", "match": ["uOttawa station"], "corridors": ["transitway"], "confidence": "high", "note": "renamed uOttawa when converted to LRT" },
+    { "id": "lees", "name": "Lees", "at": [-75.6705, 45.4163], "corridors": ["transitway"], "confidence": "high", "note": "no place record; position snapped to the corridor" },
+    { "id": "hurdman", "name": "Hurdman", "match": ["Hurdman station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "train", "name": "Train", "match": ["Tremblay station"], "corridors": ["transitway"], "confidence": "high", "note": "Transitway station at the VIA Rail station; renamed Tremblay" },
+    { "id": "st-laurent", "name": "St-Laurent", "match": ["St. Laurent station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "cyrville", "name": "Cyrville", "match": ["Cyrville station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "blair", "name": "Blair", "match": ["OC Transpo Blair Station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "riverside", "name": "Riverside", "match": ["Riverside station (OC Transpo)"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "smyth", "name": "Smyth", "match": ["Smyth station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "pleasant-park", "name": "Pleasant Park", "match": ["Pleasant Park station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "billings-bridge", "name": "Billings Bridge", "match": ["Billings Bridge station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "heron", "name": "Heron", "match": ["Heron station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "walkley", "name": "Walkley", "match": ["Walkley Transitway Station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "greenboro", "name": "Greenboro", "match": ["Greenboro station"], "corridors": ["transitway", "otrain"], "confidence": "high" },
+    { "id": "south-keys", "name": "South Keys", "match": ["South Keys station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "lincoln-fields", "name": "Lincoln Fields", "match": ["Lincoln Fields station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "baseline", "name": "Baseline", "match": ["Baseline station"], "corridors": ["transitway"], "confidence": "high" },
+    { "id": "carling", "name": "Carling", "match": ["Carling station"], "corridors": ["otrain"], "confidence": "high" },
+    { "id": "carleton", "name": "Carleton", "match": ["Carleton station"], "corridors": ["otrain"], "confidence": "high" },
+    { "id": "confederation", "name": "Confederation", "match": ["Confederation station"], "corridors": ["otrain"], "confidence": "high" }
+  ],
+  "to_verify": [
+    "Iris, Queensway, Pinecrest, Bayshore (West/Southwest Transitway): existence and names in Dec 2010",
+    "Fallowfield, Longfields, Strandherd, Barrhaven Centre (Southwest Transitway extension): opening dates",
+    "Eagleson, Terry Fox, Moodie, Scotiabank Place (Kanata): opening dates",
+    "Place d'Orléans, Jeanne d'Arc, Trim, Millennium (Highway 174 park & rides): which existed",
+    "West Transitway alignment west of Westboro (Dominion, Cleary, Lincoln Fields)"
+  ]
+}
