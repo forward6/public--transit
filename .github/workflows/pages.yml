@@ -1,0 +1,71 @@
+name: Publish the game
+
+# Builds the 2010 map data and the web app, and publishes them to GitHub Pages:
+# https://forward6.github.io/public--transit/
+# One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+on:
+  push:
+    branches: [claude/transit-sim-plan]
+    paths-ignore: ['docs/**', '**/*.md', '.github/workflows/archive-2010.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build map data and app
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+
+      # Downloads (Overture, NRCan elevation, Wikipedia revisions) are pinned to fixed releases and
+      # dates, so they are cached between runs; everything after them is rebuilt every time.
+      - uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: otc-raw-${{ hashFiles('pipeline/src/otc_pipeline/config.py', 'pipeline/src/otc_pipeline/wiki.py') }}
+          restore-keys: otc-raw-
+
+      - name: Build the 2010 map data (otc-pipeline all)
+        working-directory: pipeline
+        run: |
+          uv sync --frozen
+          uv run otc-pipeline all
+
+      - name: Build the web app
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter ./apps/web build
+          du -sh apps/web/dist apps/web/dist/data/*
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

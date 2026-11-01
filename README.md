@@ -6,6 +6,9 @@ coverage, accessibility, cost, ridership and public support. Gatineau's STO runs
 its own agenda. The whole thing plays out on an elegant, living 2.5D map. It runs in the browser
 on desktop, iPad and phone.
 
+**▶ Play it: <https://forward6.github.io/public--transit/>** (desktop, iPad and phone). It's
+rebuilt and republished on every push by `.github/workflows/pages.yml`.
+
 ![The 2010 base map, winter](docs/screenshots/m1/overview-winter.jpg)
 
 **Status:**
@@ -56,6 +59,9 @@ The camera position is kept in `#view=zoom/lat/lng/bearing/pitch`.
 | [`prototype/visual`](prototype/visual) | The throwaway visual prototype behind the design screenshots |
 
 Checks: `pnpm check` (typecheck, test, build) and `cd pipeline && uv run pytest`. CI runs both.
+The *Publish the game* workflow builds the map data with `otc-pipeline all` on GitHub's servers
+and publishes the app to GitHub Pages. It needs one setting: Settings → Pages → Source: GitHub
+Actions.
 
 Map data © OpenStreetMap contributors and the Overture Maps Foundation. Elevation © Natural
 Resources Canada. Fonts are under the SIL OFL.
