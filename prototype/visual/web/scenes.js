@@ -121,7 +121,7 @@ const scorecard = (rows, foot) => `
 
 const SC_ROWS = [
   { name: 'Coverage', sub: 'Urban residents ≤ 400 m from a stop', value: '82%', trend: '▲0.4', pct: 82, goal: 90, color: 'var(--good)' },
-  { name: 'Accessibility', sub: 'Step-free stations · Para trips denied 6.1%', value: '41%', trend: '—', pct: 41, goal: 70, color: 'var(--warn)' },
+  { name: 'Accessibility', sub: 'Step-free stations · Para Transpo trips denied 6.1%', value: '41%', trend: '—', pct: 41, goal: 70, color: 'var(--warn)' },
   { name: 'Cost', sub: 'Fare cost recovery', value: '52%', trend: '▼0.8', pct: 52, goal: 55, color: 'var(--ok)' },
   { name: 'Ridership', sub: 'Regional transit mode share', value: '13.5%', trend: '▲0.1', pct: 54, goal: 60, color: 'var(--ok)' },
   { name: 'Public support', sub: 'Approval of the Commission', value: '54%', trend: '▼3', pct: 54, goal: 60, color: 'var(--warn)' },
@@ -132,12 +132,89 @@ const loadProfile = (vals, names, hi) => `
     ${vals.map((v, i) => `<div class="lp-col"><i style="height:${v}%" class="${v > 88 ? 'hot' : v > 70 ? 'warm' : ''}"></i><span>${names[i]}</span></div>`).join('')}
   </div>`;
 
+// ---------- phone & tablet content ----------
+const PHONE_DAY_LABELS = ['Parliament Hill', 'Centretown', 'ByWard Market', 'Sandy Hill', 'LeBreton Flats', 'Vieux-Hull', 'Lowertown',
+  'Ottawa River', 'Rivière des Outaouais', 'Bayview', 'LeBreton', 'Mackenzie King', 'Campus', "Tunney's Pasture", 'Lees', 'Hurdman', 'Hintonburg', 'Little Italy', 'Rideau Canal'];
+const PHONE_PLAN_LABELS = ['Parliament Hill', 'Prince of Wales Bridge', 'Vieux-Hull', 'Wrightville', 'Ottawa River · Rivière des Outaouais', 'Lac Leamy', 'LeBreton', 'Hintonburg'];
+const keep = (list) => (l) => list.includes(l.text) || l.kind === 'draft';
+
+const phoneDaySheet = `
+  <div class="ins-head">
+    <div class="ins-badge" style="background:var(--brt)">BRT</div>
+    <div><div class="ins-title">Downtown Transitway</div><div class="ins-sub">OC Transpo · Albert &amp; Slater</div></div>
+  </div>
+  <div class="m-row" style="margin-top:10px"><div class="pill pill-hot">● At capacity · AM peak</div><span class="m-hint">tap for why</span></div>
+  <div class="big">
+    <div class="big-num">172<span> buses / hour</span></div>
+    <div class="cap"><i style="width:95.5%"></i><b style="left:100%"></b></div>
+    <div class="cap-label"><span>0</span><span>practical capacity ≈ 180</span></div>
+  </div>
+  <div class="grid4">
+    <div><b>8 km/h</b><span>bus speed</span></div>
+    <div><b>64%</b><span>on time</span></div>
+    <div><b>11.2k</b><span>riders / h</span></div>
+    <div><b>38%</b><span>crowded</span></div>
+  </div>
+  <div class="sec">Options</div>
+  <div class="opts">
+    <button><b>Extend bus lanes</b><span>$1.8 M · 3 months · council: likely ✓</span></button>
+    <button class="primary"><b>Fund rail tunnel study</b><span>$12 M · council vote</span></button>
+  </div>`;
+
+const phoneNightSheet = `
+  <div class="rider">
+    <i class="av big">M</i>
+    <div><div class="ins-title">Marc, 44</div><div class="ins-sub">Tunney’s Pasture → Orléans</div></div>
+    <div class="mood bad">frustrated</div>
+  </div>
+  <div class="trip">
+    <div class="tr"><time>17:15</time><span>Boards OC Transpo 95 · standing</span></div>
+    <div class="tr hot"><time>17:28</time><span>Bus queue on Albert St <em>14 min for 1.6 km</em></span></div>
+    <div class="tr now"><time>17:42</time><span><b>Now</b> · approaching Mackenzie King</span></div>
+    <div class="tr ghost"><time>18:24</time><span>Expected home · scheduled 18:02</span></div>
+  </div>`;
+
+const phonePlanSheet = `
+  <div class="m-draw">
+    <div class="seg"><button>Bus</button><button>BRT</button><button class="on">O-Train</button><button>LRT</button><button>Rail</button></div>
+    <button class="m-iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 L4 9 L9 4"/><path d="M4 9 H14 A6 6 0 0 1 14 21 H11"/></svg></button>
+  </div>
+  <div class="ins-head" style="margin-top:12px">
+    <div class="ins-badge" style="background:var(--good)">DRAFT</div>
+    <div><div class="ins-title">O-Train to Hull</div><div class="ins-sub">3.7 km · 4 stations · every 12 min</div></div>
+  </div>
+  <div class="big"><div class="big-num">+9,800<span> riders / weekday</span></div></div>
+  <div class="grid4 g3">
+    <div><b>$165 M</b><span>capital (P50)</span></div>
+    <div><b>14 min</b><span>Montcalm → Tunney’s <s>27</s></span></div>
+    <div><b>241k</b><span>jobs ≤ 30 min <s>168k</s></span></div>
+  </div>
+  <div class="sec">Approvals</div>
+  <div class="appr">
+    <div><span>Ottawa council <em>11 yes · 6 no · 7 undecided</em></span><b class="st warn">close</b></div>
+    <div><span>Gatineau council &amp; STO <em>“Rapibus comes first”</em></span><b class="st hot">opposed</b></div>
+  </div>`;
+
+const tabletPlanDock = `
+  <div class="seg"><button>Bus</button><button>BRT</button><button class="on">O-Train</button><button>LRT</button><button>Rail</button></div>
+  <div class="dock-btns">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 L4 9 L9 4"/><path d="M4 9 H14 A6 6 0 0 1 14 21 H11"/></svg>Undo</button>
+    <button>Auto-place stations</button>
+    <button class="primary">Done</button>
+  </div>
+  <div class="pencil-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 L5 15 L16 4 L20 8 L9 19 Z"/><path d="M14 6 L18 10"/></svg><span><b>Apple Pencil:</b> sketch a line and it snaps to streets or rail corridors · <b>finger:</b> pan, pinch, tilt · <b>long-press:</b> why?</span></div>`;
+
 export const SCENES = {
   // ---------------------------------------------------------------- DAY
   day: {
     theme: 'day',
     palette: 'winterDay',
     camera: { center: [-75.7000, 45.4155], zoom: 12.95, pitch: 42, bearing: -14 },
+    cameras: {
+      tablet: { center: [-75.7005, 45.4165], zoom: 12.8, pitch: 42, bearing: -14, padding: { left: 84, right: 360, top: 70, bottom: 60 } },
+      phone: { center: [-75.7012, 45.4182], zoom: 12.95, pitch: 46, bearing: -14, padding: { top: 140, bottom: 350, left: 0, right: 0 } },
+    },
+    labelFilter: { phone: keep(PHONE_DAY_LABELS) },
     style: { selected: 'Transitway — downtown (Albert/Slater)' },
     snow: { count: 220, maxR: 2.4, alpha: 0.95, shadow: true, bokeh: 6 },
     labels: dayLabels,
@@ -156,14 +233,14 @@ export const SCENES = {
         { label: 'Treasury', value: '$18.4 M' },
         { label: 'Boardings today', value: '212,940' },
         { label: 'Approval', value: '54%', delta: '▼3' },
-        { label: 'Gatineau (STO)', value: 'Cordial', dot: '#0B97A3' },
+        { label: 'STO relations', value: 'Cordial', dot: '#0B97A3' },
         { label: 'Political capital', value: '◆ 12' },
       ],
       left: scorecard(SC_ROWS, '<b>Term goal</b> · Mode share 15% by Oct 2014<br><span>2 of 5 council goals on track</span>'),
       right: `
         <div class="ins-head">
           <div class="ins-badge" style="background:var(--brt)">BRT</div>
-          <div><div class="ins-title">Downtown Transitway</div><div class="ins-sub">Albert &amp; Slater Streets · eastbound + westbound</div></div>
+          <div><div class="ins-title">Downtown Transitway</div><div class="ins-sub">OC Transpo · Albert &amp; Slater Streets, both directions</div></div>
         </div>
         <div class="pill pill-hot">● At capacity · AM peak</div>
         <div class="big">
@@ -191,10 +268,22 @@ export const SCENES = {
         </div>`,
       news: {
         time: '07:58',
-        headline: 'Snow and a wall of buses: downtown commute crawls along Albert and Slater',
+        headline: 'Snow and a wall of buses: OC Transpo’s downtown commute crawls along Albert and Slater',
         meta: 'Transit · 4 more stories ▸',
       },
-      legendTitle: 'Network · December 2010',
+      legendTitle: 'OC Transpo + STO · December 2010',
+      tablet: { hideLeft: true },
+      phone: {
+        dateShort: 'Mon 6 Dec 2010', weatherShort: '−9 °C · snow',
+        phoneKpis: [
+          { label: 'Approval', value: '54%', delta: '▼3' },
+          { label: 'Treasury', value: '$18.4 M' },
+          { label: 'STO', value: 'Cordial', dot: '#0B97A3' },
+          { label: 'Capital', value: '◆ 12' },
+          { label: 'Boardings', value: '212,940' },
+        ],
+        sheet: phoneDaySheet, sheetHeight: '41%',
+      },
     },
   },
 
@@ -203,6 +292,14 @@ export const SCENES = {
     theme: 'night',
     palette: 'winterNight',
     camera: { center: [-75.6972, 45.4209], zoom: 15.55, pitch: 72, bearing: 58.4 },
+    cameras: {
+      tablet: { center: [-75.6975, 45.4208], zoom: 15.35, pitch: 72, bearing: 58.4, padding: { left: 84, right: 360, top: 60, bottom: 60 } },
+      phone: { center: [-75.6990, 45.4203], zoom: 15.05, pitch: 72, bearing: 58.4, padding: { top: 200, bottom: 300, left: 0, right: 0 } },
+    },
+    labelFilter: { phone: (l) => ['Parliament Hill', 'ALBERT ST', 'SLATER ST', 'Mackenzie King', 'Rideau Canal Skateway'].includes(l.text) },
+    calloutsByLayout: {
+      phone: [{ at: [-75.69925, 45.42052], tone: 'hot', dir: 'left', html: '<b>14 min</b> · 1.6 km<br><span>Marc’s 95 on Albert</span>' }],
+    },
     style: { windows: true, flow: true, buildingsOnTop: true },
     snow: { count: 650, maxR: 2.2, alpha: 0.8, bokeh: 14 },
     labels: nightLabels,
@@ -221,7 +318,7 @@ export const SCENES = {
         { label: 'Treasury', value: '$17.9 M' },
         { label: 'Boardings today', value: '301,552' },
         { label: 'Approval', value: '51%', delta: '▼3' },
-        { label: 'Gatineau (STO)', value: 'Strained', dot: '#F5A524' },
+        { label: 'STO relations', value: 'Strained', dot: '#F5A524' },
         { label: 'Political capital', value: '◆ 9' },
       ],
       toast: `<div class="toast-tag">STO · Gatineau</div>
@@ -254,7 +351,7 @@ export const SCENES = {
         <div class="trip">
           <div class="tr"><time>17:05</time><span>Leaves the office at Tunney’s Pasture</span></div>
           <div class="tr warn"><time>17:09</time><span>Waits 6 min in an unheated shelter <em>−27 wind chill</em></span></div>
-          <div class="tr"><time>17:15</time><span>Boards the 95 eastbound · standing</span></div>
+          <div class="tr"><time>17:15</time><span>Boards OC Transpo 95 eastbound · standing</span></div>
           <div class="tr hot"><time>17:28</time><span>Bus queue on Albert St <em>14 min for 1.6 km</em></span></div>
           <div class="tr now"><time>17:42</time><span><b>Now</b> · approaching Mackenzie King</span></div>
           <div class="tr ghost"><time>18:24</time><span>Expected home · scheduled 18:02</span></div>
@@ -269,10 +366,23 @@ export const SCENES = {
         </div>`,
       news: {
         time: '17:20',
-        headline: 'Deep freeze: evening riders wait in −27 wind chill as downtown buses bunch',
+        headline: 'Deep freeze: OC Transpo riders wait in −27 wind chill as downtown buses bunch',
         meta: 'Transit · Gatineau · 2 more stories ▸',
       },
-      legendTitle: 'Network · evening peak',
+      legendTitle: 'OC Transpo + STO · evening peak',
+      tablet: { hideLeft: true },
+      phone: {
+        dateShort: 'Thu 16 Dec 2010', weatherShort: '−18 °C · wind chill −27',
+        phoneKpis: [
+          { label: 'Approval', value: '51%', delta: '▼3' },
+          { label: 'Treasury', value: '$17.9 M' },
+          { label: 'STO', value: 'Strained', dot: '#F5A524' },
+          { label: 'Capital', value: '◆ 9' },
+          { label: 'Boardings', value: '301,552' },
+        ],
+        phoneToast: '<div class="toast-tag">STO</div><div class="m-toast-text"><b>STO is moving 6 routes off Rideau St.</b> Council is split.</div><button>Respond</button>',
+        sheet: phoneNightSheet, sheetHeight: '34%',
+      },
     },
   },
 
@@ -281,6 +391,11 @@ export const SCENES = {
     theme: 'day',
     palette: 'summerDay',
     camera: { center: [-75.7150, 45.4205], zoom: 13.45, pitch: 32, bearing: -6 },
+    cameras: {
+      tablet: { center: [-75.7185, 45.4215], zoom: 13.25, pitch: 30, bearing: -6, padding: { left: 84, right: 360, top: 150, bottom: 120 } },
+      phone: { center: [-75.7268, 45.4236], zoom: 12.55, pitch: 26, bearing: -6, padding: { top: 175, bottom: 315, left: 0, right: 0 } },
+    },
+    labelFilter: { phone: keep(PHONE_PLAN_LABELS) },
     style: { muted: true, noVehicles: true, bloom: true, draft: true },
     labels: planLabels,
     callouts: [],
@@ -296,7 +411,7 @@ export const SCENES = {
         { label: 'Treasury', value: '$22.6 M' },
         { label: 'Boardings today', value: '118,406' },
         { label: 'Approval', value: '57%', delta: '▲2' },
-        { label: 'Gatineau (STO)', value: 'Wary', dot: '#E08A1E' },
+        { label: 'STO relations', value: 'Wary', dot: '#E08A1E' },
         { label: 'Political capital', value: '◆ 15' },
       ],
       left: `
@@ -317,13 +432,13 @@ export const SCENES = {
       right: `
         <div class="ins-head">
           <div class="ins-badge" style="background:var(--good)">DRAFT</div>
-          <div><div class="ins-title">O-Train to Hull</div><div class="ins-sub">Bayview → Hull via the Prince of Wales Bridge</div></div>
+          <div><div class="ins-title">O-Train to Hull</div><div class="ins-sub">OC Transpo · Bayview → Hull via the Prince of Wales Bridge</div></div>
         </div>
         <div class="big">
           <div class="big-num">+9,800<span> riders / weekday</span></div>
         </div>
         <div class="grid4">
-          <div><b>$165 M</b><span>capital · P50<br>range 140–210</span></div>
+          <div><b>$165 M</b><span>capital · P50 · range 140–210</span></div>
           <div><b>$5.2 M</b><span>operating / yr</span></div>
           <div><b>3–4 yrs</b><span>to open</span></div>
           <div><b>+0.6 pt</b><span>frequent-network coverage</span></div>
@@ -352,7 +467,19 @@ export const SCENES = {
         meta: 'Gatineau · Transit · 2 more stories ▸',
       },
       bottomCenter: bloomLegend,
-      legendTitle: 'Network · June 2011',
+      legendTitle: 'OC Transpo + STO · June 2011',
+      tablet: { hideLeft: true, dock: tabletPlanDock },
+      phone: {
+        dateShort: 'Tue 14 Jun 2011', weatherShort: '24 °C · sunny',
+        phoneKpis: [
+          { label: 'Approval', value: '57%', delta: '▲2' },
+          { label: 'Treasury', value: '$22.6 M' },
+          { label: 'STO', value: 'Wary', dot: '#E08A1E' },
+          { label: 'Capital', value: '◆ 15' },
+          { label: 'Boardings', value: '118,406' },
+        ],
+        sheet: phonePlanSheet, sheetHeight: '37%',
+      },
       legendExtra: `<div class="lg-row"><svg viewBox="0 0 46 14" class="lg-sw"><line x1="3" y1="7" x2="43" y2="7" stroke="#fff" stroke-width="9" stroke-linecap="round"/><line x1="3" y1="7" x2="43" y2="7" stroke="var(--good)" stroke-width="5.5" stroke-linecap="round"/><line x1="5" y1="7" x2="41" y2="7" stroke="#fff" stroke-width="1.6" stroke-dasharray="3 3"/></svg><div class="lg-label">Your draft<span>not yet approved</span></div></div>`,
     },
   },

@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <title>Ottawa Transit Commissioner — visual prototype</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#14213A" />
   <link rel="stylesheet" href="node_modules/maplibre-gl/dist/maplibre-gl.css" />
   <link rel="stylesheet" href="node_modules/@fontsource-variable/inter/index.css" />
   <link rel="stylesheet" href="node_modules/@fontsource/source-serif-4/400.css" />
@@ -27,7 +29,16 @@
   <section id="news" class="glass"></section>
   <section id="timeline" class="glass"></section>
   <section id="legend" class="glass"></section>
+  <div id="dock" class="glass" hidden></div>
   <div id="attrib"></div>
+
+  <!-- phone layout -->
+  <header id="m-top" class="glass m-only"></header>
+  <div id="m-kpis" class="m-only"></div>
+  <div id="m-toast" class="glass m-only" hidden></div>
+  <div id="m-fabs" class="m-only"></div>
+  <section id="m-sheet" class="m-only"></section>
+  <nav id="m-tabbar" class="m-only"></nav>
 
   <script type="module" src="app.js"></script>
 </body>

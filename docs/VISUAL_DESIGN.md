@@ -1,10 +1,20 @@
 # Ottawa Transit Commissioner (OTC): Visual Design
 
-**v0.1 · 1 November 2026** · Companion to [`PLAN.md`](PLAN.md) §9
+**v0.2 · 1 November 2026** · Companion to [`PLAN.md`](PLAN.md) §9
 
-This document defines how OTC looks. The three screenshots below were rendered from the working
-prototype in [`prototype/visual/`](../prototype/visual/), using real Ottawa–Gatineau geometry,
-in the browser stack the game will use (MapLibre GL).
+This document defines how OTC looks on **desktop, iPad and phone**. Every screenshot below was
+rendered from the working prototype in [`prototype/visual/`](../prototype/visual/), using real
+Ottawa–Gatineau geometry, in the browser stack the game will use (MapLibre GL).
+
+### Locked decisions
+
+| Topic | Decision |
+|---|---|
+| Default look | **Calm.** The cartographic overview is the default. The cinematic look switches on when you zoom into a corridor (§4). |
+| Colours | **Real-world:** OC Transpo Transitway red, O-Train green, STO teal (§3). |
+| HUD density | **As shown.** The amount of on-screen information is right; keep it. |
+| Agency names | **Real names** in the UI: OC Transpo, STO, Para Transpo, Transitway, O-Train. No real logos. |
+| Devices | **Desktop, iPad and phone**, with one codebase and three layouts (§12). |
 
 > **About the screenshots.** The basemap is real (streets, rivers, parks, building footprints and
 > heights). The 2010 routes are a careful *approximation* drawn for this mock-up. Every number in
@@ -13,7 +23,7 @@ in the browser stack the game will use (MapLibre GL).
 
 ---
 
-## 1. The three screenshots
+## 1. Screenshots
 
 ### 1.1 Winter morning: the overview (Monday 6 December 2010, 08:14)
 
@@ -67,6 +77,33 @@ toward Mackenzie King.
 - **Impact panel (right):** riders, cost, travel times, and every approval the draft needs.
   Gatineau's council is opposed ("Rapibus comes first"). Its separate agenda is a gameplay obstacle.
 
+### 1.4 iPhone: portrait, one-handed
+
+![OTC on iPhone: inspect, follow a rider, plan](screenshots/otc-mobile.png)
+
+The same three moments on a phone. The map fills the screen, and everything else is shared out:
+
+- **Top:** a status capsule (date, time, weather, a big play/pause button) and a row of KPI chips
+  you can swipe. The chips include STO relations.
+- **Bottom:** a **sheet** holds whatever the side panels showed on desktop: corridor details, the
+  rider you're following, or the draft's impact. Below it is an iOS-style **tab bar** (Inspect,
+  Plan, Layers, Council, News).
+- **Partner events** such as STO's move appear as a compact banner with a single *Respond* button.
+- **Right edge:** floating buttons for layers, 3D tilt and the compass.
+
+### 1.5 iPad: landscape, with Apple Pencil
+
+![OTC on iPad: play and plan with Apple Pencil](screenshots/otc-ipad.png)
+
+The iPad keeps the desktop structure but makes it lighter:
+
+- **Panels:** the top bar loses the wordmark and one KPI. The Capital Scorecard folds into the tool
+  rail. The right panel becomes a full-height sidebar that scrolls.
+- **Planning:** the draw tools move to a **floating dock** at the bottom (mode switch, Undo,
+  Auto-place stations, Done), and the bloom legend floats top-left.
+- **Apple Pencil sketches lines** that snap to streets or rail corridors. A finger pans, pinches and
+  tilts.
+
 ---
 
 ## 2. Design principles
@@ -86,6 +123,8 @@ toward Mackenzie King.
    colour-blind players and in bright sunlight.
 6. **Bilingual by default.** Place names appear in their official forms (Vieux-Hull, Rivière des
    Outaouais, Taché), and the UI ships in English and French.
+7. **Same game, every screen.** The phone isn't a "lite" version. It has the same map, the same
+   simulation and the same decisions. Only the arrangement changes (§12).
 
 ---
 
@@ -290,15 +329,93 @@ legend at bottom centre.
 
 ---
 
-## 11. Feedback wanted
+## 11. Feedback received
 
-To lock in the look, it would help to know:
+| Question | Answer |
+|---|---|
+| Calm, cinematic, or both? | **Calm default**, cinematic when zoomed in. |
+| Colours | **Keep the real-world colours.** |
+| HUD density | **Perfect as shown.** |
+| Agency names | **Real names** (OC Transpo, STO). |
+| Devices | **Must work on phone and iPad** (see §12). |
 
-1. **Overall direction:** do you prefer the calm cartographic day look, the cinematic night look,
-   or the balance shown (calm by default, cinematic when you zoom in)?
-2. **3D amount:** gentle tilt (screenshot 1) as the default, or more 3D?
-3. **Colours:** keep the real-world-ish red Transitway and green O-Train, or use an original OTC
-   palette?
-4. **HUD density:** is the amount of on-screen information right, too much or too little?
-5. **Agency names:** use real names in the UI (OC Transpo, STO), or generic ones? The mock-up
-   currently uses "Transitway", "O-Train" and "STO".
+---
+
+## 12. Phone and iPad
+
+One codebase serves three layouts, chosen by viewport width. Rotating a device or resizing a window
+switches layout live, and nothing is lost.
+
+| Layout | Width | Typical devices |
+|---|---|---|
+| **Desktop** | ≥ 1300 px | laptops, desktops, iPad with an external display |
+| **Tablet** | 700–1299 px | iPad in landscape (iPad Air/Pro 11″ and 13″); large iPads in portrait |
+| **Phone** | < 700 px | iPhone and Android phones in portrait; iPad mini in portrait |
+
+### 12.1 Where everything goes
+
+| Desktop element | iPad (tablet) | Phone |
+|---|---|---|
+| Top bar (wordmark, clock, speed, 5 KPIs) | logo, clock, speed, 4 KPIs | status capsule (clock, weather, play/pause) plus a row of KPI chips you can swipe |
+| Tool rail (left) | tool rail, with 46 px buttons | **tab bar** at the bottom (Inspect, Plan, Layers, Council, News) |
+| Left panel (Scorecard, Overlays, Draw) | folds into the rail, opens as a drawer; draw tools become a **bottom dock** | Scorecard opens from the KPI chips; Overlays sit in the Layers tab; draw tools sit at the top of the sheet |
+| Right panel (inspector, rider, impact) | full-height **sidebar** that scrolls | **bottom sheet** with peek, half and full states |
+| Toasts (STO, council) | top-centre | compact banner under the KPIs with one primary action |
+| News, day curve, legend | a one-line headline; legend in Layers | News tab; legend in Layers |
+| Callouts | as on desktop | shorter text, and they point away from the screen edge |
+
+### 12.2 Touch, Pencil and keyboard
+
+- **Map gestures:**
+  - one finger pans
+  - pinch zooms
+  - a two-finger vertical drag tilts
+  - a two-finger twist rotates
+  - double-tap zooms in
+- **Tap** selects. **Long-press** opens the "Why?" explanation for anything on the map or in the
+  HUD.
+- **Drawing on a phone:**
+  - tap to add waypoints, which snap to streets or rail corridors
+  - drag the amber handles to re-route, with a magnifier loupe under your finger
+  - Undo is always one tap away
+- **Apple Pencil (iPad):**
+  - sketch a whole line in one stroke and it snaps to the network
+  - the eraser end or a double-tap undoes
+  - hover (on supported iPads) previews the snap before you touch down
+  - your finger always pans, so you never draw by accident
+- **Keyboard and trackpad** on iPad and desktop: the same shortcuts (space = pause, 1–4 = speed,
+  R = draw route, L = layers, ? = why) and hover tooltips.
+- **Touch targets** are at least 44 × 44 pt. Text never goes below 11 pt and respects the system
+  text size (Dynamic Type) where it can.
+- **Safe areas:** the layout respects the notch, Dynamic Island and home indicator
+  (`viewport-fit=cover` with `env(safe-area-inset-*)`).
+
+### 12.3 Phone sheet states
+
+| State | What shows | When |
+|---|---|---|
+| **Peek** | title, the one key number, and a status pill | nothing urgent; maximum map |
+| **Half** | the full key stats and the main actions (the screenshots) | default after you tap something |
+| **Full** | everything the desktop panel shows, scrolling | swipe up, or tap "more" |
+
+### 12.4 Performance on mobile
+
+| Concern | Approach |
+|---|---|
+| Map data size | **PMTiles vector tiles**, streamed by area and zoom, instead of raw GeoJSON. Buildings only from about zoom 14, with simpler footprints on phones. |
+| GPU and battery | Device pixel ratio capped at 2. A 60 fps target, with a **30 fps battery-saver** when the game is idle or on battery. Snow particles and glow are reduced on low-power devices. |
+| Vehicles | The simulation runs every vehicle in Web Workers, but phones *draw* only the vehicles in view. Off-screen vehicles cost nothing to render. |
+| Memory (iOS Safari limits) | Aggregate demand stays in compact typed arrays; agent sampling is capped per device class; textures are shared. |
+| Simulation speed | Phones run the "fast preview" model continuously and the full evaluation in the background at service changes (PLAN §4.4). |
+| Offline and install | An **installable PWA** ("Add to Home Screen"): full screen, works offline from cached tiles, saves to IndexedDB. An App Store wrapper (Capacitor) is an option later. |
+
+### 12.5 Prototype status
+
+The prototype implements the three layouts. Add `?layout=phone` or `?layout=tablet` to override the
+automatic choice, and `&safe=59,34` to simulate iPhone safe areas. `tools/render.cjs` renders any
+viewport, and `tools/frames.cjs` composites the device mock-ups above. Not yet prototyped:
+
+- sheet drag states
+- the Pencil stroke-to-route snapping
+- the magnifier loupe
+- portrait iPad (it will use the phone structure with a wider, floating sheet).

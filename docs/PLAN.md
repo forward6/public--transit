@@ -1,6 +1,6 @@
 # Ottawa Transit Commissioner (OTC)
 
-**Game design & technical plan · v0.2 · 1 November 2026**
+**Game design & technical plan · v0.3 · 1 November 2026**
 
 > An Ottawa–Gatineau transit simulator. The look is defined in [`VISUAL_DESIGN.md`](VISUAL_DESIGN.md),
 > with screenshots from the working visual prototype.
@@ -11,8 +11,9 @@
 
 | Topic | Decision |
 |---|---|
-| Platform | Web browser (WebGL2, with WebGPU later). Nothing to install. |
-| Visual style | An elegant 2.5D "living map": geographically exact top-down cartography, glowing routes and moving vehicles. Tilt and zoom into 3D neighbourhoods. |
+| Platform | Web browser (WebGL2, with WebGPU later) on **desktop, iPad and phone**. Installable as a PWA; nothing needed from an app store. |
+| Visual style | An elegant 2.5D "living map": geographically exact top-down cartography, glowing routes and moving vehicles. **Calm by default; cinematic 3D when you zoom in.** Real-world line colours. See [`VISUAL_DESIGN.md`](VISUAL_DESIGN.md). |
+| Agency names | **Real:** OC Transpo, STO, Para Transpo, Transitway, O-Train. No real logos. |
 | Region | The whole City of Ottawa (urban, suburban and rural) plus the City of Gatineau. |
 | Start state | **Campaign:** the real 2010 network (OC Transpo and STO). **Sandbox:** the real 2010 city with no transit. |
 | History after 2010 | **Fully player-driven.** The city is exact on day one and then grows in response to your decisions. Nothing after 2010 is scripted. |
@@ -571,10 +572,12 @@ The game should practise what it preaches:
 
 ### 9.6 Names and branding
 
-- **Real:** geography, place names and ward names. Route numbers can match 2010.
+- **Real:** geography, place names, ward names, and **agency and service names** (OC Transpo, STO,
+  Para Transpo, Transitway, O-Train). Route numbers can match 2010. Line colours follow the real
+  ones.
 - **Fictional:** politicians, journalists, media outlets and riders.
-- **Transit agencies** get generic names by default. There is an optional "real names" setting for
-  private play, and no real logos are used. *(Open questions 3 and 4)*
+- **No real logos** or official artwork. If the game is ever released publicly or commercially, the
+  use of agency names should be reviewed first (§13).
 
 ---
 
@@ -596,6 +599,7 @@ The game should practise what it preaches:
 | i18n | i18next, English and French. | Bilingual from day one. |
 | Tests | Vitest for simulation and calibration tests; Playwright for UI smoke tests and screenshot comparisons. | Catch regressions in both numbers and visuals. |
 | Hosting | Static hosting (Cloudflare Pages or Netlify, both of which can set the COOP/COEP headers needed for SharedArrayBuffer). PMTiles go on object storage. | Cheap and fast. |
+| Devices | One responsive app with **desktop, tablet and phone layouts**; touch, Apple Pencil, keyboard and trackpad input; an installable **PWA** with offline tiles and saves. Capacitor is an option later for the App Store. | iPad and phone are first-class targets (VISUAL_DESIGN §12). |
 | CI | GitHub Actions: typecheck, lint, test, build and a preview deploy. | |
 
 ### 10.2 Repository layout
@@ -727,17 +731,17 @@ to keep iteration fast; it expands to the full region afterwards.
 | # | Milestone | Includes | Done when | Size |
 |---|---|---|---|---|
 | M0 | **Foundations** | Monorepo, Vite/React app, sim package, Python pipeline skeleton, CI, attribution file, decisions log | CI is green and an empty map page deploys to a preview URL | S |
-| M1 | **The Map** | 2010 basemap tiles, custom day/night style, terrain, 3D buildings, seasons toggle, EN/FR labels | You'd happily leave it open as a screensaver | M |
+| M1 | **The Map** | 2010 basemap tiles, custom day/night style, terrain, 3D buildings, seasons toggle, EN/FR labels; the responsive shell (desktop, iPad, phone layouts; PWA manifest) | You'd happily leave it open as a screensaver, on a laptop, an iPad and a phone | M |
 | M2 | **The 2010 network moves** | 2010 OC Transpo network (Transitway, O-Train, top routes) imported; vehicles animated from timetables; stop and line inspectors | A morning peak plays back on the map | M |
 | M3 | **People ride** | Zones, synthetic population, demand model, RAPTOR skims, assignment, base-year calibration report | Ridership numbers appear and the 2011 targets are met within tolerance | L |
-| M4 | **Design tools → FIRST PLAYABLE** | Draw and edit routes, stops and frequencies; live preview; isochrones; coverage and Scorecard v1 | You can redesign the network and see riders respond | L |
+| M4 | **Design tools → FIRST PLAYABLE** | Draw and edit routes, stops and frequencies (mouse, touch and Apple Pencil); live preview; isochrones; coverage and Scorecard v1 | You can redesign the network and see riders respond, on any device | L |
 | M5 | **Money and fleet** | Budget, fares, operating costs, garages, fleet ordering, maintenance, service-change calendar | You can run out of money in an interesting way | M |
 | M6 | **Opinion and media** | Opinion grid, rider diaries, "Follow a rider", headline generator, opinion maps | The public's reaction is visible and explainable | M |
 | M7 | **Council, elections and partners** | Councillors, whip counts, votes, Political Capital, elections, STO AI, funders, NCC, labour | A full four-year term plays out with soft consequences | L |
 | M8 | **Big projects** | LRT, commuter rail, Transitway segments, river crossings; procurement, construction disruption, opening day | You can build a rapid-transit line from proposal to opening | L |
 | M9 | **Growth** | Land-use allocation, developer proposals, TOD, urban boundary debates, ward redistribution | The 2030 city looks different depending on how you played | M |
 | M10 | **Campaign and content** | Tutorial, term goals, scenarios, achievements, 2030 legacy retrospective, sandbox options | A complete campaign from 2010 to 2030 | M |
-| M11 | **Polish** | Schematic morph, seasonal effects, signature moments, audio, accessibility pass, French pass, performance | The game feels finished and lovely | L |
+| M11 | **Polish** | Schematic morph, seasonal effects, signature moments, audio, accessibility pass, French pass, performance (including a mobile battery and memory budget), offline PWA | The game feels finished and lovely, and plays well on a phone | L |
 
 **How we'll work (solo + Claude):**
 
@@ -758,7 +762,8 @@ to keep iteration fast; it expands to the full region afterwards.
 | Browser performance with about 1.2M people | Laggy or slow evaluation | Aggregate demand with sampled agents; workers; fast-preview sampling; WASM only if needed. |
 | Scope creep, especially in the full civic layer | It never ships | Ship v1 of each system thin and data-driven (events and actors as JSON); roadmap gates. |
 | Realism makes it unfun | Players bounce off | Difficulty presets, generous "Planner" mode, strong feedback and "Why?" explanations. |
-| Real people, trademarks, defamation | Legal or ethical problems if it goes public | Fictional politicians and media; generic agency names by default; no logos. |
+| Real people, trademarks, defamation | Legal or ethical problems if it goes public | Fictional politicians and media. Real agency names are used by decision, but no logos or official artwork. Review the name use before any public or commercial release. |
+| Mobile performance and memory (iOS Safari) | Stutter, crashes, battery drain on phones | Vector tiles with level-of-detail, a device-pixel-ratio cap, draw only on-screen vehicles, a 30 fps battery-saver, compact typed arrays, and per-device-class agent caps (VISUAL_DESIGN §12.4). |
 | OpenStreetMap coverage in 2010 is patchy | Missing streets or buildings | Hybrid snapshot: current data minus a curated post-2010 list, plus manual review of the core. |
 | Licence compliance | Takedown risk | `ATTRIBUTION.md`, an in-game credits screen, ODbL share-alike handled for derived data. |
 
@@ -770,9 +775,9 @@ to keep iteration fast; it expands to the full region afterwards.
 |---|---|---|
 | 1 | ~~Gatineau control~~ | **Decided:** STO runs separately, collaborating but with its own political agenda. |
 | 2 | **Start date:** 1 December 2010 (new council term, budget first) or 1 January 2010 (the October 2010 election early on)? | 1 December 2010. |
-| 3 | **Names:** generic agency names by default with a "real names" option for private play? | Yes. |
+| 3 | ~~Names~~ | **Decided:** real agency names (OC Transpo, STO), no logos. |
 | 4 | **Public release:** will this eventually be online for others to play? This affects hosting, licensing and names. | Assume yes, eventually, and design for it from the start. |
-| 5 | **Target hardware:** a mid-range laptop with integrated graphics? Tablets? | Mid-range laptop; tablet later. |
+| 5 | ~~Target hardware~~ | **Decided:** desktop, iPad and phone, all first-class. |
 | 6 | **Campaign end:** 2030 (five terms), 2026 (the present) or open-ended? | 2030, then endless mode. |
 | 7 | ~~Title~~ | **Decided:** Ottawa Transit Commissioner (OTC). |
 | 8 | **Pandemic-style demand shock:** include it as an optional random event? | Optional, off by default. |
@@ -781,9 +786,8 @@ to keep iteration fast; it expands to the full region afterwards.
 
 ## 15. Immediate next steps
 
-1. **Graphics first (in progress):** the visual direction and three screenshots are in
-   [`VISUAL_DESIGN.md`](VISUAL_DESIGN.md), from the prototype in `prototype/visual/`. Give feedback
-   on its §11 questions.
+1. **Graphics: direction locked.** Calm default, real colours, real names, the HUD as shown, and
+   phone and iPad layouts are all in [`VISUAL_DESIGN.md`](VISUAL_DESIGN.md).
 2. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 3. **M0:** scaffold the repo, CI and an empty map page.
 4. Send the **data requests** in §11.3, because their lead times are the longest.

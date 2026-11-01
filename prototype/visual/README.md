@@ -27,8 +27,13 @@ python3 -m venv /tmp/otc-venv && /tmp/otc-venv/bin/pip install pyarrow shapely
 python3 -m http.server 8765 --bind 127.0.0.1 &
 
 # 4. Open http://127.0.0.1:8765/web/index.html?scene=day   (or night, plan)
-#    or render PNGs headlessly:
-node tools/render.cjs http://127.0.0.1:8765 ../../docs/screenshots day,night,plan
+#    The layout follows the window width (phone < 700 px, tablet < 1300 px, desktop);
+#    add &layout=phone|tablet|desktop to force one and &safe=59,34 to simulate iPhone safe areas.
+#    Or render PNGs headlessly:
+node tools/render.cjs http://127.0.0.1:8765 ../../docs/screenshots day,night,plan            # desktop 1920x1080
+node tools/render.cjs http://127.0.0.1:8765 /tmp/raw day,night,plan 3 393x852 -phone "safe=59,34"
+node tools/render.cjs http://127.0.0.1:8765 /tmp/raw day,plan 2 1194x834 -ipad "safe=24,20"
+node tools/frames.cjs /tmp/raw ../../docs/screenshots                                        # device mock-ups
 ```
 
 ## What is real and what is not

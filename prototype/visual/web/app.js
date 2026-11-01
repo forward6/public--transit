@@ -7,7 +7,17 @@ import { SCENES } from './scenes.js';
 const params = new URLSearchParams(location.search);
 const scene = SCENES[params.get('scene') || 'day'];
 const P = PALETTES[scene.palette];
-document.body.classList.add(`theme-${scene.theme}`);
+// Layout mode: phone (< 700 px wide), tablet (< 1300 px, e.g. iPad), desktop. ?layout= overrides.
+const layout = params.get('layout') || (innerWidth < 700 ? 'phone' : innerWidth < 1300 ? 'tablet' : 'desktop');
+document.body.classList.add(`theme-${scene.theme}`, `layout-${layout}`);
+// Safe-area insets (notch / home indicator). Real devices use env(); ?safe=top,bottom simulates them.
+if (params.get('safe')) {
+  const [t, b] = params.get('safe').split(',');
+  document.documentElement.style.setProperty('--safe-top', `${t}px`);
+  document.documentElement.style.setProperty('--safe-bottom', `${b}px`);
+}
+const cam = scene.cameras?.[layout] || scene.camera;
+const hud = { ...scene.hud, ...(scene.hud[layout] || {}) };
 window.__ready = false;
 
 // ---------- vehicles recoloured for the palette ----------
@@ -29,13 +39,15 @@ if (scene.style?.draft) {
 const map = new maplibregl.Map({
   container: 'map',
   style: makeStyle(P, { ...scene.style, ...(params.get('nowin') ? { windows: false } : {}), vehiclesData: veh, draftHandles }),
-  ...scene.camera,
+  center: cam.center, zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing,
   maxPitch: 75,
   attributionControl: false,
   canvasContextAttributes: { preserveDrawingBuffer: true, antialias: true },
   pixelRatio: window.devicePixelRatio,
   fadeDuration: 0,
 });
+
+if (cam.padding) map.setPadding(cam.padding);
 
 // Lit-window textures for night extrusions
 map.on('styleimagemissing', (e) => {
@@ -100,14 +112,15 @@ function windowTexture(seed, litShare, s) {
 }
 
 // ---------- HUD ----------
-buildHud(scene.hud);
+if (layout === 'phone') buildPhoneHud(hud); else buildHud(hud);
 
 // ---------- labels (HTML overlay, positioned once the map is idle) ----------
 const labelLayer = document.getElementById('labels');
 function placeLabels() {
   labelLayer.innerHTML = '';
   const W = innerWidth, H = innerHeight;
-  for (const l of scene.labels) {
+  const labels = scene.labelFilter?.[layout] ? scene.labels.filter(scene.labelFilter[layout]) : scene.labels;
+  for (const l of labels) {
     const pt = map.project(l.at);
     if (pt.x < -200 || pt.x > W + 200 || pt.y < 40 || pt.y > H + 50) continue;
     const el = document.createElement('div');
@@ -119,11 +132,11 @@ function placeLabels() {
     if (l.size) el.style.fontSize = `${l.size}px`;
     labelLayer.appendChild(el);
   }
-  for (const c of scene.callouts || []) {
+  for (const c of scene.calloutsByLayout?.[layout] || scene.callouts || []) {
     const pt = map.project(c.at);
     const el = document.createElement('div');
     el.className = `callout callout-${c.tone || 'warn'} ${c.dir || 'up'}`;
-    el.innerHTML = c.dir === 'down' || c.dir === 'right'
+    el.innerHTML = c.dir === 'down' || c.dir === 'right' || c.dir === 'left'
       ? `<div class="callout-dot"></div><div class="callout-stem"></div><div class="callout-body">${c.html}</div>`
       : `<div class="callout-body">${c.html}</div><div class="callout-stem"></div><div class="callout-dot"></div>`;
     el.style.left = `${pt.x}px`;
@@ -219,7 +232,38 @@ function buildHud(h) {
     $('toast').innerHTML = h.toast;
     $('toast').hidden = false;
   }
+  if (h.dock) {
+    $('dock').innerHTML = h.dock;
+    $('dock').hidden = false;
+    document.body.classList.add('has-dock');
+  }
+  if (h.bottomCenter) document.body.classList.add('has-bloom');
+  if (h.hideLeft) $('left').hidden = true;
   $('attrib').innerHTML = 'Prototype mock-up · illustrative data · 2010 routes approximate · Map data © OpenStreetMap contributors, Overture Maps Foundation';
+}
+
+// ---------------------------------------------------------------- phone HUD
+function buildPhoneHud(h) {
+  const $ = (id) => document.getElementById(id);
+  $('m-top').innerHTML = `
+    ${logoSvg()}
+    <div class="m-clock"><div>${h.dateShort || h.date}</div><b>${h.time}</b><span>${h.weatherShort || h.weather}</span></div>
+    <button class="m-play">${speedIcon(h.speed === 'pause' ? 'play' : 'pause')}</button>`;
+  $('m-kpis').innerHTML = (h.phoneKpis || h.kpis).map((k) => `
+    <div class="m-kpi glass"><span>${k.label}</span><b>${k.dot ? `<i class="dot" style="background:${k.dot}"></i>` : ''}${k.value}${k.delta ? `<em class="${k.delta.startsWith('▼') ? 'down' : 'up'}">${k.delta}</em>` : ''}</b></div>`).join('');
+  if (h.phoneToast) { $('m-toast').innerHTML = h.phoneToast; $('m-toast').hidden = false; }
+  $('m-fabs').innerHTML = `<button class="glass">${toolIcon('layers')}</button><button class="glass m-3d">3D</button><button class="glass">${compassSvg(cam.bearing)}</button>`;
+  $('m-sheet').innerHTML = `<div class="m-grab"></div><div class="m-sheet-body">${h.sheet}</div>`;
+  $('m-sheet').style.setProperty('--sheet-h', h.sheetHeight || '44%');
+  document.documentElement.style.setProperty('--sheet-h', h.sheetHeight || '44%');
+  const tabs = [['inspect', 'Inspect'], ['route', 'Plan'], ['layers', 'Layers'], ['council', 'Council'], ['news', 'News']];
+  $('m-tabbar').innerHTML = tabs.map(([k, label]) => `
+    <button class="${k === h.tool ? 'on' : ''}">${toolIcon(k)}<span>${label}</span>${h.badges?.[k] ? `<b class="badge">${h.badges[k]}</b>` : ''}</button>`).join('');
+  $('attrib').innerHTML = '© OpenStreetMap · Overture Maps · prototype';
+}
+
+function compassSvg(bearing) {
+  return `<svg viewBox="0 0 24 24" style="transform:rotate(${-bearing}deg)"><path d="M12 3 L15 12 L12 11 L9 12 Z" fill="var(--hot)"/><path d="M12 21 L9 12 L12 13 L15 12 Z" fill="var(--muted)"/></svg>`;
 }
 
 function logoSvg() {
@@ -301,11 +345,11 @@ function legendHtml(title, extra = '') {
   const centre = (c, w, dash) => `<svg viewBox="0 0 46 14" class="lg-sw"><line x1="3" y1="7" x2="43" y2="7" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/><line x1="5" y1="7" x2="41" y2="7" stroke="#fff" stroke-width="1.4" ${dash ? 'stroke-dasharray="2.5 3.5"' : 'opacity="0.6"'}/></svg>`;
   const veh = `<svg viewBox="0 0 46 14" class="lg-sw"><circle cx="12" cy="7" r="4" fill="${T.frequent}" stroke="${P.vehicleStroke || T.frequent}" stroke-width="1.5"/><circle cx="32" cy="7" r="4" fill="${T.brt}"/><circle cx="32" cy="7" r="6.2" fill="none" stroke="${P.glow ? '#FFB347' : '#F08A24'}" stroke-width="1.6"/></svg>`;
   return `<div class="lg-title">${title}</div>
-    ${row(centre(T.brt, 7), 'Transitway', 'bus rapid transit')}
-    ${row(centre(T.otrain, 6.5, true), 'O-Train', 'Bayview – Greenboro')}
-    ${row(line(T.frequent, 4.2), 'Frequent bus')}
-    ${row(line(T.local, 2.2), 'Local bus')}
-    ${row(line(T.sto, 4), 'STO · Gatineau', 'separate agency')}
+    ${row(centre(T.brt, 7), 'Transitway', 'OC Transpo · BRT')}
+    ${row(centre(T.otrain, 6.5, true), 'O-Train', 'OC Transpo · Bayview–Greenboro')}
+    ${row(line(T.frequent, 4.2), 'Frequent bus', 'OC Transpo')}
+    ${row(line(T.local, 2.2), 'Local bus', 'OC Transpo')}
+    ${row(line(T.sto, 4), 'STO', 'Gatineau · separate agency')}
     ${row(line(T.proposed_rail, 4, 'stroke-dasharray="6 5" stroke-linecap="butt"'), 'Proposed (2010)', 'rail tunnel · Rapibus')}
     ${extra || row(veh, 'Vehicles', 'ring = crowded')}`;
 }
