@@ -205,3 +205,48 @@ body.layout-phone .m-sheet .close { top: 14px; right: 12px; }
   background: linear-gradient(90deg, #CBD5E3, #9CC3E4, #4E9AD6, #2D6CC0, #1B3E8F); }
 .topbar .chips { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 body.layout-phone .m-sheet .status-chip.riders { margin-top: 6px; }
+
+/* M4 — Plan mode */
+.toggle.plan-toggle.on { background: var(--amber); }
+.plan-dock { position: absolute; left: 16px; bottom: calc(16px + var(--safe-bottom)); width: 380px; max-height: 60vh; overflow: auto;
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; border-top: 3px solid var(--amber); }
+body.layout-tablet .plan-dock { left: 12px; bottom: calc(12px + var(--safe-bottom)); width: 340px; }
+body.layout-phone .plan-dock { position: static; width: auto; max-height: none; padding: 4px 0 0; border: 0; background: none;
+  box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.plan-head { display: flex; align-items: center; gap: 10px; }
+.plan-head b { font-size: 14px; }
+.plan-head .btn { margin-left: auto; }
+.plan-tools, .plan-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn { font: 600 12.5px/1 var(--ui); border: 1px solid var(--stroke); background: var(--track); color: var(--fg); height: 36px; padding: 0 12px;
+  border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.primary { background: var(--amber); color: #fff; border-color: transparent; }
+.btn.danger { color: var(--hot); }
+.btn.ghost { background: transparent; }
+body.layout-phone .btn, body.layout-tablet .btn { height: 44px; }
+.edit-list { list-style: none; margin: 2px 0 0; padding: 0; font-size: 12.5px; }
+.edit-list li { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; border-top: 1px solid var(--divider); }
+.edit-list button { border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; width: 32px; height: 28px; }
+.draft-stats { margin: 0; font-weight: 600; font-size: 13px; }
+.plan-draw details summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--fg2); margin: 2px 0 4px; }
+.steppers { list-style: none; margin: 4px 0; padding: 0; }
+.stepper { display: grid; grid-template-columns: 1fr 32px 7.5em 32px; align-items: center; gap: 6px; font-size: 12.5px; padding: 3px 0; }
+.stepper b { text-align: center; font-variant-numeric: tabular-nums; }
+.stepper button { height: 30px; border-radius: 8px; border: 1px solid var(--stroke); background: var(--track); color: var(--fg); font-size: 16px; cursor: pointer; }
+body.layout-phone .stepper button, body.layout-tablet .stepper button { height: 40px; }
+.stepper button:disabled { opacity: 0.35; }
+.plan-box { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--track); border-left: 3px solid var(--amber); }
+.iso-legend { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+.iso-legend span { margin-right: 4px; }
+.iso-legend i { font-style: normal; color: #0b2a2c; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+.progress { position: relative; height: 26px; border-radius: 8px; background: var(--track); overflow: hidden; margin: 10px 0; }
+.progress div { position: absolute; inset: 0 auto 0 0; background: var(--amber); opacity: 0.35; transition: width .3s; }
+.progress span { position: relative; display: block; line-height: 26px; padding: 0 10px; font-size: 12px; font-weight: 600; }
+table.score { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0 4px; font-variant-numeric: tabular-nums; }
+table.score th { text-align: left; font-weight: 500; color: var(--fg2); padding: 6px 4px 6px 0; }
+table.score thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+table.score td { text-align: right; padding: 6px 0 6px 8px; white-space: nowrap; }
+table.score tr + tr { border-top: 1px solid var(--divider); }
+table.score tr.up td:last-child, .bars b.up { color: var(--good); font-weight: 700; }
+table.score tr.down td:last-child, .bars b.down { color: var(--hot); font-weight: 700; }
+table.score td:last-child { color: var(--muted); }

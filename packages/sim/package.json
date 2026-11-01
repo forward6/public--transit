@@ -8,7 +8,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "demand": "tsx scripts/demand.ts"
+    "demand": "tsx scripts/demand.ts",
+    "plan-demo": "tsx scripts/plan-demo.ts"
   },
   "dependencies": {
     "@otc/shared": "workspace:*"

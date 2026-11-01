@@ -33,6 +33,10 @@ interface HudProps {
   /** weekday boardings from the demand model (null until it is built) */
   boardings: number | null;
   onOpenRidership: () => void;
+  /** M4 Plan mode */
+  planActive: boolean;
+  onTogglePlan: () => void;
+  dock: ReactNode | null;
 }
 
 export function Logo({ size = 42 }: { size?: number }) {
@@ -68,9 +72,11 @@ function Segmented<T extends string>({ label, value, options, onChange, render }
 
 const SEASON_ICON: Record<Season, string> = { winter: '❄', spring: '✿', summer: '☀', autumn: '❦' };
 
-function Controls({ t, settings, onChange, compact, hasRiders }: { t: Strings; settings: Settings; onChange: HudProps['onChange']; compact: boolean; hasRiders: boolean }) {
+function Controls({ t, settings, onChange, compact, hasRiders, plan }: { t: Strings; settings: Settings; onChange: HudProps['onChange']; compact: boolean;
+  hasRiders: boolean; plan?: { active: boolean; toggle: () => void } }) {
   return (
     <div className="controls">
+      {plan && <button className={`toggle plan-toggle ${plan.active ? 'on' : ''}`} aria-pressed={plan.active} onClick={plan.toggle}>{t.plan}</button>}
       <Segmented label={t.seasonLabel} value={settings.season} options={SEASONS} onChange={(season) => onChange({ season })}
         render={(s) => (compact ? SEASON_ICON[s] : t.season[s])} />
       <Segmented label={t.timeLabel} value={settings.time} options={TIMES} onChange={(time) => onChange({ time })} render={(v) => t.time[v]} />
@@ -142,8 +148,9 @@ function Legend({ t, riders }: { t: Strings; riders: boolean }) {
 
 export function Hud(props: HudProps) {
   const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue,
-    boardings, onOpenRidership } = props;
+    boardings, onOpenRidership, planActive, onTogglePlan, dock } = props;
   const hasRiders = boardings !== null;
+  const planCtl = hasRiders ? { active: planActive, toggle: onTogglePlan } : undefined;
   if (layout === 'phone') {
     return (
       <>
@@ -161,11 +168,11 @@ export function Hud(props: HudProps) {
               <button className="close" aria-label={t.close} onClick={onCloseInspector}>×</button>
               {inspector}
             </>
-          ) : (
+          ) : dock ? dock : (
             <>
               <div className="m-sheet-title">{t.mapStyle}</div>
               <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
-              <Controls t={t} settings={settings} onChange={onChange} compact hasRiders={hasRiders} />
+              <Controls t={t} settings={settings} onChange={onChange} compact hasRiders={hasRiders} plan={planCtl} />
               <StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} />
               <RidersChip t={t} boardings={boardings} onClick={onOpenRidership} />
             </>
@@ -193,7 +200,7 @@ export function Hud(props: HudProps) {
         <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
         {layout === 'desktop' && <div className="chips"><StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} />
           <RidersChip t={t} boardings={boardings} onClick={onOpenRidership} /></div>}
-        <Controls t={t} settings={settings} onChange={onChange} compact={layout === 'tablet'} hasRiders={hasRiders} />
+        <Controls t={t} settings={settings} onChange={onChange} compact={layout === 'tablet'} hasRiders={hasRiders} plan={planCtl} />
       </header>
       <MapButtons t={t} map={map} />
       {inspector ? (
@@ -202,7 +209,8 @@ export function Hud(props: HudProps) {
           {inspector}
         </aside>
       ) : null}
-      <Legend t={t} riders={settings.riders && hasRiders} />
+      {dock}
+      {!dock && <Legend t={t} riders={settings.riders && hasRiders} />}
     </>
   );
 }

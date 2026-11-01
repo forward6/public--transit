@@ -84,6 +84,7 @@ const out: DemandFile = {
   zones: Object.fromEntries(zones.map((z, i) => [String(z.id), [round(result.zoneTrips[i]!),
     result.zoneTrips[i]! > 0 ? +(result.zoneTransit[i]! / result.zoneTrips[i]!).toFixed(3) : 0]])),
   districts: Object.fromEntries(Object.entries(result.district).map(([d, [t, tr]]) => [d, [round(t), +(tr / t).toFixed(3)]])),
+  params: params as unknown as Record<string, unknown>,
 };
 writeFileSync(new URL('demand-2011.json', data), JSON.stringify(out));
 

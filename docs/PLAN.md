@@ -742,7 +742,7 @@ to keep iteration fast; it expands to the full region afterwards.
 | M1 ✅ | **The Map** | 2010 basemap tiles, custom day/night style, terrain, 3D buildings, seasons toggle, EN/FR labels; the responsive shell (desktop, iPad, phone layouts; PWA manifest) | You'd happily leave it open as a screensaver, on a laptop, an iPad and a phone | M |
 | M2 ✅ | **The 2010 network moves** | 2010 OC Transpo network (Transitway, O-Train, top routes) imported; vehicles animated from timetables; stop and line inspectors | A morning peak plays back on the map | M |
 | M3 🔶 | **People ride** | Zones, synthetic population, demand model, RAPTOR skims, assignment, base-year calibration report | Ridership numbers appear and the 2011 targets are met within tolerance | L |
-| M4 | **Design tools → FIRST PLAYABLE** | Draw and edit routes, stops and frequencies (mouse, touch and Apple Pencil); live preview; isochrones; coverage and Scorecard v1 | You can redesign the network and see riders respond, on any device | L |
+| M4 🔶 | **Design tools → FIRST PLAYABLE** | Draw and edit routes, stops and frequencies (mouse, touch and Apple Pencil); live preview; isochrones; coverage and Scorecard v1 | You can redesign the network and see riders respond, on any device | L |
 | M5 | **Money and fleet** | Budget, fares, operating costs, garages, fleet ordering, maintenance, service-change calendar | You can run out of money in an interesting way | M |
 | M6 | **Opinion and media** | Opinion grid, rider diaries, "Follow a rider", headline generator, opinion maps | The public's reaction is visible and explainable | M |
 | M7 | **Council, elections and partners** | Councillors, whip counts, votes, Political Capital, elections, STO AI, funders, NCC, labour | A full four-year term plays out with soft consequences | L |
@@ -826,8 +826,29 @@ to keep iteration fast; it expands to the full region afterwards.
      - more periods (early, PM, evening);
      - screenline checks;
      - running the model in Web Workers, ready for M4's live editing.
-6. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
-7. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
+6. 🔶 **M4 (v1, first playable):** the design tools ([screenshots](screenshots/m4/)).
+   - **Plan mode** pauses the clock and fades the network back.
+   - **Edits:**
+     - change any route's headways in four periods, or take it out of service;
+     - draw a new route by tapping points. It follows the 2010 streets (`graph-2010.bin`, from the
+       `network` step), keeps off highways, gets stops every ~400 m named after cross streets, and
+       reuses existing stops it passes.
+   - **The edited network runs live** on the map, and the draft is kept in the browser.
+   - **Travel times:** an instant travel-time bloom from any point (RAPTOR, 8:00 departure).
+   - **Evaluate** reruns the calibrated demand model on the draft in a Web Worker: about 15 s, with
+     the 2010 baseline computed in the background when Plan mode opens.
+   - **Scorecard v1:** boardings, transit share, coverage within 400 m (any service and frequent
+     service), jobs within 45 min, operating cost, cost per boarding and peak buses, each against
+     2010, plus transit share by district and riders on new routes.
+   - **Still to do:**
+     - drag to reshape routes, and branches and short-turns;
+     - stop amenities and vehicle types;
+     - a sub-second "fast preview";
+     - who loses service (by ward), crowding warnings, and an "unserved demand" assist;
+     - infrastructure (bus lanes, Transitway segments, rail);
+     - service-change dates and costs (M5).
+7. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
+8. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 
 ---
 

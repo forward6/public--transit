@@ -739,6 +739,55 @@ def default_feeds() -> list[tuple[str, str]]:
     return out
 
 
+GRAPH_CLASSES = ["busway", "motorway", "trunk", "primary", "secondary", "tertiary", "minor", "service", "link"]
+
+
+def export_graph(graph: Graph, out_dir) -> dict:
+    """The routable 2010 street + Transitway graph for the design tools (M4): its main connected
+    component, as ``graph-2010.bin`` (typed arrays) and ``graph-2010.json`` (names, classes, speeds).
+
+    Binary, little-endian: uint32[8] header (magic 'OTCG', version, nodes, edges, coords) ·
+    float32 node lon[n], lat[n] · int32 edge u[e], v[e] · float32 length[e] (m) ·
+    int32 coordStart[e+1] · float32 coord lon[c], lat[c] (inner vertices, oriented u -> v) ·
+    uint16 name[e] (0 = none) · uint8 class[e]."""
+    main = np.zeros(len(graph.node_lonlat), dtype=bool)
+    main[graph.main_nodes] = True
+    remap = np.full(len(main), -1, dtype=np.int64)
+    remap[main] = np.arange(int(main.sum()))
+    edges = [e for e in graph.edges if main[e.u] and main[e.v] and e.u != e.v]
+    names = [""] + sorted({e.name for e in edges if e.name})
+    name_ix = {n: i for i, n in enumerate(names)}
+    inner_lon, inner_lat, starts = [], [], [0]
+    for e in edges:
+        c = np.asarray(shapely.simplify(shapely.LineString(e.coords), 0.00002).coords)
+        inner = c[1:-1]
+        inner_lon.extend(inner[:, 0].tolist())
+        inner_lat.extend(inner[:, 1].tolist())
+        starts.append(len(inner_lon))
+    nodes = graph.node_lonlat[main]
+    header = np.array([0x4743544F, 1, len(nodes), len(edges), len(inner_lon), 0, 0, 0], dtype="<u4")
+    parts = [header.tobytes(),
+             nodes[:, 0].astype("<f4").tobytes(), nodes[:, 1].astype("<f4").tobytes(),
+             np.array([remap[e.u] for e in edges], dtype="<i4").tobytes(),
+             np.array([remap[e.v] for e in edges], dtype="<i4").tobytes(),
+             np.array([e.length for e in edges], dtype="<f4").tobytes(),
+             np.array(starts, dtype="<i4").tobytes(),
+             np.array(inner_lon, dtype="<f4").tobytes(), np.array(inner_lat, dtype="<f4").tobytes(),
+             np.array([name_ix.get(e.name or "", 0) for e in edges], dtype="<u2").tobytes(),
+             np.array([GRAPH_CLASSES.index(e.cls) if e.cls in GRAPH_CLASSES else GRAPH_CLASSES.index("minor")
+                       for e in edges], dtype="u1").tobytes()]
+    blob = b"".join(parts)
+    (out_dir / "graph-2010.bin").write_bytes(blob)
+    meta = {"version": 1, "classes": GRAPH_CLASSES, "names": names,
+            "speedKmh": {c: SPEED_KMH.get(c, 20) for c in GRAPH_CLASSES},
+            "routingCost": {c: COST.get(c, 1.5) for c in GRAPH_CLASSES},
+            "downtown": {"box": list(DOWNTOWN.bounds), "kmh": DOWNTOWN_KMH}}
+    (out_dir / "graph-2010.json").write_text(json.dumps(meta, separators=(",", ":"), ensure_ascii=False))
+    print(f"  street graph: {len(nodes):,} nodes, {len(edges):,} edges, {len(inner_lon):,} shape points, "
+          f"{len(names):,} street names -> graph-2010.bin ({len(blob) / 1e6:.1f} MB)")
+    return meta
+
+
 def build_network(gtfs: str | list[str] | None = None, approximate: bool = True, gtfs_date: str | None = None,
                   use_default_feeds: bool = True) -> dict:
     t0 = time.time()
@@ -856,6 +905,7 @@ def build_network(gtfs: str | list[str] | None = None, approximate: bool = True,
     }
     out = config.WEB_DATA / OUTPUT
     out.parent.mkdir(parents=True, exist_ok=True)
+    export_graph(bus, out.parent)
     out.write_text(json.dumps(network, separators=(",", ":"), ensure_ascii=False))
     print(f"  {len(network['stops'])} stops, {len(routes)} routes, {len(patterns)} patterns -> "
           f"{out.relative_to(config.REPO)} ({out.stat().st_size / 1e3:.0f} kB) in {time.time() - t0:.0f}s")

@@ -333,6 +333,49 @@ export class Raptor {
     return { legs, transferWalkSec: walk };
   }
 
+  /**
+   * The journey to stop s in round k, summarised without allocating: in-vehicle seconds, transfer
+   * walking seconds, number of rides and the first boarding stop. Returns false if unreachable.
+   */
+  journeyStats(k: number, s: number, out: { ivt: number; walk: number; legs: number; firstStop: number }): boolean {
+    const { net, kind, pA, pB, pC, tau } = this;
+    const N = net.nStops;
+    out.ivt = 0;
+    out.walk = 0;
+    out.legs = 0;
+    out.firstStop = -1;
+    k = Math.min(k, this.lastRound);
+    for (let guard = 0; guard < 64; guard++) {
+      const i = k * N + s;
+      const kd = kind[i]!;
+      if (kd === KIND_ACCESS) return out.legs > 0;
+      if (kd === KIND_NONE) return false;
+      if (kd === KIND_CARRY) {
+        if (--k < 0) return false;
+        continue;
+      }
+      if (kd === KIND_FOOT) {
+        const from = pA[i]!;
+        out.walk += tau[i]! - tau[k * N + from]!;
+        s = from;
+        continue;
+      }
+      const p = pA[i]!;
+      const ps = net.patternStart[p]!;
+      const n = net.patternStart[p + 1]! - ps;
+      const ts = net.timeStart[p]! + pB[i]! * n;
+      const board = pC[i]!;
+      let alight = board + 1;
+      while (alight < n && net.patternStops[ps + alight] !== s) alight++;
+      out.ivt += net.arr[ts + alight]! - net.dep[ts + board]!;
+      out.legs++;
+      s = net.patternStops[ps + board]!;
+      out.firstStop = s;
+      if (--k < 0) return false;
+    }
+    return false;
+  }
+
   /** In-vehicle seconds of a leg. */
   legTime(l: Leg): number {
     const { net } = this;

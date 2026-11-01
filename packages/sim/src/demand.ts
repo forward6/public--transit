@@ -132,11 +132,21 @@ export interface Skims {
   offpeak: TransitSkim;
 }
 
+/** The departure samples to use: all four, or an evenly spread subset (faster, for the game). */
+export function samplesFor(period: Period, count = 4): number[] {
+  const all = PERIOD_SAMPLES[period];
+  if (count >= all.length) return all;
+  return Array.from({ length: count }, (_, i) => all[Math.floor(((i + 0.5) * all.length) / count)]!);
+}
+
 /** RAPTOR transit skims for both periods: averages over the period's departure samples. */
-export function transitSkims(network: Network, zones: Zone[], params: DemandParams = DEFAULT_PARAMS): Skims {
+export function transitSkims(network: Network, zones: Zone[], params: DemandParams = DEFAULT_PARAMS, samplesPerPeriod = 4,
+  onProgress?: (f: number) => void): Skims {
   const out = {} as Skims;
+  const js = { ivt: 0, walk: 0, legs: 0, firstStop: -1 };
+  let pi = 0;
   for (const period of ['peak', 'offpeak'] as Period[]) {
-    const samples = PERIOD_SAMPLES[period];
+    const samples = samplesFor(period, samplesPerPeriod);
     const rn = buildRaptor(network, samples[0]!, samples.at(-1)! + HORIZON_SEC);
     const r = new Raptor(rn);
     const acc = zoneAccess(rn, zones, params.accessRadiusM);
@@ -159,27 +169,25 @@ export function transitSkims(network: Network, zones: Zone[], params: DemandPara
         for (let j = 0; j < n; j++) {
           if (j === i || egress[j]! < 0) continue;
           const e = egress[j]!;
-          const jr = r.journey(egRound[j]!, e);
-          if (!jr || !jr.legs.length) continue;
-          let ivt = 0;
-          for (const l of jr.legs) ivt += r.legTime(l);
-          const first = rn.patternStops[rn.patternStart[jr.legs[0]!.pattern]! + jr.legs[0]!.board]!;
+          if (!r.journeyStats(egRound[j]!, e, js)) continue;
           const eg = acc[j]!;
           let egSec = 0;
           for (let k = 0; k < eg.stops.length; k++) if (eg.stops[k] === e) egSec = eg.sec[k]!;
-          const accSec = accessAt[first]! >= 0 ? accessAt[first]! : 0;
+          const accSec = accessAt[js.firstStop]! >= 0 ? accessAt[js.firstStop]! : 0;
           const total = r.arrival(egRound[j]!, e) + egSec - t0;
-          const walk = accSec + jr.transferWalkSec + egSec;
+          const walk = accSec + js.walk + egSec;
           const ij = i * n + j;
-          sum.ivt[ij]! += ivt / 60;
+          sum.ivt[ij]! += js.ivt / 60;
           sum.walk[ij]! += walk / 60;
-          sum.wait[ij]! += Math.max(0, total - ivt - walk) / 60;
-          sum.b[ij]! += jr.legs.length;
+          sum.wait[ij]! += Math.max(0, total - js.ivt - walk) / 60;
+          sum.b[ij]! += js.legs;
           hits[ij]!++;
         }
         a.stops.forEach((s) => (accessAt[s] = -1));
       }
+      if (onProgress && i % 50 === 0) onProgress((pi + i / n) / 2);
     }
+    pi++;
     const half = samples.length / 2;
     const skim: TransitSkim = { n, ivt: new Float32Array(n * n).fill(NaN), wait: new Float32Array(n * n).fill(NaN),
       walk: new Float32Array(n * n).fill(NaN), boardings: new Float32Array(n * n).fill(NaN) };
@@ -206,13 +214,13 @@ export interface ModelInputs {
   skims: Skims;
 }
 
-interface Prepared {
+export interface Prepared {
   n: number;
   distKm: Float32Array;
   carMin: Float32Array;
 }
 
-function prepare(inp: ModelInputs): Prepared {
+export function prepare(inp: ModelInputs): Prepared {
   const { zones, car } = inp;
   const n = zones.length;
   const distKm = new Float32Array(n * n);
@@ -447,14 +455,15 @@ export interface Assignment {
 
 /** Load each period's transit trips onto the journeys RAPTOR finds (all-or-nothing per departure sample). */
 export function assign(network: Network, zones: Zone[], transit: Record<Period, Float32Array>,
-  params: DemandParams = DEFAULT_PARAMS, minTrips = 0.01): Assignment {
+  params: DemandParams = DEFAULT_PARAMS, minTrips = 0.01, samplesPerPeriod = 4, onProgress?: (f: number) => void): Assignment {
   const n = zones.length;
   const boardingsByRoute = new Map<string, number>();
   const boardingsByStop = new Map<string, number>();
   const loads = new Map<string, Float64Array>();
   const totals = { trips: 0, boardings: 0, ivtMin: 0, waitMin: 0, walkMin: 0 };
+  let pi = 0;
   for (const period of ['peak', 'offpeak'] as Period[]) {
-    const samples = PERIOD_SAMPLES[period];
+    const samples = samplesFor(period, samplesPerPeriod);
     const rn = buildRaptor(network, samples[0]!, samples.at(-1)! + HORIZON_SEC);
     const r = new Raptor(rn);
     const acc = zoneAccess(rn, zones, params.accessRadiusM);
@@ -507,7 +516,9 @@ export function assign(network: Network, zones: Zone[], transit: Record<Period, 
         }
         a.stops.forEach((s) => (accessAt[s] = -1));
       }
+      if (onProgress && i % 50 === 0) onProgress((pi + i / n) / 2);
     }
+    pi++;
   }
   return { boardingsByRoute, boardingsByStop, loads, totals };
 }

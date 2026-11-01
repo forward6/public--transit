@@ -11,3 +11,6 @@ export * from './timetable';
 export * from './playback';
 export * from './raptor';
 export * from './demand';
+export * from './streetgraph';
+export * from './plan';
+export * from './evaluate';

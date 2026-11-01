@@ -2,8 +2,10 @@ import { MODES, formatClock, type CatalogueClass, type District, type Lang, type
 import type { NetworkState } from '../network/useNetwork';
 import { fmtK, type Strings } from '../i18n/strings';
 import type { Palette } from '../map/palettes';
+import type { PlanState } from '../plan/usePlan';
+import { RouteServiceEditor } from '../plan/PlanUI';
 
-export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership'; id: string } | null;
+export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard'; id: string } | null;
 
 interface Props {
   sel: Exclude<Selection, null>;
@@ -13,6 +15,7 @@ interface Props {
   lang: Lang;
   palette: Palette;
   onSelect: (sel: Selection) => void;
+  plan?: PlanState;
 }
 
 export function RouteBadge({ route, palette, onClick }: { route: NetRoute; palette: Palette; onClick?: () => void }) {
@@ -36,7 +39,7 @@ function ProvenanceNote({ p, s }: { p?: Provenance; s: Strings }) {
 
 const minutesUntil = (from: number, to: number) => Math.max(0, Math.round((to - from) / 60));
 
-export function Inspector({ sel, net, t, s, palette, onSelect }: Props) {
+export function Inspector({ sel, net, t, s, palette, onSelect, plan }: Props) {
   const { network, playback } = net;
 
   if (sel.type === 'vehicle') {
@@ -119,6 +122,7 @@ export function Inspector({ sel, net, t, s, palette, onSelect }: Props) {
           <div><b>{km.toFixed(1)} km</b><span>{s.length}</span></div>
         </div>
         {net.demand && <p className="riders-line"><b>{(net.demand.routes[route.id] ?? 0).toLocaleString()}</b> {s.routeBoardings}</p>}
+        {plan?.active && <RouteServiceEditor route={route} net={net} plan={plan} t={s} />}
         {route.weekday && <>
           <div className="sec">{s.weekdayService}</div>
           <ul className="periods">{route.weekday.map((p) => (

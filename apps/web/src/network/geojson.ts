@@ -1,9 +1,10 @@
-import type { FeatureCollection, LineString, Point } from 'geojson';
+import type { FeatureCollection, LineString, Point, Polygon } from 'geojson';
 import type { DemandFile, Network, RouteClass, ZonesFile } from '@otc/shared';
-import { prepareLine, sliceLine, type Playback, type VehicleState } from '@otc/sim';
+import { prepareLine, sliceLine, type Draft, type Playback, type VehicleState } from '@otc/sim';
 
 export type LinesFC = FeatureCollection<LineString>;
 export type PointsFC = FeatureCollection<Point>;
+export type PolysFC = FeatureCollection<Polygon>;
 
 export const EMPTY_POINTS: PointsFC = { type: 'FeatureCollection', features: [] };
 export const EMPTY_LINES: LinesFC = { type: 'FeatureCollection', features: [] };
@@ -120,5 +121,35 @@ export function loadLines(network: Network, demand: DemandFile | null, min = 30)
     features.push({ type: 'Feature', properties: { load: Math.round(load) }, geometry: { type: 'LineString', coordinates: coords } });
   }
   features.sort((a, b) => (a.properties!.load as number) - (b.properties!.load as number)); // busiest drawn last
+  return { type: 'FeatureCollection', features };
+}
+
+/** The route being drawn: its street path, and its stops (new or reused). */
+export function draftFeatures(draft: Draft | null, waypoints: [number, number][]): { line: LinesFC; points: PointsFC } {
+  const points: PointsFC['features'] = waypoints.map((w, i) => ({ type: 'Feature', properties: { kind: 'waypoint', i },
+    geometry: { type: 'Point', coordinates: w } }));
+  if (!draft) return { line: EMPTY_LINES, points: { type: 'FeatureCollection', features: points } };
+  for (const s of draft.stops) {
+    points.push({ type: 'Feature', properties: { kind: 'stop', name: s.name, existing: s.existing },
+      geometry: { type: 'Point', coordinates: [s.lon, s.lat] } });
+  }
+  return {
+    line: { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: draft.shape } }] },
+    points: { type: 'FeatureCollection', features: points },
+  };
+}
+
+/** Zone hexagons with travel minutes from the chosen point ("travel-time bloom"). */
+export function isoPolys(zones: ZonesFile | null, minutes: Float32Array | null): PolysFC {
+  if (!zones || !minutes) return { type: 'FeatureCollection', features: [] };
+  const features: PolysFC['features'] = [];
+  zones.zones.forEach((z, i) => {
+    const t = minutes[i]!;
+    if (!z.ring || !(t <= 60)) return;
+    features.push({ type: 'Feature', properties: { t: Math.round(t), coarse: z.areaKm2 > 2 },
+      geometry: { type: 'Polygon', coordinates: [[...z.ring, z.ring[0]!]] } });
+  });
+  // coarse (resolution-7) cells first, so the finer cells inside them draw on top
+  features.sort((a, b) => Number(b.properties!.coarse) - Number(a.properties!.coarse));
   return { type: 'FeatureCollection', features };
 }

@@ -17,6 +17,8 @@ export interface Zone {
   lon: number;
   lat: number;
   areaKm2: number;
+  /** outline of the zone's H3 cell (lon/lat), for maps */
+  ring?: [number, number][];
   city: 'ottawa' | 'gatineau';
   district: District;
   downtown: boolean;
@@ -78,4 +80,6 @@ export interface DemandFile {
   zones: Record<string, [number, number]>;
   /** per home district: [weekday trips made by residents, transit share of them] */
   districts: Record<string, [number, number]>;
+  /** the calibrated model parameters (packages/sim DemandParams), so the game can re-run the model */
+  params?: Record<string, unknown>;
 }

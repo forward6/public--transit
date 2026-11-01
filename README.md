@@ -24,6 +24,14 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
   them by transit, and about 580,000 boardings, calibrated to 2011
   ([report](docs/calibration/2011.md)). Open the **Ridership** panel from the top bar, or switch
   on **Riders** to see where people travel.
+- M4 is under way: the first playable version. Press **Plan** to:
+  - change any route's service, or remove it;
+  - draw new routes on the map (they follow the streets and get stops automatically);
+  - see travel times from anywhere;
+  - **Evaluate** your plan on a Scorecard against 2010 (riders, coverage, jobs within reach,
+    cost).
+
+![Plan mode: a new route in Kanata, evaluated](docs/screenshots/m4/plan-scorecard.jpg)
 
 ![The 2010 network at 8:10 am](docs/screenshots/m2/network-2010-overview.jpg)
 
@@ -48,6 +56,9 @@ URL options:
 - `&t=HH:MM` sets the start time
 - `&speed=0..3` sets the speed (pause, then 1, 5 or 15 min/s)
 - `&select=stop:carleton|route:oct-otrain|vehicle:oct-otrain` opens an inspector
+- `&riders=1` turns on the Riders view
+- `&plan=1` opens Plan mode. Add `&iso=lon,lat` for travel times from a point, or
+  `&draw=lon,lat;lon,lat;…` to sketch a route.
 
 The camera position is kept in `#view=zoom/lat/lng/bearing/pitch`.
 

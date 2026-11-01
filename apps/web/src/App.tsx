@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MapMouseEvent, Map as MLMap } from 'maplibre-gl';
 import { LANGS, SEASONS, TIMES, parseClock, type Lang, type Season, type TimeOfDay } from '@otc/shared';
 import { MapView, type CameraPadding } from './map/MapView';
 import { palette } from './map/palettes';
 import { PICKABLE } from './map/style';
 import { STRINGS } from './i18n/strings';
-import { loadLines, networkLines, networkStops, zonePoints } from './network/geojson';
+import { draftFeatures, isoPolys, loadLines, networkLines, networkStops, zonePoints } from './network/geojson';
 import { useNetwork } from './network/useNetwork';
 import { useVehicleAnimation } from './network/useVehicleAnimation';
 import { createClock, type SpeedIndex } from './sim/clock';
 import { Hud, type Settings } from './ui/Hud';
 import { Inspector, type Selection } from './ui/Inspector';
 import { Snow } from './ui/Snow';
+import { usePlan } from './plan/usePlan';
+import { PlanDock, ScorecardPanel } from './plan/PlanUI';
 import { useLayout, type Layout } from './ui/useLayout';
 
 const params = new URLSearchParams(location.search);
@@ -71,9 +73,43 @@ export function App() {
   const t = STRINGS[settings.lang];
   const still = params.has('still') || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const baseUrl = useMemo(() => new URL(import.meta.env.BASE_URL, location.href).href, []);
-  const net = useNetwork(baseUrl);
+  const base = useNetwork(baseUrl);
+  const plan = usePlan(base, baseUrl);
+  const net = plan.view; // the 2010 network with the player's edits applied
   const view = useClockView();
   useVehicleAnimation(map, net?.playback ?? null, clock);
+
+  // Plan mode pauses the clock (and restores the speed afterwards)
+  const speedBeforePlan = useRef<number | null>(null);
+  useEffect(() => {
+    if (plan.active) {
+      speedBeforePlan.current = clock.speed();
+      clock.setSpeed(0);
+    } else if (speedBeforePlan.current !== null) {
+      clock.setSpeed(speedBeforePlan.current as never);
+      speedBeforePlan.current = null;
+    }
+  }, [plan.active]);
+  // ?plan=1 opens Plan mode; &iso=lon,lat shows travel times; &draw=lon,lat;lon,lat sketches a route (links, screenshots)
+  useEffect(() => {
+    if (!base || !params.get('plan')) return;
+    plan.setActive(true);
+    const iso = params.get('iso')?.split(',').map(Number);
+    if (iso?.length === 2) {
+      plan.setTool('iso');
+      setTimeout(() => plan.setIsoOrigin([iso[0]!, iso[1]!]), 0);
+    }
+    const draw = params.get('draw');
+    if (draw) {
+      plan.setTool('draw');
+      setTimeout(() => draw.split(';').forEach((pt) => {
+        const [x, y] = pt.split(',').map(Number);
+        plan.addWaypoint([x!, y!]);
+      }), 0);
+    }
+  }, [base]);
+  const planRef = useRef(plan);
+  planRef.current = plan;
 
   useEffect(() => {
     document.body.className = `theme-${pal.night ? 'night' : 'day'} layout-${layout}`;
@@ -106,6 +142,9 @@ export function App() {
   useEffect(() => {
     if (!map) return;
     const onClick = (e: MapMouseEvent) => {
+      const pl = planRef.current;
+      if (pl.active && pl.tool === 'draw') return pl.addWaypoint([e.lngLat.lng, e.lngLat.lat]);
+      if (pl.active && pl.tool === 'iso') return pl.setIsoOrigin([e.lngLat.lng, e.lngLat.lat]);
       const layers = PICKABLE.filter((l) => map.getLayer(l));
       const box: [[number, number], [number, number]] = [[e.point.x - 8, e.point.y - 8], [e.point.x + 8, e.point.y + 8]];
       const f = map.queryRenderedFeatures(box, { layers })[0];
@@ -148,19 +187,28 @@ export function App() {
   const network = useMemo(() => (net ? { lines: networkLines(net.network, net.demand), stops: networkStops(net.network, net.playback),
     zones: zonePoints(net.zones, net.demand), loads: loadLines(net.network, net.demand) } : undefined), [net]);
   const padding = useMemo(() => paddingFor(layout, !!sel), [layout, sel]);
+  const planLayers = useMemo(() => {
+    if (!plan.active) return undefined;
+    const d = draftFeatures(plan.draft, plan.waypoints);
+    return { draftLine: d.line, draftPoints: d.points, iso: isoPolys(net?.zones ?? null, plan.isoMinutes), isoOrigin: plan.isoOrigin };
+  }, [plan.active, plan.draft, plan.waypoints, plan.isoMinutes, plan.isoOrigin, net]);
+  const routeNames = useMemo(() => new Map((base?.network.routes ?? []).map((r) => [r.id, r.shortName])), [base]);
+  const dock = plan.active ? <PlanDock plan={plan} t={t} onOpenScorecard={() => setSel({ type: 'scorecard', id: 'plan' })} routeNames={routeNames} /> : null;
   const inService = useMemo(() => net?.playback.vehiclesAt(view.time).length ?? 0, [net, view.time]);
 
   return (
     <>
       <MapView style={{ palette: pal, lang: settings.lang, buildings3d: settings.buildings3d, terrain: true, baseUrl, history: params.has('history'), network,
-        riders: settings.riders }}
+        riders: settings.riders, plan: planLayers }}
         padding={padding} onMap={setMap} />
       <Snow active={pal.snow} night={pal.night} still={still} />
       <div className="vignette" />
       <Hud layout={layout} t={t} settings={settings} map={map} onChange={(s) => setSettings((prev) => ({ ...prev, ...s }))}
         time={view.time} speed={view.speed} onSpeed={(s) => clock.setSpeed(s)} inService={inService}
         status={net?.network.status ?? null} statusNote={net?.network.statusNote}
-        inspector={sel && net ? <Inspector sel={sel} net={net} t={view.time} s={t} lang={settings.lang} palette={pal} onSelect={setSel} /> : null}
+        inspector={sel && net ? (sel.type === 'scorecard' ? <ScorecardPanel plan={plan} t={t} />
+          : <Inspector sel={sel} net={net} t={view.time} s={t} lang={settings.lang} palette={pal} onSelect={setSel} plan={plan} />) : null}
+        planActive={plan.active} onTogglePlan={() => plan.setActive(!plan.active)} dock={dock}
         onCloseInspector={() => setSel(null)} onOpenCatalogue={() => setSel({ type: 'catalogue', id: '2010' })}
         boardings={net?.demand?.summary.boardings ?? null} onOpenRidership={() => setSel({ type: 'ridership', id: '2011' })} />
     </>

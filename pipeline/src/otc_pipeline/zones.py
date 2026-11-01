@@ -247,6 +247,7 @@ def build_zones() -> dict:
         out.append({
             "id": len(out), "cell": key, "lon": round(float(zl), 5), "lat": round(float(zt), 5),
             "areaKm2": round(area_km2, 2), "city": city_name, "district": district, "downtown": bool(downtown),
+            "ring": [[round(lng, 5), round(la, 5)] for la, lng in h3.cell_to_boundary(key)],
             "pop": round(pop, 1), "seg": seg,
             "jobs": {s: round(v, 1) for s, v in sorted(z["jobs"].items())},
             "enrol": {"post": round(z["post"], 1), "school": round(z["school"], 1)},

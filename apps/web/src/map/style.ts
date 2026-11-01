@@ -8,7 +8,7 @@ import type {
   StyleSpecification,
 } from 'maplibre-gl';
 import type { Lang, RouteClass } from '@otc/shared';
-import type { LinesFC, PointsFC } from '../network/geojson';
+import type { LinesFC, PointsFC, PolysFC } from '../network/geojson';
 import type { Palette } from './palettes';
 
 export interface StyleOptions {
@@ -22,6 +22,8 @@ export interface StyleOptions {
   network?: { lines: LinesFC; stops: PointsFC; zones?: PointsFC; loads?: LinesFC };
   /** M3 "Riders" view: route widths by weekday riders, zones coloured by transit share */
   riders?: boolean;
+  /** M4 Plan mode: the network fades back; the draft route and the travel-time bloom draw on top */
+  plan?: { draftLine: LinesFC; draftPoints: PointsFC; iso: PolysFC; isoOrigin: [number, number] | null };
   /** absolute URL prefix where data/ and glyphs/ are served (ends with '/') */
   baseUrl: string;
 }
@@ -33,6 +35,9 @@ export const NET_VEHICLES = 'net-vehicles';
 export const NET_TRAILS = 'net-trails';
 export const NET_ZONES = 'net-zones';
 export const NET_LOADS = 'net-loads';
+export const PLAN_DRAFT = 'plan-draft';
+export const PLAN_DRAFT_PTS = 'plan-draft-pts';
+export const PLAN_ISO = 'plan-iso';
 export const CLASSES: RouteClass[] = ['local', 'peak', 'rural', 'sto', 'frequent', 'transitway', 'otrain'];
 /** Interactive layers, top-most first (click priority). */
 export const PICKABLE = ['net-vehicles', 'net-vehicle-dots', 'net-stations', 'net-stops', 'net-routes', 'net-otrain', 'net-transitway'];
@@ -177,7 +182,9 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
       paint: { 'fill-color': ['interpolate', ['linear'], h, 0, p.bldLow, 25, p.bldMid, 90, p.bldHigh], 'fill-opacity': zoomLin(13, 0.5, 15, 1) } });
   }
 
-  if (o.network) addNetworkLayers(L, p, !!o.riders && !!o.network.zones?.features.length);
+  if (o.plan) addIsoLayers(L, p);
+  if (o.network) addNetworkLayers(L, p, !!o.riders && !!o.network.zones?.features.length, !!o.plan);
+  if (o.plan) addDraftLayers(L, p);
 
   // --- labels ---------------------------------------------------------------------------------------
   const halo = { 'text-halo-color': p.halo, 'text-halo-width': 1.6, 'text-halo-blur': 0.4 };
@@ -228,6 +235,12 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
     [NET_ZONES]: { type: 'geojson' as const, data: o.network.zones ?? { type: 'FeatureCollection', features: [] } },
     [NET_LOADS]: { type: 'geojson' as const, data: o.network.loads ?? { type: 'FeatureCollection', features: [] } },
   } : {};
+  const planSources = o.plan ? {
+    [PLAN_DRAFT]: { type: 'geojson' as const, data: o.plan.draftLine },
+    [PLAN_DRAFT_PTS]: { type: 'geojson' as const, data: o.plan.draftPoints },
+    [PLAN_ISO]: { type: 'geojson' as const, data: { type: 'FeatureCollection', features: [...o.plan.iso.features,
+      ...(o.plan.isoOrigin ? [{ type: 'Feature', properties: { origin: true }, geometry: { type: 'Point', coordinates: o.plan.isoOrigin } }] : [])] } },
+  } : {};
 
   return {
     version: 8,
@@ -241,6 +254,7 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
       ...(o.terrain ? { [TERRAIN]: { type: 'raster-dem' as const, url: `pmtiles://${o.baseUrl}data/terrain.pmtiles`, encoding: 'terrarium' as const, tileSize: 256,
         attribution: 'CDEM © Natural Resources Canada' } } : {}),
       ...netSources,
+      ...planSources,
     },
     layers,
   } as StyleSpecification;
@@ -251,7 +265,7 @@ function scale(stops: Stops, k: number): Stops {
 }
 
 /** Transit network layers: corridors, routes, trails, vehicles, stations (VISUAL_DESIGN §3, §5). */
-function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders: boolean) {
+function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders: boolean, muted = false) {
   const T = p.transit;
   const lines = { source: NET_LINES } as const;
   const corridor = (kind: string): ExpressionSpecification => ['all', ['==', ['get', 'kind'], 'corridor'], ['==', ['get', 'corridor'], kind]];
@@ -278,7 +292,7 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders
       'line-color': ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local] as unknown as ExpressionSpecification,
       'line-width': ['interpolate', ['exponential', 1.55], ['zoom'], 10, ['match', ['get', 'cls'], 'frequent', 1.4, 'sto', 1.3, 0.8],
         16, ['match', ['get', 'cls'], 'frequent', 6, 'sto', 5.5, 3]] as unknown as ExpressionSpecification,
-      'line-opacity': (riders ? 0.22 : ['match', ['get', 'cls'], 'local', 0.75, 'peak', 0.7, 1]) as unknown as ExpressionSpecification,
+      'line-opacity': (riders ? 0.22 : muted ? 0.45 : ['match', ['get', 'cls'], 'local', 0.75, 'peak', 0.7, 1]) as unknown as ExpressionSpecification,
     } });
 
   // Transitway: solid red with a fine white centre line (BRT signature)
@@ -382,4 +396,33 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders
 function rgba(hex: string, a: number): string {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+/** M4 travel-time bloom: zone hexagons in four bands (10/20/30/45 min), under the network. */
+function addIsoLayers(L: (l: LayerSpecification) => void, p: Palette) {
+  L({ id: 'plan-iso', type: 'fill', source: PLAN_ISO, filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: {
+      'fill-color': ['step', ['get', 't'], '#0E7C86', 10.5, '#36A3A2', 20.5, '#7EC8B2', 30.5, '#C6E7BE', 45.5, p.night ? '#2B3A4E' : '#EEF2E4'],
+      'fill-opacity': ['step', ['get', 't'], 0.62, 45.5, 0.25],
+      'fill-outline-color': 'rgba(255,255,255,0.35)',
+    } as never });
+  L({ id: 'plan-iso-origin', type: 'circle', source: PLAN_ISO, filter: ['==', ['geometry-type'], 'Point'],
+    paint: { 'circle-radius': 8, 'circle-color': '#F2A93B', 'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': 3 } });
+}
+
+/** M4 the route being drawn: white casing, amber dashes, stops (reused stops ringed), waypoints as handles. */
+function addDraftLayers(L: (l: LayerSpecification) => void, p: Palette) {
+  const round = { 'line-join': 'round', 'line-cap': 'round' } as const;
+  L({ id: 'plan-draft-case', type: 'line', source: PLAN_DRAFT, layout: round,
+    paint: { 'line-color': p.night ? '#0B1424' : '#FFFFFF', 'line-width': zoomExp(10, 6, 16, 16) } });
+  L({ id: 'plan-draft', type: 'line', source: PLAN_DRAFT, layout: round,
+    paint: { 'line-color': '#E8961E', 'line-width': zoomExp(10, 3, 16, 9), 'line-dasharray': [1.6, 1.1] } });
+  L({ id: 'plan-draft-stops', type: 'circle', source: PLAN_DRAFT_PTS, filter: ['==', ['get', 'kind'], 'stop'],
+    paint: { 'circle-radius': zoomExp(10, 3.5, 16, 7), 'circle-color': ['case', ['get', 'existing'], '#FFFFFF', '#E8961E'],
+      'circle-stroke-color': ['case', ['get', 'existing'], '#E8961E', '#FFFFFF'], 'circle-stroke-width': 2 } as never });
+  L({ id: 'plan-draft-handles', type: 'circle', source: PLAN_DRAFT_PTS, filter: ['==', ['get', 'kind'], 'waypoint'],
+    paint: { 'circle-radius': zoomExp(10, 6, 16, 10), 'circle-color': '#FFFFFF', 'circle-stroke-color': '#E8961E', 'circle-stroke-width': 3 } });
+  L({ id: 'plan-draft-labels', type: 'symbol', source: PLAN_DRAFT_PTS, minzoom: 13.5, filter: ['==', ['get', 'kind'], 'stop'],
+    layout: { 'text-field': ['get', 'name'], 'text-font': ['Inter SemiBold'], 'text-size': 11, 'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-optional': true },
+    paint: { 'text-color': p.night ? '#F6D9A8' : '#7A4A06', 'text-halo-color': p.halo, 'text-halo-width': 1.6 } });
 }

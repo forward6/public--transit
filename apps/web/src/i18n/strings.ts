@@ -1,4 +1,4 @@
-import type { CatalogueClass, Confidence, District, Lang, NetworkStatus, RouteClass, Season, TimeOfDay, TravelMode } from '@otc/shared';
+import type { CatalogueClass, Confidence, District, Lang, NetworkStatus, PlanPeriodId, RouteClass, Season, TimeOfDay, TravelMode } from '@otc/shared';
 
 export interface Strings {
   appName: string;
@@ -83,6 +83,46 @@ export interface Strings {
   routeBoardings: string;
   stopBoardings: string;
   legendRiders: string;
+  // M4 — design tools
+  plan: string;
+  planTitle: string;
+  planHint: string;
+  newRoute: string;
+  travelTimes: string;
+  evaluate: string;
+  evaluating: string;
+  undo: string;
+  resetPlan: string;
+  resetConfirm: string;
+  done: string;
+  cancel: string;
+  finishRoute: string;
+  drawHint: string;
+  drawLoading: string;
+  isoHint: string;
+  isoLegend: string;
+  changes: (n: number) => string;
+  periodName: Record<PlanPeriodId, string>;
+  noService: string;
+  newRouteService: string;
+  draftStats: (km: number, min: number, stops: number, reused: number) => string;
+  serviceEditor: string;
+  serviceNote: string;
+  apply: string;
+  removeRoute: string;
+  removed: string;
+  scorecard: string;
+  scorecardSub: string;
+  base2010: string;
+  yourPlan: string;
+  metric: Record<'boardings' | 'transitShare' | 'coverage' | 'coverageFrequent' | 'jobsIn45' | 'annualCost' | 'costPerBoarding' | 'peakVehicles', string>;
+  stages: Record<string, string>;
+  yourChanges: string;
+  editLabel: (kind: 'add' | 'service' | 'remove', route: string) => string;
+  newRouteRiders: string;
+  byDistrictChange: string;
+  scorecardNote: string;
+  outdated: string;
 }
 
 /** 512340 -> "512k", 8450 -> "8.5k" */
@@ -153,6 +193,50 @@ export const STRINGS: Record<Lang, Strings> = {
     catalogueOnMap: 'On the map now',
     catalogueSources: 'Dated sources (Wikipedia revisions)',
     catalogueWayback: 'OC Transpo’s own 2010 timetable data (GTFS) is held by the Wayback Machine, which refuses connections from this build environment; the remaining routes need it or archived route maps.',
+    plan: 'Plan',
+    planTitle: 'Plan mode',
+    planHint: 'The clock is paused. Tap a route to change its service, draw a new one, or see travel times.',
+    newRoute: 'New route',
+    travelTimes: 'Travel times',
+    evaluate: 'Evaluate',
+    evaluating: 'Evaluating',
+    undo: 'Undo',
+    resetPlan: 'Reset',
+    resetConfirm: 'Discard every change in this plan?',
+    done: 'Done',
+    cancel: 'Cancel',
+    finishRoute: 'Add route',
+    drawHint: 'Tap the map to add points; the route follows the streets and gets stops every ~400 m.',
+    drawLoading: 'Loading the street map…',
+    isoHint: 'Tap anywhere: how far can you get by transit, leaving at 8:00?',
+    isoLegend: 'By transit from the dot, leaving 8:00',
+    changes: (n) => (n === 1 ? '1 change' : `${n} changes`),
+    periodName: { am: 'Morning peak', midday: 'Midday', pm: 'Afternoon peak', evening: 'Evening' },
+    noService: 'no service',
+    newRouteService: 'Service',
+    draftStats: (km, min, stops, reused) => `${km.toFixed(1)} km · ${Math.round(min)} min · ${stops} stops (${reused} shared)`,
+    serviceEditor: 'Plan this route’s service',
+    serviceNote: 'Changing service runs the route’s main pattern each way at these headways.',
+    apply: 'Apply',
+    removeRoute: 'Remove route',
+    removed: 'Removed',
+    scorecard: 'Scorecard',
+    scorecardSub: 'Your plan against the 2010 network, on a 2011 weekday',
+    base2010: '2010',
+    yourPlan: 'Plan',
+    metric: {
+      boardings: 'Boardings a weekday', transitShare: 'Transit share of trips', coverage: 'Residents near a stop (400 m)',
+      coverageFrequent: 'Near frequent service', jobsIn45: 'Jobs within 45 min (avg.)', annualCost: 'Operating cost a year',
+      costPerBoarding: 'Cost per boarding', peakVehicles: 'Buses at the peak',
+    },
+    stages: { load: 'Loading data', 'baseline-skims': 'Measuring 2010 travel times', 'baseline-model': 'Modelling 2010 trips',
+      'baseline-assign': 'Loading 2010 riders', skims: 'Measuring travel times', model: 'Modelling trips', assign: 'Loading riders', score: 'Scoring' },
+    yourChanges: 'Your changes',
+    editLabel: (kind, route) => (kind === 'add' ? `New route ${route}` : kind === 'remove' ? `Removed ${route}` : `New service on ${route}`),
+    newRouteRiders: 'riders a weekday',
+    byDistrictChange: 'Transit share by where people live',
+    scorecardNote: 'Approximate: the same demand model as the Ridership panel, run with fewer departure times so it fits in seconds. Costs use about $115 per bus-hour (estimate).',
+    outdated: 'The plan changed since this result. Evaluate again.',
     riders: 'Riders',
     ridersChip: (b) => `${fmtK(b)} boardings a weekday`,
     ridershipTitle: 'Who rides: a 2011 weekday',
@@ -239,6 +323,50 @@ export const STRINGS: Record<Lang, Strings> = {
     catalogueOnMap: 'Sur la carte',
     catalogueSources: 'Sources datées (révisions de Wikipédia)',
     catalogueWayback: 'Les données d’horaires 2010 d’OC Transpo (GTFS) sont conservées par la Wayback Machine, qui refuse les connexions de cet environnement ; les autres lignes en ont besoin, ou de plans archivés.',
+    plan: 'Planifier',
+    planTitle: 'Mode planification',
+    planHint: 'L’horloge est en pause. Touchez une ligne pour changer son service, tracez-en une nouvelle ou voyez les temps de trajet.',
+    newRoute: 'Nouvelle ligne',
+    travelTimes: 'Temps de trajet',
+    evaluate: 'Évaluer',
+    evaluating: 'Évaluation',
+    undo: 'Annuler',
+    resetPlan: 'Réinitialiser',
+    resetConfirm: 'Abandonner tous les changements de ce plan?',
+    done: 'Terminé',
+    cancel: 'Annuler',
+    finishRoute: 'Ajouter la ligne',
+    drawHint: 'Touchez la carte pour ajouter des points; la ligne suit les rues et reçoit un arrêt aux ~400 m.',
+    drawLoading: 'Chargement du réseau de rues…',
+    isoHint: 'Touchez n’importe où : jusqu’où peut-on aller en transport collectif en partant à 8 h?',
+    isoLegend: 'En transport collectif depuis le point, départ 8 h',
+    changes: (n) => (n === 1 ? '1 changement' : `${n} changements`),
+    periodName: { am: 'Pointe du matin', midday: 'Midi', pm: 'Pointe de l’après-midi', evening: 'Soirée' },
+    noService: 'aucun service',
+    newRouteService: 'Service',
+    draftStats: (km, min, stops, reused) => `${km.toFixed(1)} km · ${Math.round(min)} min · ${stops} arrêts (${reused} partagés)`,
+    serviceEditor: 'Planifier le service de cette ligne',
+    serviceNote: 'Changer le service fait rouler le tracé principal dans chaque sens à ces intervalles.',
+    apply: 'Appliquer',
+    removeRoute: 'Retirer la ligne',
+    removed: 'Retirée',
+    scorecard: 'Bulletin',
+    scorecardSub: 'Votre plan comparé au réseau de 2010, un jour de semaine de 2011',
+    base2010: '2010',
+    yourPlan: 'Plan',
+    metric: {
+      boardings: 'Montées par jour de semaine', transitShare: 'Part du transport collectif', coverage: 'Résidents près d’un arrêt (400 m)',
+      coverageFrequent: 'Près d’un service fréquent', jobsIn45: 'Emplois à moins de 45 min (moy.)', annualCost: 'Coût d’exploitation annuel',
+      costPerBoarding: 'Coût par montée', peakVehicles: 'Autobus en pointe',
+    },
+    stages: { load: 'Chargement des données', 'baseline-skims': 'Temps de trajet de 2010', 'baseline-model': 'Déplacements de 2010',
+      'baseline-assign': 'Achalandage de 2010', skims: 'Temps de trajet', model: 'Déplacements', assign: 'Achalandage', score: 'Bulletin' },
+    yourChanges: 'Vos changements',
+    editLabel: (kind, route) => (kind === 'add' ? `Nouvelle ligne ${route}` : kind === 'remove' ? `Ligne ${route} retirée` : `Nouveau service, ligne ${route}`),
+    newRouteRiders: 'usagers par jour de semaine',
+    byDistrictChange: 'Part du transport collectif selon le lieu de résidence',
+    scorecardNote: 'Approximatif : le même modèle de demande que le panneau Achalandage, avec moins d’heures de départ pour tenir en quelques secondes. Les coûts supposent environ 115 $ par heure-autobus (estimation).',
+    outdated: 'Le plan a changé depuis ce résultat. Évaluez de nouveau.',
     riders: 'Achalandage',
     ridersChip: (b) => `${fmtK(b)} montées par jour de semaine`,
     ridershipTitle: 'Qui se déplace : un jour de semaine de 2011',
