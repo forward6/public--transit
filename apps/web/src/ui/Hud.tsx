@@ -43,6 +43,8 @@ interface HudProps {
   ridersLegend?: ReactNode;
   /** M7: the Political Capital chip */
   capital?: ReactNode;
+  /** the logo opens the menu (continue, new game) */
+  onMenu?: () => void;
   /** M4 Plan mode */
   planActive: boolean;
   onTogglePlan: () => void;
@@ -165,7 +167,7 @@ export function Hud(props: HudProps) {
   const lastSpeed = useRef<SpeedIndex>(3);
   if (props.speed !== 0) lastSpeed.current = props.speed;
   const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue,
-    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC, ridersLegend, capital } = props;
+    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC, ridersLegend, capital, onMenu } = props;
   const temp = tempC !== undefined ? `${tempC} °C · ` : '';
   const hasRiders = boardings !== null;
   const planCtl = hasRiders ? { active: planActive, toggle: onTogglePlan } : undefined;
@@ -173,7 +175,7 @@ export function Hud(props: HudProps) {
     return (
       <>
         <header className="m-top glass">
-          <Logo size={38} />
+          <button className="logo-btn" onClick={onMenu} aria-label={t.st.menu} title={t.st.menu}><Logo size={38} /></button>
           <div className="m-title"><span>{dateShort ?? t.dateShort} · {temp}{dayNote ?? `${inService} ${t.inService}`}</span><b>{formatClock(time)}</b></div>
           <button className="m-play" aria-label={t.speed[speed === 0 ? 3 : 0]} onClick={() => onSpeed(speed === 0 ? (lastSpeed.current || 3) : 0)}>
             <svg viewBox="0 0 20 20" fill="currentColor">{SPEED_ICONS[speed === 0 ? 1 : 0]}</svg>
@@ -202,7 +204,7 @@ export function Hud(props: HudProps) {
     <>
       <header className="topbar glass">
         <div className="brand">
-          <Logo />
+          <button className="logo-btn" onClick={onMenu} aria-label={t.st.menu} title={t.st.menu}><Logo /></button>
           {layout === 'desktop' && (
             <div className="brand-text">
               <div className="brand-name">{t.appName}</div>

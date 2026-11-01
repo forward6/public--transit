@@ -47,4 +47,19 @@ describe('strings', () => {
     }
     expect(Object.keys(STRINGS.fr.co.reason)).toEqual(Object.keys(STRINGS.en.co.reason));
   });
+
+  it('translates the start screen', () => {
+    const en = STRINGS.en.st as unknown as Record<string, unknown>;
+    const fr = STRINGS.fr.st as unknown as Record<string, unknown>;
+    expect(Object.keys(en).filter((k) => k !== 'menu' && typeof en[k] === 'string' && en[k] === fr[k])).toEqual([]);
+    expect(STRINGS.fr.st.tips).toHaveLength(STRINGS.en.st.tips.length);
+    expect(STRINGS.fr.st.confirmBody('1 mars 2011')).toContain('1 mars 2011');
+  });
+
+  it('translates riders on board', () => {
+    const en = STRINGS.en.ld.ob;
+    const fr = STRINGS.fr.ld.ob;
+    for (const k of Object.keys(en.crowd) as (keyof typeof en.crowd)[]) expect(fr.crowd[k]).not.toEqual(en.crowd[k]);
+    expect(fr.note(38, 65)).not.toEqual(en.note(38, 65));
+  });
 });

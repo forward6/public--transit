@@ -11,21 +11,29 @@ import { STRINGS } from './i18n/strings';
 import { draftFeatures, isoPolys, loadFeatures, networkLines, networkStops, opinionPolys, riderPath, zonePoints } from './network/geojson';
 import { useNetwork } from './network/useNetwork';
 import { useVehicleAnimation } from './network/useVehicleAnimation';
-import { DAYS_SPEED, createClock, isNight, seasonOf, type SpeedIndex } from './sim/clock';
+import { DAYS_SPEED, SERVICE_DAY_START, createClock, isNight, seasonOf, type SpeedIndex } from './sim/clock';
 import { serviceDayAt, vehiclesNow, type ServiceDay } from './sim/service';
 import { Hud, type Settings } from './ui/Hud';
 import { Inspector, type Selection } from './ui/Inspector';
 import { Snow } from './ui/Snow';
+import { StartScreen, startingNewGame } from './ui/StartScreen';
 import { usePlan } from './plan/usePlan';
 import { PlanDock, ScorecardPanel } from './plan/PlanUI';
 import { loadGame, useGame, type Measure } from './game/useGame';
 import { BudgetPanel, DailyRidersChip, DecisionCard, NewsToasts, TreasuryChip, fmtDate } from './game/GameUI';
 import { PERSONAS } from '@otc/shared';
-import { journeyPosition, loadReport, monthBoardings, nextServiceChange, serviceDay, temperatureAt, weatherOn } from '@otc/sim';
+import { addDays, dayBoardings, journeyPosition, loadReport, monthBoardings, nextServiceChange, serviceDay, temperatureAt, weatherOn } from '@otc/sim';
+import { useOnBoard } from './game/onBoard';
 import { ApprovalChip, FrontPageCard, OpinionPanel, PersonaPanel, ZonePanel, opinionValues, type OpinionView } from './game/OpinionUI';
 import { useLayout, type Layout } from './ui/useLayout';
 
 const params = new URLSearchParams(location.search);
+// a new game asked for on the last page: forget the old campaign before anything reads it
+const newGameStarting = startingNewGame();
+// the start screen opens the game, unless a link opens straight into it (any option but ?lang; ?menu=1 forces it)
+const startScreenAtLoad = !newGameStarting && params.get('menu') !== '0'
+  && (params.get('menu') === '1' || [...params.keys()].every((k) => k === 'lang'));
+const hadCampaign = !newGameStarting && loadGame() !== null;
 const pick = <T extends string>(key: string, allowed: readonly T[], fallback: T): T => {
   const v = params.get(key);
   return v && (allowed as readonly string[]).includes(v) ? (v as T) : fallback;
@@ -94,6 +102,17 @@ export function App() {
   const [settings, setSettings] = useState<Settings>(initialSettings);
   const [map, setMap] = useState<MLMap | null>(null);
   const [sel, setSel] = useState<Selection>(null);
+  // the start screen (at load) or the menu (from the logo); the game waits while it's open
+  const [menu, setMenu] = useState<'start' | 'menu' | null>(startScreenAtLoad ? 'start' : null);
+  const menuSpeed = useRef<SpeedIndex>(clock.speed());
+  useEffect(() => {
+    if (startScreenAtLoad) clock.setSpeed(0);
+  }, []);
+  const openMenu = () => {
+    menuSpeed.current = clock.speed() || menuSpeed.current;
+    clock.setSpeed(0);
+    setMenu('menu');
+  };
   const [loadMode, setLoadMode] = useState<LoadMode>(params.get('rv') === 'daily' ? 'daily' : 'crowding');
   const [opinionView, setOpinionView] = useState<OpinionView>((['approval', 'ward', 'service', 'value', 'trust'] as const).find((v) => v === params.get('ov')) ?? 'approval');
   const t = STRINGS[settings.lang];
@@ -176,7 +195,11 @@ export function App() {
     ...(s.riders ? { opinion: false } : {}) }));
 
   useEffect(() => {
-    document.body.className = `theme-${pal.night ? 'night' : 'day'} layout-${layout}`;
+    document.body.classList.toggle('menu-open', !!menu);
+  }, [menu]);
+  useEffect(() => {
+    document.body.classList.remove('theme-day', 'theme-night', 'layout-phone', 'layout-tablet', 'layout-desktop');
+    document.body.classList.add(`theme-${pal.night ? 'night' : 'day'}`, `layout-${layout}`);
     document.documentElement.lang = settings.lang;
     document.title = `${t.appName} — 2010`;
     const q = new URLSearchParams(location.search);
@@ -283,8 +306,20 @@ export function App() {
   const report = useMemo(() => (wantLoads && opNet && game.loads ? loadReport(opNet.network, opNet.playback.trips, game.loads.loads, game.loads.peakLoads, scaleKey) : null),
     [wantLoads, opNet, game.loads, scaleKey]);
   const loadFc = useMemo(() => (settings.riders ? loadFeatures(report) : null), [settings.riders, report]);
+  // riders on board the vehicle you tap: today's riders (season, weather, weekends) on the loads in operation
+  const svcDate = clock.now() < SERVICE_DAY_START ? addDays(date, -1) : date;
+  const dayScale = useMemo(() => (game.state && game.loads?.oc ? dayBoardings(game.state, undefined, svcDate) / game.loads.oc : 1),
+    [game.state, game.loads, svcDate]);
+  const onBoard = useOnBoard(net?.playback, game.loads, base?.zones?.zones, serviceDayNow(), dayScale);
+  useEffect(() => {
+    if (sel?.type === 'vehicle') game.requestLoads();
+  }, [sel?.type, game.requestLoads]); // eslint-disable-line react-hooks/exhaustive-deps
   useStreamedSource(map, NET_LOADS, loadFc);
   const openLoad = () => setSel({ type: 'load', id: 'peak' });
+  const closeMenu = () => {
+    setMenu(null);
+    if (!game.decision) clock.setSpeed(menuSpeed.current || 3);
+  };
   const ridersLegend = (
     <div className="lg-load">
       <div className="seg wide" role="radiogroup" aria-label={t.ld.title}>
@@ -382,7 +417,7 @@ export function App() {
           : sel.type === 'zone' ? <ZonePanel game={game} index={Number(sel.id)} t={t} lang={settings.lang} onPersona={(id) => setSel({ type: 'persona', id })} />
           : sel.type === 'persona' ? <PersonaPanel game={game} id={sel.id} t={t} lang={settings.lang} now={view.service} />
           : <Inspector sel={sel} net={net} t={view.service} s={t} lang={settings.lang} palette={pal} onSelect={setSel} plan={plan}
-            game={game.state} routeName={routeName} day={serviceDayNow()} />) : null}
+            game={game.state} routeName={routeName} day={serviceDayNow()} onBoard={onBoard} />) : null}
         planActive={plan.active} onTogglePlan={() => plan.setActive(!plan.active)} dock={dock}
         dateLabel={game.state ? fmtDate(game.state.date, settings.lang) : undefined}
         dateShort={game.state ? fmtDate(game.state.date, settings.lang, 'short') : undefined}
@@ -392,11 +427,14 @@ export function App() {
         boardings={net?.demand?.summary.boardings ?? null}
         ridersChip={<DailyRidersChip game={game} t={t} lang={settings.lang} fallback={net?.demand?.summary.boardings ?? null} onClick={openRidership} />}
         approval={<ApprovalChip game={game} t={t} lang={settings.lang} onClick={openOpinion} />} hasOpinion={!!game.state?.opinion} tempC={tempC}
-        ridersLegend={ridersLegend} capital={<CapitalChip game={game} t={t} onClick={() => setSel({ type: 'council', id: 'term' })} />} />
-      {!params.has('nodecision') && <DecisionCard game={game} t={t} lang={settings.lang} />}
-      <NewsToasts game={game} t={t} lang={settings.lang} />
-      {!params.has('nodecision') && <ElectionNight game={game} t={t} lang={settings.lang} />}
-      {!params.has('nodecision') && <FrontPageCard game={game} t={t} lang={settings.lang} onShow={pauseForPaper} onClose={resumeAfterPaper} />}
+        ridersLegend={ridersLegend} capital={<CapitalChip game={game} t={t} onClick={() => setSel({ type: 'council', id: 'term' })} />}
+        onMenu={openMenu} />
+      {!params.has('nodecision') && !menu && <DecisionCard game={game} t={t} lang={settings.lang} />}
+      {!menu && <NewsToasts game={game} t={t} lang={settings.lang} />}
+      {!params.has('nodecision') && !menu && <ElectionNight game={game} t={t} lang={settings.lang} />}
+      {!params.has('nodecision') && !menu && <FrontPageCard game={game} t={t} lang={settings.lang} onShow={pauseForPaper} onClose={resumeAfterPaper} />}
+      {menu && <StartScreen t={t} lang={settings.lang} onLang={(lang) => changeSettings({ lang })} time={view.time}
+        campaign={menu === 'menu' || hadCampaign ? game.state : null} onContinue={closeMenu} />}
     </>
   );
 }

@@ -1,5 +1,6 @@
 // The Load view: where the network is under load (EN/FR).
 import type { LoadLevel } from '@otc/sim';
+import type { Crowd } from '../game/onBoard';
 
 export interface LoadStrings {
   title: string;
@@ -20,6 +21,15 @@ export interface LoadStrings {
   measuring: string;
   note: string;
   legendRiders: string;
+  /** the vehicle panel: riders on board now */
+  ob: {
+    title: string;
+    riders: string;
+    crowd: Record<Crowd, string>;
+    note: (seats: number, capacity: number) => string;
+    measuring: string;
+    leaving: string;
+  };
 }
 
 export const LOAD_EN: LoadStrings = {
@@ -41,6 +51,14 @@ export const LOAD_EN: LoadStrings = {
   measuring: 'Measuring the network in operation…',
   note: 'Riders in the busiest morning hour against the places on the buses and trains scheduled through each stretch (all routes together). Capacities by route class are estimates (60-ft bus 100, 40-ft bus 65, O-Train 260). The timetable is August 2011 summer service, so some suburban routes look more crowded than they would in December. Over capacity means riders are left behind.',
   legendRiders: 'Line width: riders per day',
+  ob: {
+    title: 'On board',
+    riders: 'riders',
+    crowd: { seats: 'Seats free', fewSeats: 'Few seats left', standing: 'Standing room only', full: 'Full: riders left behind' },
+    note: (seats, cap) => `${seats} seats, room for about ${cap}. Estimated from the demand model for this time of day, today's weather and season.`,
+    measuring: 'Counting riders on the network in operation…',
+    leaving: 'Riders on board leaving this stop',
+  },
 };
 
 export const LOAD_FR: LoadStrings = {
@@ -62,4 +80,12 @@ export const LOAD_FR: LoadStrings = {
   measuring: 'Mesure du réseau en service…',
   note: 'Usagers à l’heure la plus chargée du matin par rapport aux places offertes par les autobus et les trains prévus sur chaque tronçon (toutes lignes confondues). Les capacités par type de ligne sont des estimations (autobus de 60 pi : 100, de 40 pi : 65, O-Train : 260). L’horaire est celui de l’été 2011 : certaines lignes de banlieue semblent plus bondées qu’en décembre. Au-delà de la capacité, des usagers restent sur le quai.',
   legendRiders: 'Épaisseur : usagers par jour',
+  ob: {
+    title: 'À bord',
+    riders: 'usagers',
+    crowd: { seats: 'Places libres', fewSeats: 'Peu de places assises', standing: 'Debout seulement', full: 'Plein : des gens restent à l’arrêt' },
+    note: (seats, cap) => `${seats} places assises, environ ${cap} au total. Estimation du modèle de demande pour cette heure, la météo et la saison.`,
+    measuring: 'Décompte des usagers sur le réseau en service…',
+    leaving: 'Usagers à bord au départ de cet arrêt',
+  },
 };

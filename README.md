@@ -87,7 +87,18 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
   - **election night,** 27 October 2014: the wards come in one by one, and the new council sets how
     hard the next term will be.
 
+- **A start screen:** continue the campaign saved in this browser (it shows the date, approval and
+  reserve), or start a new game (after a confirmation). Tap the logo during the game to get back to
+  it.
+- **Riders on board:** tap a bus or train to see how many people are on it now, against its seats
+  and room, and how many are on board as it leaves each coming stop. Estimated from the demand
+  model: a route's riders between two stops are shared between its trips by time of day (commuters
+  ride inbound in the morning and outbound in the evening) and how often the buses come, scaled to
+  today's riders (season, weather, weekends).
+
 ![Council vote: the whip count on the budget](docs/screenshots/m7/vote-budget.jpg)
+
+![Riders on board a 97 at 8 am](docs/screenshots/start/vehicle-on-board.jpg)
 
 ![Election night, 2014](docs/screenshots/m7/election-night.jpg)
 
@@ -107,9 +118,10 @@ pnpm install                                   # Node 20+ and pnpm 10
 pnpm dev                                       # http://127.0.0.1:5173
 ```
 
-URL options:
+URL options (any option but `lang` opens straight into the game, without the start screen):
 
 - `?lang=en|fr`
+- `&menu=1` shows the start screen anyway; `&menu=0` skips it
 - `&season=winter|spring|summer|autumn` and `&time=day|night` pin the look (the calendar and the
   sun set it otherwise)
 - `&3d=0`

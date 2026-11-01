@@ -6,6 +6,8 @@ import type { PlanState } from '../plan/usePlan';
 import { RouteServiceEditor } from '../plan/PlanUI';
 import { DailyChart, RouteTrend, WatchedRoutes } from '../game/Ridership';
 import { tripRuns, vehiclesNow, type ServiceDay } from '../sim/service';
+import { segmentNow } from '@otc/sim';
+import { crowdOf, shownRiders, type OnBoardFn } from '../game/onBoard';
 
 export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard' | 'budget' | 'opinion' | 'zone' | 'persona'
     | 'load' | 'council';
@@ -25,6 +27,8 @@ interface Props {
   routeName?: (id: string) => string;
   /** today's timetable (weekends run fewer trips) */
   day?: ServiceDay;
+  /** riders on board a vehicle */
+  onBoard?: OnBoardFn;
 }
 
 export function RouteBadge({ route, palette, onClick }: { route: NetRoute; palette: Palette; onClick?: () => void }) {
@@ -48,7 +52,7 @@ function ProvenanceNote({ p, s }: { p?: Provenance; s: Strings }) {
 
 const minutesUntil = (from: number, to: number) => Math.max(0, Math.round((to - from) / 60));
 
-export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game, routeName, day = 'weekday' }: Props) {
+export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game, routeName, day = 'weekday', onBoard }: Props) {
   const { network, playback } = net;
   const runs = (tripId: string) => tripRuns(tripId, day);
 
@@ -60,19 +64,27 @@ export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game,
     const pattern = playback.pattern(trip.patternId)!;
     const upcoming = pattern.stops.map((id, i) => ({ id, i, time: trip.arr[i]! })).filter((x) => x.i >= v.stopIndex).slice(0, 6);
     const at = playback.stops.get(pattern.stops[v.stopIndex]!)?.name ?? '';
+    const ob = onBoard?.(trip.id);
+    const nowRiders = ob && ob !== 'measuring' ? ob.riders[segmentNow(v.stopIndex, v.dwelling, pattern.stops.length)] ?? 0 : 0;
     return (
       <div className="ins">
         <div className="ins-head"><RouteBadge route={route} palette={palette} onClick={() => onSelect({ type: 'route', id: route.id })} />
           <div><div className="ins-title">→ {pattern.headsign}</div><div className="ins-sub">{route.longName}</div></div></div>
         <div className="pill">{v.dwelling ? `${s.atStop} ${at}` : `${s.nextStop} ${at} · ${minutesUntil(t, trip.arr[v.stopIndex]!)} min`}</div>
+        {ob === 'measuring' && <p className="muted small">{s.ld.ob.measuring}</p>}
+        {ob && ob !== 'measuring' && <OnBoardCard n={nowRiders} seats={ob.seats} capacity={ob.capacity} s={s} lang={lang} />}
         <div className="sec">{s.schedule}</div>
-        <ol className="timeline">
-          {upcoming.map((u) => (
-            <li key={u.id} className={u.i === v.stopIndex ? 'now' : ''}>
-              <time>{formatClock(u.time)}</time>
-              <button className="link" onClick={() => onSelect({ type: 'stop', id: u.id })}>{playback.stops.get(u.id)?.name ?? u.id}</button>
-            </li>
-          ))}
+        <ol className={`timeline${ob && ob !== 'measuring' ? ' with-load' : ''}`}>
+          {upcoming.map((u) => {
+            const leaving = ob && ob !== 'measuring' && u.i < pattern.stops.length - 1 ? shownRiders(ob.riders[u.i] ?? 0, ob.capacity) : null;
+            return (
+              <li key={u.id} className={u.i === v.stopIndex ? 'now' : ''}>
+                <time>{formatClock(u.time)}</time>
+                <button className="link" onClick={() => onSelect({ type: 'stop', id: u.id })}>{playback.stops.get(u.id)?.name ?? u.id}</button>
+                {leaving !== null && <em className="leaving" title={s.ld.ob.leaving}>{leaving}</em>}
+              </li>
+            );
+          })}
         </ol>
         <ProvenanceNote p={route.provenance} s={s} />
       </div>
@@ -265,6 +277,23 @@ function Ridership({ net, s, daily }: { net: NetworkState; s: Strings; daily: Re
         </li>
       ))}</ul>
       <p className="muted small">{s.ridershipNote}</p>
+    </div>
+  );
+}
+
+/** Riders on board now: a count, how it feels and a bar against seats and room. */
+function OnBoardCard({ n, seats, capacity, s, lang }: { n: number; seats: number; capacity: number; s: Strings; lang: Lang }) {
+  const shown = shownRiders(n, capacity);
+  const crowd = crowdOf(n, seats, capacity);
+  const pct = (x: number) => `${Math.min(100, (100 * x) / capacity)}%`;
+  return (
+    <div className={`onboard ${crowd}`}>
+      <div className="ob-row"><b>{shown.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')}</b><span>{s.ld.ob.riders}</span><em>{s.ld.ob.crowd[crowd]}</em></div>
+      <div className="ob-bar" role="img" aria-label={`${shown} / ${capacity}`}>
+        <i className="fill" style={{ width: pct(shown) }} />
+        <i className="seats" style={{ left: pct(seats) }} />
+      </div>
+      <p className="muted small">{s.ld.ob.note(seats, capacity)}</p>
     </div>
   );
 }

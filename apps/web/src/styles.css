@@ -143,6 +143,22 @@ body:has(.inspector).layout-tablet .mapbuttons { right: 364px; }
 .timeline li::before { content: ''; position: absolute; left: -15px; top: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--glass-strong); border: 2px solid var(--muted); }
 .timeline li.now::before { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); }
 .timeline time, .deps time { color: var(--muted); font-weight: 600; width: 40px; flex: none; }
+.timeline.with-load li .link { flex: 1; text-align: left; }
+.timeline .leaving { font-style: normal; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; min-width: 28px; text-align: right; }
+
+/* riders on board (vehicle panel) */
+.onboard { --ob: var(--good); margin: 10px 0 4px; }
+.onboard.fewSeats { --ob: var(--amber); }
+.onboard.standing { --ob: #e57a2e; }
+.onboard.full { --ob: var(--hot); }
+.onboard .ob-row { display: flex; align-items: baseline; gap: 6px; }
+.onboard .ob-row b { font: 700 26px/1 var(--serif); color: var(--fg); font-variant-numeric: tabular-nums; }
+.onboard .ob-row span { color: var(--muted); font-size: 13px; }
+.onboard .ob-row em { margin-left: auto; font-style: normal; font-size: 12.5px; font-weight: 600; color: var(--ob); }
+.onboard .ob-bar { position: relative; height: 8px; border-radius: 4px; background: var(--track); margin: 8px 0 6px; overflow: hidden; }
+.onboard .ob-bar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--ob); transition: width .4s ease; }
+.onboard .ob-bar .seats { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--fg); opacity: .5; }
+@media (prefers-reduced-motion: reduce) { .onboard .ob-bar .fill { transition: none; } }
 .link { border: 0; background: none; padding: 0; color: var(--fg); font-size: 13px; text-align: left; }
 .link:hover { text-decoration: underline; }
 .deps { list-style: none; margin: 0; padding: 0; }
@@ -524,3 +540,48 @@ ul.councillors em { display: none; }
 @media (prefers-reduced-motion: reduce) { .election ul.wards li { transition: none; } }
 body.layout-phone ul.councillors { columns: 1; }
 body.layout-phone .choices.two { grid-template-columns: 1fr; }
+
+/* ------------------------------------------------------------------ start screen and menu */
+/* only the living map behind the start screen */
+body.menu-open .topbar, body.menu-open .legend, body.menu-open .m-top, body.menu-open .m-sheet, body.menu-open .inspector, body.menu-open .mapbuttons,
+body.menu-open .maplibregl-control-container, body.menu-open .plan-dock, body.menu-open .toasts { visibility: hidden; }
+.start .btn:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.75); outline-offset: 2px; }
+.logo-btn { border: 0; background: none; padding: 0; margin: 0; cursor: pointer; display: flex; border-radius: 12px; color: inherit; }
+.logo-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.start-wrap { position: fixed; inset: 0; z-index: 70; color: #eaf0fa;
+  background: linear-gradient(90deg, rgba(8, 13, 25, 0.92) 0%, rgba(8, 13, 25, 0.78) 38%, rgba(8, 13, 25, 0.25) 75%, rgba(8, 13, 25, 0.1) 100%); }
+.start { position: absolute; left: clamp(24px, 6vw, 88px); top: 50%; transform: translateY(-50%); width: min(470px, calc(100% - 48px));
+  max-height: calc(100% - 32px); overflow: auto; animation: start-in .6s ease both; }
+@keyframes start-in { from { opacity: 0; transform: translateY(calc(-50% + 12px)); } }
+.start-brand { display: flex; align-items: center; gap: 12px; }
+.start-kicker { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #f2c14e; }
+.start h1 { font: 700 46px/1.04 var(--serif); margin: 16px 0 12px; color: #fff; letter-spacing: -0.01em; }
+.start .pitch { font-size: 16px; line-height: 1.5; color: #c9d4e6; margin: 0 0 24px; }
+.start-actions { display: flex; flex-direction: column; gap: 10px; }
+.start .btn.big { height: auto; min-height: 52px; padding: 13px 18px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px;
+  text-align: left; font-size: 16px; border-radius: 14px; color: #fff; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); cursor: pointer; }
+.start .btn.big:hover { background: rgba(255, 255, 255, 0.13); }
+.start .btn.big.primary { background: #e08a1e; border-color: transparent; }
+.start .btn.big.primary:hover { background: #ec9a30; }
+.start .btn.big.danger { background: #c8303a; border-color: transparent; }
+.start .btn.big small { font-size: 12.5px; font-weight: 500; opacity: .88; line-height: 1.3; }
+.start .confirm h2 { font: 700 22px/1.2 var(--serif); margin: 0 0 6px; color: #fff; }
+.start .confirm p { color: #c9d4e6; margin: 0 0 14px; font-size: 14.5px; line-height: 1.45; }
+.start .starting { font-size: 15px; color: #f2c14e; }
+.start .tips { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 8px; }
+.start .tips li { position: relative; padding-left: 16px; font-size: 13.5px; line-height: 1.45; color: #9fb0cc; }
+.start .tips li::before { content: ''; position: absolute; left: 0; top: .55em; width: 6px; height: 6px; border-radius: 2px; background: #6f98ff; }
+.start-foot { display: flex; align-items: center; gap: 14px; margin-top: 22px; }
+.start-foot small { font-size: 11.5px; line-height: 1.4; color: #8193b0; }
+.start-foot .seg { background: rgba(255, 255, 255, 0.08); flex: none; }
+.start-foot .seg button { color: #9fb0cc; cursor: pointer; }
+.start-foot .seg button.on { background: rgba(255, 255, 255, 0.18); color: #fff; }
+body.layout-phone .start-wrap { background: linear-gradient(0deg, rgba(8, 13, 25, 0.96) 0%, rgba(8, 13, 25, 0.9) 62%, rgba(8, 13, 25, 0.62) 100%); }
+body.layout-phone .start { left: 0; right: 0; width: auto; top: auto; bottom: 0; transform: none; max-height: 100%;
+  padding: calc(24px + var(--safe-top, 0px)) 20px calc(20px + var(--safe-bottom, 0px)); animation-name: start-in-phone; }
+@keyframes start-in-phone { from { opacity: 0; transform: translateY(12px); } }
+body.layout-phone .start h1 { font-size: 36px; margin-top: 12px; }
+body.layout-phone .start .pitch { font-size: 15px; margin-bottom: 18px; }
+body.layout-phone .start .tips { margin-top: 18px; }
+body.layout-phone .start-foot { flex-direction: column; align-items: flex-start; gap: 10px; }
+@media (prefers-reduced-motion: reduce) { .start { animation: none; } }

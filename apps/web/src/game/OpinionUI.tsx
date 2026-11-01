@@ -13,7 +13,7 @@ import type { GameApi } from './useGame';
 export type OpinionView = 'approval' | 'ward' | OpinionAxis;
 
 const loc = (lang: Lang) => (lang === 'fr' ? 'fr-CA' : 'en-CA');
-const pctText = (x: number, lang: Lang, digits = 0) => `${x.toLocaleString(loc(lang), { maximumFractionDigits: digits, minimumFractionDigits: digits })}${lang === 'fr' ? ' %' : '%'}`;
+export const pctText = (x: number, lang: Lang, digits = 0) => `${x.toLocaleString(loc(lang), { maximumFractionDigits: digits, minimumFractionDigits: digits })}${lang === 'fr' ? ' %' : '%'}`;
 const hhmm = (t: number) => `${String(Math.floor(t / 3600) % 24).padStart(2, '0')}:${String(Math.floor((t % 3600) / 60)).padStart(2, '0')}`;
 
 /** Per zone: the value the map shows (approval points around 50%, by ward, or an axis ÷ 2). */

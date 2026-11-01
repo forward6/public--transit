@@ -979,8 +979,24 @@ to keep iteration fast; it expands to the full region afterwards.
    - **Still to do:** the real 2010 ward map, council debate scenes, media campaigns and press
      conferences, the urban boundary and big projects (M8), ward redistribution (M9), Gatineau's
      council as a full actor, and term goals (M10).
-10. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
-11. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
+10. ✅ **Added at your request:** a start screen and riders on board
+    ([screenshots](screenshots/start/)).
+    - **Start screen:** the living map behind a title card. Continue shows the saved campaign's
+      date, time, approval and reserve; New game asks first, then clears this browser's save and
+      starts again on 1 December 2010. The logo reopens it during the game. Links with options
+      (screenshots, deep links) skip it.
+    - **Riders on board:** the vehicle panel shows riders on board now, against seats and room by
+      vehicle class (60-ft bus 55 seats / 100, 40-ft 38 / 65, O-Train 135 / 260), and the load
+      leaving each coming stop. From the demand model's loads on the network in operation: a route's
+      riders between two stops are pooled over its patterns (the assignment spreads them somewhat at
+      random) and shared between its trips that run today by time of day and headway. The model
+      splits commute trips both ways, so each stretch's commuters ride in the morning where they're
+      heading towards jobs (jobs share within about a kilometre of where they get on and off) and in
+      the evening otherwise; other trips follow a midday profile, and weekends have no peaks. Scaled
+      to the day's riders. Above capacity it shows full: riders left behind.
+      `pnpm --filter @otc/sim onboard-demo` prints a few routes through the day.
+11. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
+12. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 
 ---
 
