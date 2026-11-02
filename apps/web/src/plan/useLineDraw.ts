@@ -1,11 +1,15 @@
 // M8: drawing a rapid-transit line in Plan mode: stations in order, how each stretch is built, a
 // cost estimate as you go, and a ridership forecast from the demand model before you propose it.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+// Every change can be undone (and redone); closing keeps the draft (in this browser) for later,
+// discarding it asks first.
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import type { Lang, LineDesign, LineMode, LonLat, ProjectEstimate, ProjectForecast, Structure } from '@otc/shared';
 import { annotateDesign, estimateLine, lineEdit, newDesign, stationAt, wardsAt } from '@otc/sim';
 import type { GameApi } from '../game/useGame';
 import type { NetworkState } from '../network/useNetwork';
 import type { PlanState } from './usePlan';
+
+export const LINE_DRAFT_KEY = 'otc.linedraft.v1';
 
 export interface LineDraw {
   design: LineDesign | null;
@@ -15,27 +19,60 @@ export interface LineDraw {
   forecast: ProjectForecast | null;
   measuring: boolean;
   error: boolean;
+  /** a draft is waiting (the line tool was closed with stations on it) */
+  hasDraft: boolean;
+  draftName: string;
+  canUndo: boolean;
+  canRedo: boolean;
   start: (mode: LineMode) => void;
+  /** reopen the draft */
+  resume: () => void;
   setMode: (mode: LineMode) => void;
   addStation: (p: LonLat) => void;
   undo: () => void;
+  redo: () => void;
   setStructure: (i: number, k: Structure) => void;
   setName: (name: string) => void;
   setColor: (c: string) => void;
   measure: () => void;
   propose: () => void;
-  clear: () => void;
+  /** leave the line tool, keeping the draft */
+  close: () => void;
+  /** throw the draft away */
+  discard: () => void;
+}
+
+function loadDraft(): LineDesign | null {
+  try {
+    const d = JSON.parse(localStorage.getItem(LINE_DRAFT_KEY) ?? 'null') as LineDesign | null;
+    return d?.stations ? d : null;
+  } catch {
+    return null;
+  }
 }
 
 export function useLineDraw(net: NetworkState | null, plan: PlanState, game: GameApi, lang: Lang, baseUrl: string): LineDraw {
-  const [raw, setDesign] = useState<LineDesign | null>(null);
+  const [raw, setRaw] = useState<LineDesign | null>(loadDraft);
+  const past = useRef<LineDesign[]>([]);
+  const future = useRef<LineDesign[]>([]);
+  const [, setTick] = useState(0);
   const [rail, setRail] = useState<[number, number][][] | null>(null);
+  const open = plan.tool === 'line';
   useEffect(() => {
-    if (!raw || rail) return;
+    if (!open || rail) return;
     fetch(`${baseUrl}data/rail-2010.json`).then((r) => (r.ok ? r.json() : null))
       .then((d: { lines: { line: [number, number][] }[] } | null) => setRail(d ? d.lines.map((x) => x.line) : []))
       .catch(() => setRail([]));
-  }, [!!raw, rail, baseUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, rail, baseUrl]);
+  // keep the draft in this browser
+  useEffect(() => {
+    try {
+      if (raw && raw.stations.length) localStorage.setItem(LINE_DRAFT_KEY, JSON.stringify(raw));
+      else localStorage.removeItem(LINE_DRAFT_KEY);
+    } catch {
+      /* storage blocked */
+    }
+  }, [raw]);
   // what each stretch runs beside: existing railways, the river
   const zones = game.world?.zones;
   const design = useMemo(() => (raw && raw.stations.length >= 2 ? annotateDesign(raw, { rail: rail ?? undefined, zones }) : raw), [raw, rail, zones]);
@@ -45,14 +82,25 @@ export function useLineDraw(net: NetworkState | null, plan: PlanState, game: Gam
   const n = (game.state?.projects?.length ?? 0) + 1;
   const estimate = useMemo(() => (design && design.stations.length >= 2 ? estimateLine(design, game.state?.costIndex ?? 1) : null),
     [design, game.state?.costIndex]);
-  const change = (f: (d: LineDesign) => LineDesign) => {
-    setDesign((d) => (d ? f(d) : d));
+  /** A change you can undo. */
+  const change = useCallback((f: (d: LineDesign) => LineDesign) => {
+    setRaw((d) => {
+      if (!d) return d;
+      const next = f(d);
+      if (next === d) return d;
+      past.current = [...past.current.slice(-99), d];
+      future.current = [];
+      return next;
+    });
     setForecast(null);
-  };
+    setTick((x) => x + 1);
+  }, []);
   const start = useCallback((mode: LineMode) => {
     const d = newDesign(mode, n);
     if (lang === 'fr') d.name = `Ligne ${n}`;
-    setDesign(d);
+    past.current = [];
+    future.current = [];
+    setRaw(d);
     setForecast(null);
     plan.setTool('line');
   }, [n, lang, plan]);
@@ -63,7 +111,37 @@ export function useLineDraw(net: NetworkState | null, plan: PlanState, game: Gam
       if (d.stations.some((x) => x.id === st.id)) return d; // a station once
       return { ...d, stations: [...d.stations, st], structure: d.stations.length ? [...d.structure, 'surface'] : d.structure };
     });
-  }, [net, n]);
+  }, [net, n, change]);
+  const step = useCallback((from: MutableRefObject<LineDesign[]>, to: MutableRefObject<LineDesign[]>) => {
+    setRaw((d) => {
+      const prev = from.current.at(-1);
+      if (!d || !prev) return d;
+      from.current = from.current.slice(0, -1);
+      to.current = [...to.current, d];
+      return prev;
+    });
+    setForecast(null);
+    setTick((x) => x + 1);
+  }, []);
+  const undo = useCallback(() => step(past, future), [step]);
+  const redo = useCallback(() => step(future, past), [step]);
+  // ⌘Z / Ctrl+Z undoes, ⇧⌘Z / Ctrl+Y redoes, while drawing
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || (e.target as HTMLElement)?.tagName === 'INPUT') return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((k === 'z' && e.shiftKey) || k === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, [open, undo, redo]);
   const measure = useCallback(() => {
     if (!design || design.stations.length < 2 || !game.state) return;
     setMeasuring(true);
@@ -78,24 +156,33 @@ export function useLineDraw(net: NetworkState | null, plan: PlanState, game: Gam
       });
     }).catch(() => setError(true)).finally(() => setMeasuring(false));
   }, [design, game.state, game.councilWorld, plan]);
+  const clear = () => {
+    past.current = [];
+    future.current = [];
+    setRaw(null);
+    setForecast(null);
+  };
   return {
-    design, rail, estimate, forecast, measuring, error, start, addStation, measure,
-    setMode: (mode) => change((d) => ({ ...newDesign(mode, n), name: d.name, color: d.color, stations: d.stations, structure: d.structure })),
-    undo: () => change((d) => ({ ...d, stations: d.stations.slice(0, -1), structure: d.structure.slice(0, Math.max(0, d.stations.length - 2)) })),
-    setStructure: (i, k) => change((d) => ({ ...d, structure: d.structure.map((x, j) => (j === i ? k : x)) })),
-    setName: (name) => setDesign((d) => (d ? { ...d, name } : d)),
-    setColor: (color) => setDesign((d) => (d ? { ...d, color } : d)),
+    design: open ? design : null, rail, estimate: open ? estimate : null, forecast, measuring, error,
+    hasDraft: !open && !!raw?.stations.length, draftName: raw?.name ?? '',
+    canUndo: past.current.length > 0, canRedo: future.current.length > 0,
+    start, addStation, measure, undo, redo,
+    resume: () => plan.setTool('line'),
+    setMode: (mode) => change((d) => (d.mode === mode ? d
+      : { ...newDesign(mode, n), name: d.name, color: d.color, stations: d.stations, structure: d.structure })),
+    setStructure: (i, k) => change((d) => (d.structure[i] === k ? d : { ...d, structure: d.structure.map((x, j) => (j === i ? k : x)) })),
+    setName: (name) => setRaw((d) => (d ? { ...d, name } : d)),
+    setColor: (color) => change((d) => (d.color === color ? d : { ...d, color })),
     propose: () => {
       if (!design || design.stations.length < 2) return;
       game.proposeLine(design, forecast ?? undefined);
-      setDesign(null);
-      setForecast(null);
+      clear();
       plan.setTool('none');
       plan.setActive(false);
     },
-    clear: () => {
-      setDesign(null);
-      setForecast(null);
+    close: () => plan.setTool('none'),
+    discard: () => {
+      clear();
       plan.setTool('none');
     },
   };

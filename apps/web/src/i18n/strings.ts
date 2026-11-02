@@ -3,6 +3,7 @@ import { LOAD_EN, LOAD_FR, type LoadStrings } from './loadStrings';
 import { COUNCIL_EN, COUNCIL_FR, type CouncilStrings } from './councilStrings';
 import { START_EN, START_FR, type StartStrings } from './startStrings';
 import { PROJECTS_EN, PROJECTS_FR, type ProjectStrings } from './projectStrings';
+import { OPS_EN, OPS_FR, type OpsStrings } from './opsStrings';
 import type { CatalogueClass, Confidence, District, GameEventKind, Lang, NetworkStatus, PlanPeriodId, RouteClass, Season, TimeOfDay, TravelMode } from '@otc/shared';
 
 export interface Strings {
@@ -211,6 +212,8 @@ export interface Strings {
   st: StartStrings;
   // M8 — rapid-transit lines
   pj: ProjectStrings;
+  // the Operations panel
+  ops: OpsStrings;
 }
 
 /** 512340 -> "512k", 8450 -> "8.5k" */
@@ -370,6 +373,7 @@ export const STRINGS: Record<Lang, Strings> = {
     co: COUNCIL_EN,
     st: START_EN,
     pj: PROJECTS_EN,
+    ops: OPS_EN,
     plan: 'Plan',
     planTitle: 'Plan mode',
     planHint: 'The clock is paused. Tap a route to change its service, draw a new one, or see travel times.',
@@ -590,6 +594,7 @@ export const STRINGS: Record<Lang, Strings> = {
     co: COUNCIL_FR,
     st: START_FR,
     pj: PROJECTS_FR,
+    ops: OPS_FR,
     plan: 'Planifier',
     planTitle: 'Mode planification',
     planHint: 'L’horloge est en pause. Touchez une ligne pour changer son service, tracez-en une nouvelle ou voyez les temps de trajet.',

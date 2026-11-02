@@ -7,7 +7,7 @@ import { pctText } from '../game/OpinionUI';
 import { Logo } from './Hud';
 
 /** What the browser keeps for a campaign; a new game clears it. */
-export const SAVE_KEYS = ['otc.game.v1', 'otc.clock.v1', 'otc.plan.v1', 'otc.press.seen'];
+export const SAVE_KEYS = ['otc.game.v1', 'otc.clock.v1', 'otc.plan.v1', 'otc.press.seen', 'otc.linedraft.v1'];
 const NEW_GAME_FLAG = 'otc.newGame';
 
 /**

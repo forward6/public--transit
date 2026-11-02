@@ -120,6 +120,16 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
   - **opening day:** the line joins the network, riders try it (smoothly or not), and you can
     rework the bus routes that run alongside it.
 
+  - drawing a line, every change can be **undone and redone** (⌘Z / Ctrl+Z); **Close** keeps the
+    draft for later (in this browser), **Discard draft** asks first.
+- **Operations, right now:** tap the "in service" count by the clock. Buses and trains running, riders on
+  board (estimated), places running against the whole fleet's, buses spare at the garage or **in the
+  shop** (maintenance and breakdowns: about 7%, more with a maintenance backlog and older buses), the
+  peak need against what can run, trains by line, missed trips, the fullest vehicles (tap to follow),
+  and the day's curve of vehicles on the road.
+
+![Operations: the fleet and the network right now](docs/screenshots/ops/ops.jpg)
+
 ![A light-rail line, drawn and estimated](docs/screenshots/m8/line-estimate.jpg)
 
 ![Crossing the river on the old Prince of Wales rail bridge](docs/screenshots/m8/draw-crossing.jpg)
@@ -161,7 +171,7 @@ URL options (any option but `lang` opens straight into the game, without the sta
 - `&speed=0..5` sets the speed: pause, real time, 1 min/s, 15 min/s (the default), 2 h/s, 1 day/s
 - `&select=stop:carleton|route:oct-otrain|vehicle:oct-otrain|persona:marc|opinion:city|load:peak` opens an inspector
 - `&riders=1` turns on the Riders view (peak crowding; `&rv=daily` for riders per day); `&opinion=1` the Opinion view (`&ov=ward|service|value|trust` for wards or an axis)
-- `&select=council:term` opens the Council panel; `&select=project:line-1` a line's panel (`project:all` the list)
+- `&select=ops:now` opens the Operations panel; `&select=council:term` the Council panel; `&select=project:line-1` a line's panel (`project:all` the list)
 - `&plan=1&line=lon,lat;lon,lat;…` draws a rapid-transit line (`&linemode=busway`, `&tunnel=2,3` for stretches in a tunnel, `&linename=…`)
 - `&plan=1` opens Plan mode. Add `&iso=lon,lat` for travel times from a point, or
   `&draw=lon,lat;lon,lat;…` to sketch a route.

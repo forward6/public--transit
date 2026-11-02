@@ -92,6 +92,47 @@ export function missedShare(s: GameState, start: EconomyStart = ECONOMY_2010): n
   return Math.min(0.5, breakdowns + shortfall);
 }
 
+/** Planning capacity per vehicle by type (seated + comfortable standing), as the Load view counts it. Estimates. */
+export const TYPE_CAPACITY: Record<BusType, number> = { bus40: 65, hybrid40: 65, artic60: 100, double: 95, rail: 260 };
+
+export interface FleetNow {
+  /** OC Transpo buses owned, by type */
+  buses: number;
+  byType: { type: BusType; count: number; avgAge: number }[];
+  /** in the shop: scheduled maintenance, and breakdowns (more with a maintenance backlog and old buses) */
+  inShop: number;
+  shopShare: number;
+  /** buses that can run today */
+  available: number;
+  /** the most buses the timetable needs at once, and with the spares a fleet keeps */
+  peakNeed: number;
+  required: number;
+  onOrder: number;
+  /** all the buses' places (planning capacity) */
+  maxCapacity: number;
+  /** O-Train trains */
+  trains: number;
+  avgAge: number;
+  backlog: number;
+  /** share of scheduled trips missed */
+  missed: number;
+}
+
+/** The fleet as it stands today. */
+export function fleetNow(s: GameState, start: EconomyStart = ECONOMY_2010): FleetNow {
+  const f = fleetStatus(s, start);
+  const shopShare = Math.min(0.35, 0.07 + (s.backlog / 100_000_000) * 0.12 + Math.max(0, f.avgAge - 10) * 0.008);
+  const inShop = Math.round(f.buses * shopShare);
+  const byType = (Object.keys(f.byType) as BusType[]).filter((k) => k !== 'rail' && f.byType[k].count > 0)
+    .map((type) => ({ type, count: f.byType[type].count, avgAge: Math.round(f.byType[type].avgAge * 10) / 10 }));
+  return {
+    buses: f.buses, byType, inShop, shopShare, available: f.buses - inShop,
+    peakNeed: Math.ceil(s.service.peakVehicles * s.serviceLevel), required: f.required, onOrder: f.onOrder,
+    maxCapacity: byType.reduce((a, b) => a + b.count * TYPE_CAPACITY[b.type], 0), trains: f.rail,
+    avgAge: Math.round(f.avgAge * 10) / 10, backlog: s.backlog, missed: missedShare(s, start),
+  };
+}
+
 // ------------------------------------------------------------------------------------------ the books
 
 function yearsSince2011(iso: string): number {

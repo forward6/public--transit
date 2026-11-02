@@ -1068,8 +1068,23 @@ to keep iteration fast; it expands to the full region afterwards.
       stations to the railway, truncating (not just thinning) parallel routes, buses using a new busway
       off its own route, capacity-constrained assignment (light rail's real advantage), land use
       responding to stations (M9), and a project timeline view.
-12. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
-13. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
+12. ✅ **Added at your request:** the Operations panel and undo for drawing lines
+    ([screenshots](screenshots/ops/)).
+    - **Operations** (tap "in service" by the clock), live with the game clock: OC Transpo buses and
+      trains running now (from the timetable playback), riders on board (the riders-on-board
+      estimate summed over every vehicle), places running (planning capacity by route class)
+      against the whole fleet's (by bus type: 40-ft 65, 60-ft 100, double-decker 95; trains 260,
+      commuter 600); buses running, spare at the garage, and in the shop (7% scheduled maintenance,
+      plus 12 points per $100M of maintenance backlog and 0.8 a year of average age over ten, up to
+      35%); the peak need with and without the 15% spares, and whether what can run covers it;
+      trains by line; missed trips today; the five fullest vehicles; and the weekday curve of
+      vehicles on the road with now marked. STO's buses are counted apart.
+    - **Drawing a line:** each change (a station, a stretch's structure, the mode, the colour) goes
+      on an undo history (100 steps, redo too, ⌘Z / Ctrl+Z); the actions stay pinned at the foot
+      of the dock; Close keeps the draft (saved in this browser, "Continue …" in Plan mode); Discard
+      asks first.
+13. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
+14. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 
 ---
 

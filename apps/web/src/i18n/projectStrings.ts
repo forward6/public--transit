@@ -28,6 +28,13 @@ export interface ProjectStrings {
   proposeHint: string;
   undo: string;
   cancel: string;
+  redo: string;
+  close: string;
+  discard: string;
+  discardConfirm: string;
+  keep: string;
+  continueDraft: (name: string) => string;
+  undoHint: string;
   // the panel
   phase: Record<ProjectPhase, string>;
   phases: string;
@@ -123,6 +130,13 @@ export const PROJECTS_EN: ProjectStrings = {
   proposeHint: 'Council votes on paying for design and the environmental assessment first.',
   undo: 'Undo',
   cancel: 'Cancel',
+  redo: 'Redo',
+  close: 'Close',
+  discard: 'Discard draft',
+  discardConfirm: 'Throw this line away? Every station and choice goes.',
+  keep: 'Keep it',
+  continueDraft: (n) => `Continue ${n}`,
+  undoHint: 'Undo steps back one change at a time (⌘Z / Ctrl+Z). Close keeps the draft for later.',
   phase: { proposed: 'Before council', design: 'Design and assessment', procurement: 'Procurement', construction: 'Under construction', testing: 'Testing',
     open: 'Open', shelved: 'Shelved', cancelled: 'Cancelled' },
   phases: 'Stages',
@@ -237,6 +251,13 @@ export const PROJECTS_FR: ProjectStrings = {
   proposeHint: 'Le conseil vote d’abord sur le financement de la conception et de l’évaluation environnementale.',
   undo: 'Annuler',
   cancel: 'Fermer',
+  redo: 'Rétablir',
+  close: 'Fermer',
+  discard: 'Jeter le brouillon',
+  discardConfirm: 'Jeter cette ligne ? Toutes les stations et tous les choix seront perdus.',
+  keep: 'La garder',
+  continueDraft: (n) => `Reprendre ${n}`,
+  undoHint: 'Annuler revient en arrière un changement à la fois (⌘Z / Ctrl+Z). Fermer garde le brouillon pour plus tard.',
   phase: { proposed: 'Devant le conseil', design: 'Conception et évaluation', procurement: 'Appel d’offres', construction: 'En construction', testing: 'Essais',
     open: 'En service', shelved: 'Mise sur la glace', cancelled: 'Annulée' },
   phases: 'Étapes',

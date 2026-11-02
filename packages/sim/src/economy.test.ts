@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Edit, GameState } from '@otc/shared';
 import {
-  advanceDay, buildGarage, dayBoardings, dayFactor, fleetStatus, holidays, newGame, nextServiceChange, openDecision, orderBuses, projectYear,
+  advanceDay, buildGarage, dayBoardings, dayFactor, fleetNow, fleetStatus, holidays, newGame, nextServiceChange, openDecision, orderBuses, projectYear,
   rampValue, resolve, routeDayBoardings, schedulePlan, serviceChangeDates, serviceDay, setPendingFigures, setService,
 } from './economy';
 
@@ -144,3 +144,19 @@ describe('economy', () => {
 function addWeek(iso: string): string {
   return new Date(new Date(`${iso}T12:00:00Z`).getTime() + 7 * 86_400_000).toISOString().slice(0, 10);
 }
+
+describe('the fleet today', () => {
+  it('reports in the shop, available, the peak need and capacity', () => {
+    const s = newGame({ boardings: 500_000, vehicleHours: 6900, peakVehicles: 814 });
+    const f = fleetNow(s);
+    expect(f.buses).toBeGreaterThan(900);
+    expect(f.inShop).toBeGreaterThan(f.buses * 0.05);
+    expect(f.available).toBe(f.buses - f.inShop);
+    expect(f.peakNeed).toBe(814);
+    expect(f.required).toBeGreaterThan(f.peakNeed);
+    expect(f.maxCapacity).toBeGreaterThan(f.buses * 60);
+    expect(f.trains).toBe(3);
+    // a maintenance backlog puts more buses in the shop
+    expect(fleetNow({ ...s, backlog: 50_000_000 }).inShop).toBeGreaterThan(f.inShop);
+  });
+});

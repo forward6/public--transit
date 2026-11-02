@@ -45,6 +45,8 @@ interface HudProps {
   capital?: ReactNode;
   /** the logo opens the menu (continue, new game) */
   onMenu?: () => void;
+  /** the "in service" count opens the Operations panel */
+  onOpenOps?: () => void;
   /** M4 Plan mode */
   planActive: boolean;
   onTogglePlan: () => void;
@@ -167,7 +169,9 @@ export function Hud(props: HudProps) {
   const lastSpeed = useRef<SpeedIndex>(3);
   if (props.speed !== 0) lastSpeed.current = props.speed;
   const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue,
-    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC, ridersLegend, capital, onMenu } = props;
+    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC, ridersLegend, capital, onMenu, onOpenOps } = props;
+  const inServiceText = dayNote ?? (onOpenOps
+    ? <button className="link ops-link" onClick={onOpenOps} title={t.ops.open}>{inService} {t.inService}</button> : `${inService} ${t.inService}`);
   const temp = tempC !== undefined ? `${tempC} °C · ` : '';
   const hasRiders = boardings !== null;
   const planCtl = hasRiders ? { active: planActive, toggle: onTogglePlan } : undefined;
@@ -176,7 +180,7 @@ export function Hud(props: HudProps) {
       <>
         <header className="m-top glass">
           <button className="logo-btn" onClick={onMenu} aria-label={t.st.menu} title={t.st.menu}><Logo size={38} /></button>
-          <div className="m-title"><span>{dateShort ?? t.dateShort} · {temp}{dayNote ?? `${inService} ${t.inService}`}</span><b>{formatClock(time)}</b></div>
+          <div className="m-title"><span>{dateShort ?? t.dateShort} · {temp}{inServiceText}</span><b>{formatClock(time)}</b></div>
           <button className="m-play" aria-label={t.speed[speed === 0 ? 3 : 0]} onClick={() => onSpeed(speed === 0 ? (lastSpeed.current || 3) : 0)}>
             <svg viewBox="0 0 20 20" fill="currentColor">{SPEED_ICONS[speed === 0 ? 1 : 0]}</svg>
           </button>
@@ -215,7 +219,7 @@ export function Hud(props: HudProps) {
         <div className="clock">
           <div className="clock-date">{dateLabel ?? t.date}</div>
           <div className="clock-row"><span className="clock-time">{formatClock(time)}</span>
-            <span className="clock-sub">{temp}{dayNote ?? `${inService} ${t.inService}`}</span></div>
+            <span className="clock-sub">{temp}{inServiceText}</span></div>
         </div>
         <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
         {layout === 'desktop' ? <div className="chips"><div className="chip-row">{treasury}{approval}</div><div className="chip-row">{ridersChip}{capital}</div></div> : treasury}

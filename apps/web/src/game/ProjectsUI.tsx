@@ -1,6 +1,6 @@
 // M8: rapid-transit lines in the game: drawing one in Plan mode, the project panel, the HUD chip,
 // and the decisions (how to build it, overruns, opening day).
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LINE_COLORS, type GameEvent, type Lang, type LineMode, type Project, type ProjectPhase, type Structure } from '@otc/shared';
 import { ASK_COST, addMonths, cityShare, constructionProgress, stretches, yearlyDebtService } from '@otc/sim';
 import type { Strings } from '../i18n/strings';
@@ -26,11 +26,13 @@ export function LineDock({ line, t, lang, date }: { line: LineDraw; t: Strings; 
   const share = e ? (e.cost.total / 3) * 0.75 : 0;
   const f = line.forecast;
   const metres = stretches(d);
+  const [discarding, setDiscarding] = useState(false);
+  useEffect(() => setDiscarding(false), [d.stations.length]);
   return (
     <section className="plan-dock line-dock glass" aria-label={pj.newLine}>
       <div className="plan-head">
         <b>{pj.newLine}</b>
-        <button className="btn ghost" onClick={line.clear}>{pj.cancel}</button>
+        <button className="btn ghost" onClick={line.close} title={pj.undoHint}>{pj.close}</button>
       </div>
       <div className="seg wide" role="radiogroup" aria-label={pj.title}>
         {(['lrt', 'busway', 'commuter'] as LineMode[]).map((m) => (
@@ -82,11 +84,25 @@ export function LineDock({ line, t, lang, date }: { line: LineDraw; t: Strings; 
             : <button className="btn wide-btn" onClick={line.measure}>{pj.measure}</button>}
         </div>
       )}
-      <div className="plan-actions">
-        <button className="btn primary" disabled={d.stations.length < 2 || line.measuring} onClick={line.propose}>{pj.propose}</button>
-        <button className="btn" disabled={!d.stations.length} onClick={line.undo}>{pj.undo}</button>
-      </div>
       {d.stations.length >= 2 && <p className="muted small">{pj.proposeHint}</p>}
+      <div className="line-foot">
+        {discarding ? (
+          <div className="discard-ask">
+            <span>{pj.discardConfirm}</span>
+            <div className="plan-actions">
+              <button className="btn danger" onClick={line.discard}>{pj.discard}</button>
+              <button className="btn" onClick={() => setDiscarding(false)}>{pj.keep}</button>
+            </div>
+          </div>
+        ) : (
+          <div className="plan-actions">
+            <button className="btn" disabled={!line.canUndo} onClick={line.undo} title="⌘Z / Ctrl+Z">↶ {pj.undo}</button>
+            <button className="btn" disabled={!line.canRedo} onClick={line.redo} title="⇧⌘Z / Ctrl+Y">↷ {pj.redo}</button>
+            <button className="btn primary" disabled={d.stations.length < 2 || line.measuring} onClick={line.propose}>{pj.propose}</button>
+            {d.stations.length > 0 && <button className="btn ghost danger" onClick={() => setDiscarding(true)}>{pj.discard}</button>}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

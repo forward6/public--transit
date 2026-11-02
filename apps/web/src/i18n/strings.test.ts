@@ -62,4 +62,12 @@ describe('strings', () => {
     for (const k of Object.keys(en.crowd) as (keyof typeof en.crowd)[]) expect(fr.crowd[k]).not.toEqual(en.crowd[k]);
     expect(fr.note(38, 65)).not.toEqual(en.note(38, 65));
   });
+
+  it('translates the Operations panel', () => {
+    const en = STRINGS.en.ops as unknown as Record<string, unknown>;
+    const fr = STRINGS.fr.ops as unknown as Record<string, unknown>;
+    const same = new Set(['trainsTitle', 'oTrain']);
+    expect(Object.keys(en).filter((k) => !same.has(k) && typeof en[k] === 'string' && en[k] === fr[k])).toEqual([]);
+    expect(STRINGS.fr.ops.missed('0,4 %', '37')).not.toEqual(STRINGS.en.ops.missed('0.4%', '37'));
+  });
 });

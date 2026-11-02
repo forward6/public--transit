@@ -19,6 +19,18 @@ export type OnBoardFn = (tripId: string) => OnBoard | 'measuring' | null;
 export function useOnBoard(playback: Playback | undefined, loads: OpLoads | null, zones: Zone[] | undefined, day: ServiceDay, scale: number): OnBoardFn {
   // per pattern: the share of its commuters riding each stretch in the morning (needs only the loads)
   const scaleKey = Math.round(scale * 100) / 100;
+  // trips by id and by route, once per network (the Operations panel asks about every vehicle at once)
+  const index = useMemo(() => {
+    const byId = new Map<string, Trip>();
+    const byRoute = new Map<string, Trip[]>();
+    for (const t of playback?.trips ?? []) {
+      byId.set(t.id, t);
+      let l = byRoute.get(t.routeId);
+      if (!l) byRoute.set(t.routeId, (l = []));
+      l.push(t);
+    }
+    return { byId, byRoute };
+  }, [playback]);
   const morning = useMemo(() => new Map<string, number[]>(), [loads, zones]);
   // per route: riders on each of its trips today
   const routes = useMemo(() => new Map<string, (trip: Trip) => number[]>(), [playback, loads, zones, day, scaleKey]);
@@ -26,7 +38,7 @@ export function useOnBoard(playback: Playback | undefined, loads: OpLoads | null
   return useCallback((tripId: string) => {
     if (!playback) return null;
     if (!loads) return 'measuring';
-    const trip = playback.trips.find((t) => t.id === tripId);
+    const trip = index.byId.get(tripId);
     if (!trip) return null;
     const route = playback.routes.get(trip.routeId);
     let riders = routes.get(trip.routeId);
@@ -43,14 +55,14 @@ export function useOnBoard(playback: Playback | undefined, loads: OpLoads | null
         m[p.id] = ms;
       }
       riders = routeRiders({
-        patterns, trips: playback.trips.filter((t) => t.routeId === trip.routeId && tripRuns(t.id, day)),
+        patterns, trips: (index.byRoute.get(trip.routeId) ?? []).filter((t) => tripRuns(t.id, day)),
         loads: loads.loads, peakLoads: loads.peakLoads, morning: m, weekend: day !== 'weekday', scale: scaleKey,
       });
       routes.set(trip.routeId, riders);
     }
     const cls: RouteClass = route?.class ?? 'local';
     return { riders: riders(trip), seats: SEATS[cls], capacity: VEHICLE_CAPACITY[cls] };
-  }, [playback, loads, zones, day, scaleKey, morning, routes]);
+  }, [playback, loads, zones, day, scaleKey, morning, routes, index]);
 }
 
 export type Crowd = 'seats' | 'fewSeats' | 'standing' | 'full';
