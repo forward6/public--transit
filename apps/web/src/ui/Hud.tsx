@@ -223,7 +223,7 @@ function Legend({ t, riders, opinion, status, ridersLegend }: { t: Strings; ride
 
 export function Hud(props: HudProps) {
   // the phone's play button resumes at the last speed used
-  const lastSpeed = useRef<SpeedIndex>(3);
+  const lastSpeed = useRef<SpeedIndex>(1);
   if (props.speed !== 0) lastSpeed.current = props.speed;
   const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue,
     boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC, ridersLegend, capital, onMenu, onOpenOps } = props;
@@ -243,7 +243,7 @@ export function Hud(props: HudProps) {
         <header className="m-top glass">
           <button className="logo-btn" onClick={onMenu} aria-label={t.st.menu} title={t.st.menu}><Logo size={38} /></button>
           <div className="m-title"><span>{dateShort ?? t.dateShort} · {temp}{inServiceText}</span><b>{formatClock(time)}</b></div>
-          <button className="m-play" aria-label={t.speed[speed === 0 ? 3 : 0]} onClick={() => onSpeed(speed === 0 ? (lastSpeed.current || 3) : 0)}>
+          <button className="m-play" aria-label={t.speed[speed === 0 ? lastSpeed.current || 1 : 0]} onClick={() => onSpeed(speed === 0 ? (lastSpeed.current || 1) : 0)}>
             <svg viewBox="0 0 20 20" fill="currentColor">{SPEED_ICONS[speed === 0 ? 1 : 0]}</svg>
           </button>
         </header>

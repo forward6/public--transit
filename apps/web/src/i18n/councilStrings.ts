@@ -15,6 +15,7 @@ export interface CouncilStrings {
   effect: {
     levy: (x: string) => string; fares: (x: string) => string; service: (x: string) => string; capital: (x: string) => string; debt: (x: string) => string;
     wage: (x: string) => string; gains: (wards: string) => string; losses: (route: string, wards: string) => string; adds: (route: string, wards: string) => string;
+    rezoning: (homes: string, jobs: string, ward: string) => string; charges: (m: string) => string;
   };
   motionNote: string;
   position: Record<'yes' | 'no' | 'undecided', string>;
@@ -109,11 +110,14 @@ export const COUNCIL_EN: CouncilStrings = {
     labourDeal: (p) => `Ratify the contract: ${p.wage}% a year for ${p.years} years`,
     project: (p) => `${p.routeName}: fund the design and environmental assessment`,
     contract: (p) => `${p.routeName}: award the construction contract ($${Math.round(Number(p.price ?? 0) / 1e6).toLocaleString('en-CA')}M)`,
+    rezoning: (p) => `Rezone land beside ${p.routeName} station for a developer`,
   },
   effect: {
     levy: (x) => `Transit levy ${x}`, fares: (x) => `Fares ${x}`, service: (x) => `Bus service ${x}`, capital: (x) => `${x} in capital`,
     debt: (x) => `${x} borrowed`, wage: (x) => `Wages ${x} a year`, gains: (w) => `Better service in ${w}`, losses: (r, w) => `Route ${r} ends in ${w}`,
     adds: (r, w) => `New route ${r} serves ${w}`,
+    rezoning: (h, j, w) => `Room for ${h} homes and ${j} jobs within a walk of the station (${w})`,
+    charges: (m) => `${m} in development charges for transit`,
   },
   motionNote: 'A motion against your decision: you want it to fail.',
   position: { yes: 'For', no: 'Against', undecided: 'Undecided' },
@@ -123,9 +127,10 @@ export const COUNCIL_EN: CouncilStrings = {
     wardGain: 'their ward gains', wardLoss: 'their ward loses', wardHappy: 'their ward likes transit', wardUnhappy: 'their ward is unhappy',
     ally: 'works well with you', rival: 'at odds with you', mayor: 'follows the mayor', lobbied: 'you made the case', consulted: 'after the consultations',
     study: 'read the study', status: 'prefers to wait', rural: 'rural taxpayers', labour: 'wants labour peace',
+    growth: 'wary of growth', neighbours: 'the neighbours object',
   },
   reasonFor: { taxes: 'likes taxes held down', fares: 'fares stay affordable', cost: 'the cost is reasonable', debt: 'avoids new taxes', status: 'a budget must pass',
-    rural: 'rural taxpayers spared' },
+    rural: 'rural taxpayers spared', growth: 'homes near transit', neighbours: 'the neighbours welcome it' },
   lobby: (c) => `Make the case · ${c}`,
   lobbyAgainst: (c) => `Ask for a no · ${c}`,
   lobbied: 'Lobbied',
@@ -242,11 +247,14 @@ export const COUNCIL_FR: CouncilStrings = {
     labourDeal: (p) => `Ratifier la convention : ${String(p.wage).replace('.', ',')} % par an pendant ${p.years} ans`,
     project: (p) => `${p.routeName} : financer la conception et l’évaluation environnementale`,
     contract: (p) => `${p.routeName} : accorder le contrat de construction (${Math.round(Number(p.price ?? 0) / 1e6).toLocaleString('fr-CA')} M$)`,
+    rezoning: (p) => `Rezoner des terrains près de la station ${p.routeName} pour un promoteur`,
   },
   effect: {
     levy: (x) => `Taxe de transport ${x}`, fares: (x) => `Tarifs ${x}`, service: (x) => `Service d’autobus ${x}`, capital: (x) => `${x} en immobilisations`,
     debt: (x) => `${x} empruntés`, wage: (x) => `Salaires ${x} par an`, gains: (w) => `Meilleur service à ${w}`, losses: (r, w) => `Fin de la ligne ${r} à ${w}`,
     adds: (r, w) => `Nouvelle ligne ${r} à ${w}`,
+    rezoning: (h, j, w) => `Place pour ${h} logements et ${j} emplois à distance de marche de la station (${w})`,
+    charges: (m) => `${m} en redevances d’aménagement pour le transport en commun`,
   },
   motionNote: 'Une motion contre votre décision : vous voulez qu’elle échoue.',
   position: { yes: 'Pour', no: 'Contre', undecided: 'Hésite' },
@@ -256,9 +264,10 @@ export const COUNCIL_FR: CouncilStrings = {
     wardGain: 'son quartier y gagne', wardLoss: 'son quartier y perd', wardHappy: 'son quartier apprécie le service', wardUnhappy: 'son quartier est mécontent',
     ally: 'travaille bien avec vous', rival: 'en froid avec vous', mayor: 'suit la mairie', lobbied: 'après votre plaidoyer', consulted: 'après les consultations',
     study: 'a lu l’étude', status: 'préfère attendre', rural: 'les contribuables ruraux', labour: 'veut la paix syndicale',
+    growth: 'se méfie de la croissance', neighbours: 'le voisinage s’y oppose',
   },
   reasonFor: { taxes: 'apprécie le gel des taxes', fares: 'les tarifs restent abordables', cost: 'le coût est raisonnable', debt: 'évite de nouvelles taxes',
-    status: 'il faut un budget', rural: 'les contribuables ruraux épargnés' },
+    status: 'il faut un budget', rural: 'les contribuables ruraux épargnés', growth: 'des logements près du transport en commun', neighbours: 'le voisinage est d’accord' },
   lobby: (c) => `Plaider · ${c}`,
   lobbyAgainst: (c) => `Demander un non · ${c}`,
   lobbied: 'Démarche faite',

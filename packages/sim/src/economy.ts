@@ -151,7 +151,7 @@ export function rampValue(r: Ramp | undefined, iso: string, fallback: number, st
 /** Everything but the network: season, growth, fares, reliability and cuts. */
 function ridershipFactor(s: GameState, start: EconomyStart, iso: string): number {
   const m = toDate(iso).getUTCMonth();
-  return start.seasonal.values[m]! * (1 + start.ridershipGrowth.value) ** Math.max(0, yearsSince2011(iso))
+  return start.seasonal.values[m]! * (s.growth ? s.growth.riders : (1 + start.ridershipGrowth.value) ** Math.max(0, yearsSince2011(iso)))
     * s.fareIndex ** start.fareElasticity.value * (1 - missedShare(s, start)) * s.serviceLevel ** 0.6 * (s.strike ? 0 : 1)
     * constructionDrag(s);
 }

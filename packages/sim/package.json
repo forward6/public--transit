@@ -14,7 +14,8 @@
     "opinion-demo": "tsx scripts/opinion-demo.ts",
     "onboard-demo": "tsx scripts/onboard-demo.ts",
     "council-demo": "tsx scripts/council-demo.ts",
-    "projects-demo": "tsx scripts/projects-demo.ts"
+    "projects-demo": "tsx scripts/projects-demo.ts",
+    "growth-demo": "tsx scripts/growth-demo.ts"
   },
   "dependencies": {
     "@otc/shared": "workspace:*"

@@ -64,7 +64,8 @@ const seasonPin = params.get('season') && (SEASONS as readonly string[]).include
 const timePin = params.get('time') && (TIMES as readonly string[]).includes(params.get('time')!) ? params.get('time') as TimeOfDay : null;
 
 // The game clock: a new campaign starts at 00:01 on Wednesday 1 December 2010; a saved one resumes
-// where it was. ?t=HH:MM sets the time, ?speed=0..5 the speed (default 15 min per second).
+// where it was. ?t=HH:MM sets the time, ?speed=0..5 the speed (default real time: coming back to the
+// game, it plays slowly until you speed it up).
 const CLOCK_KEY = 'otc.clock.v1';
 function startTime(): number {
   if (params.get('t')) return parseClock(params.get('t')!);
@@ -76,7 +77,7 @@ function startTime(): number {
   }
   return 60;
 }
-const clock = createClock(startTime(), Math.min(5, Math.max(0, Math.round(Number(params.get('speed') ?? 3)) || 0)) as SpeedIndex);
+const clock = createClock(startTime(), Math.min(5, Math.max(0, Math.round(Number(params.get('speed') ?? 1)) || 0)) as SpeedIndex);
 
 function paddingFor(layout: Layout, inspecting: boolean): CameraPadding {
   const safeTop = Number(params.get('safe')?.split(',')[0] ?? 0);
@@ -347,7 +348,7 @@ export function App() {
   const openLoad = () => setSel({ type: 'load', id: 'peak' });
   const closeMenu = () => {
     setMenu(null);
-    if (!game.decision) clock.setSpeed(menuSpeed.current || 3);
+    if (!game.decision) clock.setSpeed(menuSpeed.current || 1);
   };
   const ridersLegend = (
     <div className="lg-load">

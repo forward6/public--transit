@@ -9,6 +9,7 @@ import { opinionSummary, toApproval, zoneScore, type OpinionWorld } from './opin
 import { rand } from './weather';
 import { tableInto, voteEvent } from './agenda';
 import { projectVoted } from './projects';
+import { rezoningVoted } from './growth';
 import { wardsAt } from './wards';
 
 /**
@@ -124,6 +125,12 @@ function terms(c: Councillor, item: AgendaItem, moods: Record<number, WardMood>,
     add('cost', -(c.fiscal * 0.9 + 0.1) * bill);
     add('service', c.transit * 0.6 * Math.log10(1 + e.project.riders / 1500));
   }
+  // M9: rezoning for a developer near a station: homes near transit (and development charges) against the neighbours
+  if (e.rezoning) {
+    const size = e.rezoning.homes / 1500;
+    add('growth', 0.15 + 0.3 * c.transit * (e.rezoning.newLine ? 1.3 : 1) + 0.1 * c.fiscal);
+    if (c.ward === e.rezoning.ward) add('neighbours', -(0.3 + 0.6 * c.responsiveness) * size * (rural ? 1.3 : 1));
+  }
   if (e.wage !== undefined) add('labour', -c.fiscal * 0.35 * (e.wage - LABOUR_2010.baseline) + c.transit * 0.15);
   const w = e.wards?.[c.ward];
   if (w) {
@@ -137,6 +144,7 @@ function terms(c: Councillor, item: AgendaItem, moods: Record<number, WardMood>,
   else if (item.kind === 'labourDeal') add('status', 0.4);
   else if (item.kind.startsWith('deficit')) add('status', 0.2);
   else if (item.kind === 'project' || item.kind === 'contract') add('status', item.kind === 'contract' ? 0.15 : 0);
+  else if (item.kind === 'rezoning') add('status', -0.05);
   else add('status', item.amended ? -0.05 : -0.15);
   // how their ward feels about transit (against the starting mood), and about you
   const mood = moods[c.ward]?.approval ?? 50;
@@ -347,6 +355,7 @@ export function withdraw(prev: GameState, itemId: string): GameState {
   item.status = 'withdrawn';
   s.council!.capital = clamp(s.council!.capital - 2, 0, 100);
   if ((item.kind === 'project' || item.kind === 'contract') && item.payload.projectId) projectVoted(s, item.kind, item.payload.projectId, false);
+  if (item.kind === 'rezoning' && item.payload.rezoningId) rezoningVoted(s, item.payload.rezoningId, false);
   for (const e of s.events) if (e.decision && e.kind === 'vote' && e.data.item === itemId) e.decision = false;
   return s;
 }
@@ -413,6 +422,8 @@ export function callVote(prev: GameState, world: CouncilWorld, itemId: string, n
     s = settleLabour(s, passed, p.wage ?? LABOUR_2010.baseline, p.scheduling ?? 'keep', p.years ?? 3);
   } else if ((item.kind === 'project' || item.kind === 'contract') && p.projectId) {
     projectVoted(s, item.kind, p.projectId, passed, p.price);
+  } else if (item.kind === 'rezoning' && p.rezoningId) {
+    rezoningVoted(s, p.rezoningId, passed);
   }
   return s;
 }

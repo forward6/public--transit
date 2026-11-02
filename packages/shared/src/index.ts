@@ -37,3 +37,4 @@ export * from './opinion';
 export * from './personas';
 export * from './council';
 export * from './projects';
+export * from './growth';

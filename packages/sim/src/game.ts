@@ -4,6 +4,7 @@ import { diaryEntry, routineMinutes, type PersonaTrips } from './diary';
 import { advanceOpinion, startOpinion } from './opinion';
 import { advanceCouncil, startCouncil } from './council';
 import { advanceProjects } from './projects';
+import { advanceGrowth } from './growth';
 import { dayPosts, frontPage, isFirstOfMonth, type FeedWorld } from './press';
 
 /**
@@ -19,6 +20,8 @@ export interface GameWorld extends FeedWorld {
   routeName?: (id: string) => string;
   /** M7: ward id per zone (0: not in Ottawa) */
   wardOf?: number[];
+  /** M9: jobs within 30 min by car, per zone */
+  carAccess?: ArrayLike<number>;
 }
 
 const DIARY_DAYS = 28;
@@ -54,6 +57,8 @@ export function stepDay(prev: GameState, world: GameWorld, start: EconomyStart =
   let t = s;
   if (t.council && world.wardOf) t = advanceCouncil(t, { ...world, wardOf: world.wardOf }, ended, start);
   if (t.projects?.length) advanceProjects(t);
+  // M9: at the turn of a month, the month's growth
+  if (isFirstOfMonth(t.date) && world.zones.length) advanceGrowth(t, world, ended.slice(0, 7));
   return dayEnd(t, world, ended, start);
 }
 

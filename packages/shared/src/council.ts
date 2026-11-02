@@ -100,13 +100,15 @@ export const TERM = {
 /** Decisions that go to a vote (only the big items; frequencies are staff decisions). */
 export type ItemKind = 'budget' | 'plan' | 'garage' | 'order' | 'deficitLevy' | 'deficitCut' | 'deficitBorrow' | 'restoreRoute' | 'labourDeal'
   // M8: a rapid-transit line (approve design and the environmental assessment; award the contract)
-  | 'project' | 'contract';
+  | 'project' | 'contract'
+  // M9: rezoning land near a station for a developer's offer
+  | 'rezoning';
 
 export type Vote = 'yes' | 'no';
 
 /** Why a councillor leans as they do (the whip count's reason). */
 export type WhipReason = 'taxes' | 'fares' | 'service' | 'cost' | 'debt' | 'wardGain' | 'wardLoss' | 'wardHappy' | 'wardUnhappy' | 'ally' | 'rival'
-  | 'mayor' | 'lobbied' | 'consulted' | 'study' | 'status' | 'rural' | 'labour';
+  | 'mayor' | 'lobbied' | 'consulted' | 'study' | 'status' | 'rural' | 'labour' | 'growth' | 'neighbours';
 
 export interface ItemEffects {
   /** levy change (%), fare change (%) */
@@ -125,6 +127,8 @@ export interface ItemEffects {
   project?: { city: number; riders: number };
   /** M8: the part of a levy increase that pays for lines council already approved (%): not held against you */
   committed?: number;
+  /** M9: rezoning for a developer: homes and jobs, in which ward, beside a new line's station */
+  rezoning?: { homes: number; jobs: number; ward: number; newLine?: boolean };
 }
 
 export interface AgendaItem {
@@ -154,6 +158,8 @@ export interface AgendaItem {
     scheduling?: 'keep' | 'reform';
     years?: number;
     projectId?: string;
+    /** M9: the developer's offer */
+    rezoningId?: string;
     /** M8: the contract price ($) */
     price?: number;
   };

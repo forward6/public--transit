@@ -24,5 +24,6 @@ export * from './game';
 export * from './crowding';
 export * from './onboard';
 export * from './projects';
+export * from './growth';
 export * from './wards';
 export * from './council';

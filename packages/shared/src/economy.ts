@@ -6,6 +6,7 @@ import type { Edit } from './plan';
 import type { DiaryEntry, FrontPage, OpinionState, Post } from './opinion';
 import type { CouncilState } from './council';
 import type { Project } from './projects';
+import type { GrowthState } from './growth';
 
 const WIKI_2010 = "Wikipedia 'OC Transpo' rev 399504447 (29 Nov 2010) https://en.wikipedia.org/w/index.php?oldid=399504447";
 
@@ -173,7 +174,9 @@ export type GameEventKind = 'budget' | 'deficit' | 'shortfall' | 'delivery' | 's
   | 'vote' | 'voteResult' | 'councilBudget' | 'motion' | 'directive' | 'routeRestored' | 'labour' | 'strike' | 'strikeEnds' | 'labourDeal'
   | 'sto' | 'stoNews' | 'funding' | 'fundingNews' | 'nccReview' | 'election' | 'mayorCools' | 'reshuffle'
   // M8: big projects (news; and decisions: how to build it, an overrun, opening day)
-  | 'project' | 'procurement' | 'overrun' | 'lineOpen';
+  | 'project' | 'procurement' | 'overrun' | 'lineOpen'
+  // M9: growth (a developer's offer to build near a station; the rezoning's outcome)
+  | 'developer' | 'rezoned';
 
 export interface GameEvent {
   id: string;
@@ -270,6 +273,8 @@ export interface GameState {
   council?: CouncilState;
   /** the buses are on strike */
   strike?: boolean;
+  /** M9: where the city has grown since 2010 */
+  growth?: GrowthState;
 }
 
 /** Per zone (zones file order): jobs within 45 min by transit, and the average wait (min). */

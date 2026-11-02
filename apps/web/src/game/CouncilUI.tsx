@@ -1,7 +1,7 @@
 // M7: votes with a whip count, contract talks and strikes, partners' offers, election night, the Council panel.
 import { useEffect, useState } from 'react';
 import { LABOUR_2010, WARDS_2010, type AgendaItem, type Councillor, type GameEvent, type Lang } from '@otc/shared';
-import { CONSULT_COST, LOBBY_COST, STUDY_COST, isAlly, tally, whipCount, yearlyDebtService, type Lean, type StoProposal } from '@otc/sim';
+import { CONSULT_COST, GROWTH, LOBBY_COST, STUDY_COST, isAlly, tally, whipCount, yearlyDebtService, type Lean, type StoProposal } from '@otc/sim';
 import type { Strings } from '../i18n/strings';
 import { fmtDate, money } from './GameUI';
 import type { GameApi } from './useGame';
@@ -31,6 +31,12 @@ function Effects({ item, t, lang }: { item: AgendaItem; t: Strings; lang: Lang }
   if (e.project) {
     lines.push(`${t.pj.cityShare}: ${money(e.project.city * 1e6, lang)} · ${t.pj.debtService(money(yearlyDebtService(e.project.city * 1e6), lang))}`);
     if (e.project.riders) lines.push(t.pj.trips(`${e.project.riders > 0 ? '+' : ''}${Math.round(e.project.riders).toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')}`));
+  }
+  // M9: a rezoning for a developer near a station
+  if (e.rezoning) {
+    const n = (x: number) => x.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA');
+    lines.push(t.co.effect.rezoning(n(e.rezoning.homes), n(e.rezoning.jobs), wardName(e.rezoning.ward, lang)));
+    lines.push(t.co.effect.charges(money(e.rezoning.homes * GROWTH.chargePerHome, lang)));
   }
   if (e.committed) lines.push(t.pj.committed(`${e.committed.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')}${lang === 'fr' ? ' %' : '%'}`));
   const wards = Object.entries(e.wards ?? {}).map(([w, x]) => ({ w: Number(w), ...x }));
