@@ -419,7 +419,9 @@ export function App() {
     : <PlanDock plan={plan} t={t} onOpenScorecard={() => setSel({ type: 'scorecard', id: 'plan' })} routeNames={routeNames}
       schedule={schedule} onNewLine={game.state?.council ? () => (line.hasDraft ? line.resume() : line.start('lrt')) : undefined}
       newLineLabel={line.hasDraft ? t.pj.continueDraft(line.draftName) : undefined} />;
-  const inService = useMemo(() => (net ? vehiclesNow(net.playback, view.service, serviceDayNow()).length : 0), [net, view.service, serviceDayNow]);
+  // OC Transpo's vehicles in service now (the Operations panel's count; STO's buses are listed there separately)
+  const inService = useMemo(() => (net ? vehiclesNow(net.playback, view.service, serviceDayNow())
+    .filter((v) => net.playback.routes.get(v.routeId)?.agency === 'octranspo').length : 0), [net, view.service, serviceDayNow]);
   const routeName = useCallback((id: string) => {
     const r = game.operation?.network.routes.find((x) => x.id === id) ?? base?.network.routes.find((x) => x.id === id);
     return r?.shortName ?? id.replace(/^oct-/, '');

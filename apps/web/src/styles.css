@@ -78,6 +78,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* ---------- tablet ---------- */
 body.layout-tablet .topbar { top: calc(12px + var(--safe-top)); left: 12px; right: 12px; height: 60px; gap: 14px; }
 body.layout-tablet .clock-sub { display: none; }
+body.layout-tablet .topbar .chips { gap: 3px; }
 body.layout-tablet .seg button { min-width: 44px; height: 36px; font-size: 14px; }
 body.layout-tablet .toggle { height: 42px; }
 body.layout-tablet .mapbuttons { right: 12px; top: calc(86px + var(--safe-top)); }
@@ -98,9 +99,8 @@ body.layout-phone { --r: 18px; }
 .theme-night .m-sheet { box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.5); }
 .m-grab { width: 38px; height: 5px; border-radius: 3px; background: var(--faint); opacity: 0.6; margin: 8px auto 8px; }
 .m-sheet-title { font-family: var(--serif); font-weight: 600; font-size: 16px; margin-bottom: 8px; }
-body.layout-phone .controls { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 8px; }
-body.layout-phone .controls .seg:first-child { grid-column: 1 / -1; }
-body.layout-phone .controls .seg:first-child button { flex: 1; font-size: 16px; }
+body.layout-phone .controls { margin: 0; display: flex; gap: 8px; }
+body.layout-phone .controls > .toggle { flex: 1; }
 body.layout-phone .seg button { height: 40px; }
 body.layout-phone .toggle { height: 46px; }
 body.layout-phone .controls > .seg:nth-child(2), body.layout-phone .controls > .seg:nth-child(3) { display: inline-flex; }
@@ -681,3 +681,41 @@ body.layout-phone .line-foot { margin: 4px 0 0; padding: 10px 0 12px; }
 .ops-curve .now { stroke: var(--amber); stroke-width: 1.5; stroke-dasharray: 3 2; }
 .ops-curve .dot { fill: var(--amber); }
 .ops-curve .tick { font: 600 9px var(--ui); fill: var(--muted); text-anchor: middle; }
+
+/* ------------------------------------------------------------------ operations chip and settings menu */
+.status-chip.ops-chip i { background: var(--accent); }
+.status-chip.ops-chip .chev { margin-left: -2px; color: var(--muted); font-size: 13px; line-height: 1; }
+.topbar { z-index: 6; }
+.settings { position: relative; display: flex; }
+.toggle.gear { width: 42px; min-width: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+body.layout-phone .toggle.gear { width: 52px; }
+.settings-pop { position: absolute; top: calc(100% + 12px); right: -4px; width: 300px; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 14px;
+  background: var(--solid); color: var(--fg); border: 1px solid var(--stroke); border-radius: var(--r); box-shadow: var(--shadow); text-align: left; }
+.settings-pop .sp-head { display: flex; align-items: center; justify-content: space-between; font-family: var(--serif); font-size: 16px; min-height: 24px; }
+.settings-pop .sp-head .close { position: static; }
+.settings-pop .sp-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 600; }
+.settings-pop .sp-row small { display: block; font-weight: 450; color: var(--muted); font-size: 11.5px; line-height: 1.35; margin-top: 3px; }
+.settings-pop .seg button { cursor: pointer; padding: 0 12px; }
+.settings-pop .sp-menu { justify-content: center; width: 100%; cursor: pointer; }
+.switch { flex: none; position: relative; width: 50px; height: 30px; border-radius: 15px; border: 1px solid var(--stroke); background: var(--track); cursor: pointer; padding: 0; transition: background 0.2s; }
+.switch i { position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 0.2s; }
+.switch.on { background: var(--accent); border-color: transparent; }
+.switch.on i { transform: translateX(20px); }
+.switch:focus-visible, .toggle.gear:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.settings-wrap { position: fixed; inset: 0; z-index: 44; background: rgba(10, 20, 36, 0.32); display: flex; align-items: flex-end; }
+.settings-pop.sheet { position: static; width: 100%; border-radius: 22px 22px 0 0; padding: 14px 18px calc(18px + var(--safe-bottom)); font-size: 15px; }
+.settings-pop.sheet .sp-row { font-size: 15px; }
+.settings-pop.sheet .seg button { height: 40px; font-size: 14px; }
+.settings-pop.sheet .sp-menu { height: 46px; font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .switch, .switch i { transition: none; } }
+/* a narrow iPad (portrait): the short date, tighter gaps, so the bar stays on one line */
+.clock-date .d-short { display: none; }
+body.layout-tablet .controls { flex-wrap: nowrap; }
+@media (max-width: 1099px) {
+  body.layout-tablet .clock-date .d-long { display: none; }
+  body.layout-tablet .clock-date .d-short { display: inline; }
+  body.layout-tablet .topbar { gap: 10px; }
+  body.layout-tablet .clock { padding-left: 12px; }
+  body.layout-tablet .controls { gap: 6px; }
+  body.layout-tablet .controls > .toggle { padding: 0 10px; }
+}

@@ -122,13 +122,19 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
 
   - drawing a line, every change can be **undone and redone** (⌘Z / Ctrl+Z); **Close** keeps the
     draft for later (in this browser), **Discard draft** asks first.
-- **Operations, right now:** tap the "in service" count by the clock. Buses and trains running, riders on
+- **Operations, right now:** tap the **"in service" chip** in the top bar (under the reserve on an iPad,
+  in the sheet on a phone). Buses and trains running, riders on
   board (estimated), places running against the whole fleet's, buses spare at the garage or **in the
   shop** (maintenance and breakdowns: about 7%, more with a maintenance backlog and older buses), the
   peak need against what can run, trains by line, missed trips, the fullest vehicles (tap to follow),
   and the day's curve of vehicles on the road.
 
+- **Settings** (the gear at the end of the top bar): language (English or French), 3D buildings and
+  terrain (off for a flat map that runs faster on older devices), and the main menu.
+
 ![Operations: the fleet and the network right now](docs/screenshots/ops/ops.jpg)
+
+![On an iPad: the "in service" chip and the settings menu](docs/screenshots/ops/ipad-settings.jpg)
 
 ![A light-rail line, drawn and estimated](docs/screenshots/m8/line-estimate.jpg)
 

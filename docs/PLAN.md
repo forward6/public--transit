@@ -1070,7 +1070,7 @@ to keep iteration fast; it expands to the full region afterwards.
       responding to stations (M9), and a project timeline view.
 12. ✅ **Added at your request:** the Operations panel and undo for drawing lines
     ([screenshots](screenshots/ops/)).
-    - **Operations** (tap "in service" by the clock), live with the game clock: OC Transpo buses and
+    - **Operations** (tap the "in service" chip), live with the game clock: OC Transpo buses and
       trains running now (from the timetable playback), riders on board (the riders-on-board
       estimate summed over every vehicle), places running (planning capacity by route class)
       against the whole fleet's (by bus type: 40-ft 65, 60-ft 100, double-decker 95; trains 260,
@@ -1083,6 +1083,11 @@ to keep iteration fast; it expands to the full region afterwards.
       on an undo history (100 steps, redo too, ⌘Z / Ctrl+Z); the actions stay pinned at the foot
       of the dock; Close keeps the draft (saved in this browser, "Continue …" in Plan mode); Discard
       asks first.
+    - **Getting there, and settings:** Operations opens from an "in service" chip on every layout
+      (the count by the clock was hidden on an iPad; it now counts OC Transpo only, as the panel
+      does). Language and 3D moved off the top bar into a settings menu (the gear), with the main
+      menu; on a phone it opens as a sheet. On a narrow iPad (portrait) the top bar uses the short
+      date to stay on one line.
 13. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
 14. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 

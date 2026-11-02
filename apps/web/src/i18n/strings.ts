@@ -16,6 +16,11 @@ export interface Strings {
   time: Record<TimeOfDay, string>;
   languageLabel: string;
   buildings3d: string;
+  /** the settings menu (gear): language, 3D, main menu */
+  settings: string;
+  view3d: string;
+  view3dHelp: string;
+  mainMenu: string;
   zoomIn: string;
   zoomOut: string;
   resetView: string;
@@ -232,6 +237,10 @@ export const STRINGS: Record<Lang, Strings> = {
     time: { day: 'Day', night: 'Night' },
     languageLabel: 'Language',
     buildings3d: '3D',
+    settings: 'Settings',
+    view3d: '3D buildings and terrain',
+    view3dHelp: 'Turn off for a flat map that runs faster on older devices.',
+    mainMenu: 'Main menu',
     zoomIn: 'Zoom in',
     zoomOut: 'Zoom out',
     resetView: 'Reset view',
@@ -453,6 +462,10 @@ export const STRINGS: Record<Lang, Strings> = {
     time: { day: 'Jour', night: 'Nuit' },
     languageLabel: 'Langue',
     buildings3d: '3D',
+    settings: 'Réglages',
+    view3d: 'Bâtiments et relief en 3D',
+    view3dHelp: 'Désactivez pour une carte à plat, plus fluide sur les appareils plus anciens.',
+    mainMenu: 'Menu principal',
     zoomIn: 'Zoom avant',
     zoomOut: 'Zoom arrière',
     resetView: 'Réinitialiser la vue',

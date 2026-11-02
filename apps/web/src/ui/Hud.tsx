@@ -1,4 +1,5 @@
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import type { Map as MLMap } from 'maplibre-gl';
 import { LANGS, formatClock, region, type Lang, type NetworkStatus } from '@otc/shared';
 import type { Strings } from '../i18n/strings';
@@ -89,18 +90,74 @@ function Segmented<T extends string>({ label, value, options, onChange, render }
   );
 }
 
-function Controls({ t, settings, onChange, hasRiders, hasOpinion, plan }: { t: Strings; settings: Settings; onChange: HudProps['onChange'];
-  hasRiders: boolean; hasOpinion?: boolean; plan?: { active: boolean; toggle: () => void } }) {
+function Gear() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <mask id="otc-gear-hole"><rect width="24" height="24" fill="#fff" /><circle cx="12" cy="12" r="3.3" fill="#000" /></mask>
+      <g fill="currentColor" mask="url(#otc-gear-hole)">
+        {[0, 45, 90, 135].map((a) => <rect key={a} x="10.15" y="1.6" width="3.7" height="20.8" rx="1.1" transform={`rotate(${a} 12 12)`} />)}
+        <circle cx="12" cy="12" r="7.6" />
+      </g>
+    </svg>
+  );
+}
+
+/** The settings menu (gear): language, 3D buildings and terrain, back to the main menu. A popover under
+ * the gear on desktop and iPad, a sheet from the bottom on a phone. */
+function SettingsMenu({ t, settings, onChange, onMenu, phone }: { t: Strings; settings: Settings; onChange: HudProps['onChange'];
+  onMenu?: () => void; phone: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: PointerEvent) => {
+      if (!phone && !ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    addEventListener('pointerdown', down);
+    addEventListener('keydown', key);
+    return () => {
+      removeEventListener('pointerdown', down);
+      removeEventListener('keydown', key);
+    };
+  }, [open, phone]);
+  const body = (
+    <div className={`settings-pop ${phone ? 'sheet' : ''}`} role="dialog" aria-label={t.settings} onClick={(e) => e.stopPropagation()}>
+      <div className="sp-head"><b>{t.settings}</b>
+        {phone && <button className="close" aria-label={t.close} onClick={() => setOpen(false)}>×</button>}</div>
+      <div className="sp-row"><span>{t.languageLabel}</span>
+        <Segmented label={t.languageLabel} value={settings.lang} options={LANGS} onChange={(lang) => onChange({ lang })}
+          render={(v) => (v === 'fr' ? 'Français' : 'English')} /></div>
+      <div className="sp-row"><span>{t.view3d}<small>{t.view3dHelp}</small></span>
+        <button role="switch" aria-checked={settings.buildings3d} aria-label={t.view3d} className={`switch ${settings.buildings3d ? 'on' : ''}`}
+          onClick={() => onChange({ buildings3d: !settings.buildings3d })}><i /></button></div>
+      {onMenu && <button className="btn sp-menu" onClick={() => {
+        setOpen(false);
+        onMenu();
+      }}>{t.mainMenu}</button>}
+    </div>
+  );
+  return (
+    <div className="settings" ref={ref}>
+      <button className={`toggle gear ${open ? 'on' : ''}`} aria-haspopup="dialog" aria-expanded={open} aria-label={t.settings} title={t.settings}
+        onClick={() => setOpen((o) => !o)}><Gear /></button>
+      {open && (phone ? createPortal(<div className="settings-wrap" onClick={() => setOpen(false)}>{body}</div>, document.body) : body)}
+    </div>
+  );
+}
+
+function Controls({ t, settings, onChange, hasRiders, hasOpinion, plan, onMenu, phone }: { t: Strings; settings: Settings; onChange: HudProps['onChange'];
+  hasRiders: boolean; hasOpinion?: boolean; plan?: { active: boolean; toggle: () => void }; onMenu?: () => void; phone: boolean }) {
   return (
     <div className="controls">
       {plan && <button className={`toggle plan-toggle ${plan.active ? 'on' : ''}`} aria-pressed={plan.active} onClick={plan.toggle}>{t.plan}</button>}
-      <Segmented label={t.languageLabel} value={settings.lang} options={LANGS} onChange={(lang) => onChange({ lang })} render={(v) => v.toUpperCase()} />
       {hasRiders && <button className={`toggle ${settings.riders ? 'on' : ''}`} aria-pressed={settings.riders}
         onClick={() => onChange({ riders: !settings.riders })}>{t.riders}</button>}
       {hasOpinion && <button className={`toggle ${settings.opinion ? 'on' : ''}`} aria-pressed={settings.opinion}
         onClick={() => onChange({ opinion: !settings.opinion })}>{t.op.toggle}</button>}
-      <button className={`toggle ${settings.buildings3d ? 'on' : ''}`} aria-pressed={settings.buildings3d}
-        onClick={() => onChange({ buildings3d: !settings.buildings3d })}>{t.buildings3d}</button>
+      <SettingsMenu t={t} settings={settings} onChange={onChange} onMenu={onMenu} phone={phone} />
     </div>
   );
 }
@@ -172,6 +229,11 @@ export function Hud(props: HudProps) {
     boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC, ridersLegend, capital, onMenu, onOpenOps } = props;
   const inServiceText = dayNote ?? (onOpenOps
     ? <button className="link ops-link" onClick={onOpenOps} title={t.ops.open}>{inService} {t.inService}</button> : `${inService} ${t.inService}`);
+  // the Operations panel's way in, on every layout: vehicles in service now
+  const opsChip = onOpenOps ? (
+    <button className="status-chip ops-chip" onClick={onOpenOps} title={t.ops.open} aria-label={`${t.ops.open}: ${inService} ${t.inService}`}>
+      <i />{inService.toLocaleString(settings.lang === 'fr' ? 'fr-CA' : 'en-CA')} {t.inService}<span className="chev" aria-hidden="true">›</span>
+    </button>) : null;
   const temp = tempC !== undefined ? `${tempC} °C · ` : '';
   const hasRiders = boardings !== null;
   const planCtl = hasRiders ? { active: planActive, toggle: onTogglePlan } : undefined;
@@ -196,8 +258,8 @@ export function Hud(props: HudProps) {
             <>
               <div className="m-sheet-title">{t.mapStyle}</div>
               <div className="m-row"><SpeedControl t={t} speed={speed} onSpeed={onSpeed} /></div>
-              <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} />
-              <div className="m-chips">{treasury}{approval}{capital}{ridersChip}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></div>
+              <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} onMenu={onMenu} phone />
+              <div className="m-chips">{treasury}{opsChip}{approval}{capital}{ridersChip}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></div>
             </>
           )}
         </section>
@@ -217,13 +279,16 @@ export function Hud(props: HudProps) {
           )}
         </div>
         <div className="clock">
-          <div className="clock-date">{dateLabel ?? t.date}</div>
+          <div className="clock-date"><span className="d-long">{dateLabel ?? t.date}</span><span className="d-short">{dateShort ?? t.dateShort}</span></div>
           <div className="clock-row"><span className="clock-time">{formatClock(time)}</span>
-            <span className="clock-sub">{temp}{inServiceText}</span></div>
+            <span className="clock-sub">{[tempC !== undefined ? `${tempC} °C` : '', dayNote ?? (opsChip ? '' : `${inService} ${t.inService}`)]
+              .filter(Boolean).join(' · ')}</span></div>
         </div>
         <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
-        {layout === 'desktop' ? <div className="chips"><div className="chip-row">{treasury}{approval}</div><div className="chip-row">{ridersChip}{capital}</div></div> : treasury}
-        <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} />
+        {layout === 'desktop'
+          ? <div className="chips"><div className="chip-row">{treasury}{approval}</div><div className="chip-row">{opsChip}{ridersChip}{capital}</div></div>
+          : <div className="chips"><div className="chip-row">{treasury}</div><div className="chip-row">{opsChip}</div></div>}
+        <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} onMenu={onMenu} phone={false} />
       </header>
       <MapButtons t={t} map={map} />
       {inspector ? (
