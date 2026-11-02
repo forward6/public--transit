@@ -3,12 +3,14 @@ import type { MapMouseEvent, Map as MLMap } from 'maplibre-gl';
 import { LANGS, SEASONS, TIMES, parseClock, type Lang, type Season, type TimeOfDay } from '@otc/shared';
 import { MapView, type CameraPadding } from './map/MapView';
 import { palette } from './map/palettes';
-import { LOAD_COLORS, NET_LOADS, OPINION_ZONES, PICKABLE, RIDER_PATH, RIDER_POS } from './map/style';
+import { LOAD_COLORS, NET_LOADS, OPINION_ZONES, PICKABLE, PROJECTS, RIDER_PATH, RIDER_POS } from './map/style';
+import { LineDock, OpeningDay, ProjectsChip, ProjectsPanel } from './game/ProjectsUI';
+import { useLineDraw } from './plan/useLineDraw';
 import { LoadPanel, type LoadMode } from './game/LoadUI';
 import { CapitalChip, CouncilPanel, ElectionNight } from './game/CouncilUI';
 import { useStreamedSource } from './map/useStreamedSource';
 import { STRINGS } from './i18n/strings';
-import { draftFeatures, isoPolys, loadFeatures, networkLines, networkStops, opinionPolys, riderPath, zonePoints } from './network/geojson';
+import { draftFeatures, isoPolys, loadFeatures, networkLines, networkStops, opinionPolys, projectFeatures, riderPath, zonePoints } from './network/geojson';
 import { useNetwork } from './network/useNetwork';
 import { useVehicleAnimation } from './network/useVehicleAnimation';
 import { DAYS_SPEED, SERVICE_DAY_START, createClock, isNight, seasonOf, type SpeedIndex } from './sim/clock';
@@ -188,6 +190,26 @@ export function App() {
   }, [base]);
   const planRef = useRef(plan);
   planRef.current = plan;
+  // M8: drawing a rapid-transit line in Plan mode
+  const line = useLineDraw(game.operation ?? base, plan, game, settings.lang);
+  const lineRef = useRef(line);
+  lineRef.current = line;
+  // &line=lon,lat;lon,lat… (with ?plan=1) draws a line: &linemode=busway, &tunnel=2,3 (stretches in tunnel), &linename=…
+  useEffect(() => {
+    const pts = params.get('line');
+    if (!base || !params.get('plan') || !pts || !game.state?.council) return;
+    lineRef.current.start(params.get('linemode') === 'busway' ? 'busway' : 'lrt');
+    setTimeout(() => {
+      pts.split(';').forEach((pt) => {
+        const [x, y] = pt.split(',').map(Number);
+        lineRef.current.addStation([x!, y!]);
+      });
+      setTimeout(() => {
+        for (const i of (params.get('tunnel') ?? '').split(',').filter(Boolean).map(Number)) lineRef.current.setStructure(i, 'tunnel');
+        if (params.get('linename')) lineRef.current.setName(params.get('linename')!);
+      }, 0);
+    }, 0);
+  }, [base, !!game.state?.council]); // eslint-disable-line react-hooks/exhaustive-deps
   const opinionRef = useRef(false);
   opinionRef.current = settings.opinion;
   // the Riders and Opinion views are alternatives
@@ -235,6 +257,7 @@ export function App() {
       const pl = planRef.current;
       if (pl.active && pl.tool === 'draw') return pl.addWaypoint([e.lngLat.lng, e.lngLat.lat]);
       if (pl.active && pl.tool === 'iso') return pl.setIsoOrigin([e.lngLat.lng, e.lngLat.lat]);
+      if (pl.active && pl.tool === 'line') return lineRef.current.addStation([e.lngLat.lng, e.lngLat.lat]);
       // in the Opinion view a tap means "this neighbourhood" (routes are muted underneath)
       const layers = (opinionRef.current ? ['rider-pos', 'net-stations', 'op-zones'] : PICKABLE).filter((l) => map.getLayer(l));
       const box: [[number, number], [number, number]] = [[e.point.x - 8, e.point.y - 8], [e.point.x + 8, e.point.y + 8]];
@@ -243,6 +266,7 @@ export function App() {
       const p = f.properties as Record<string, string>;
       if (f.layer.id === 'rider-pos') return;
       if (f.layer.id === 'op-zones') return setSel({ type: 'zone', id: String(p.i) });
+      if (f.layer.id.startsWith('proj-')) return p.id && p.id !== 'draft' ? setSel({ type: 'project', id: p.id }) : undefined;
       if (f.layer.id === 'net-vehicles' || f.layer.id === 'net-vehicle-dots') setSel({ type: 'vehicle', id: p.trip! });
       else if (f.layer.id === 'net-stations' || f.layer.id === 'net-stops') setSel({ type: 'stop', id: p.id! });
       else if (p.kind === 'route') setSel({ type: 'route', id: p.id! });
@@ -315,6 +339,9 @@ export function App() {
     if (sel?.type === 'vehicle') game.requestLoads();
   }, [sel?.type, game.requestLoads]); // eslint-disable-line react-hooks/exhaustive-deps
   useStreamedSource(map, NET_LOADS, loadFc);
+  const projectsFc = useMemo(() => projectFeatures(game.state?.projects ?? [], plan.active && plan.tool === 'line' ? line.design : null),
+    [game.state?.projects, plan.active, plan.tool, line.design]);
+  useStreamedSource(map, PROJECTS, projectsFc);
   const openLoad = () => setSel({ type: 'load', id: 'peak' });
   const closeMenu = () => {
     setMenu(null);
@@ -385,8 +412,10 @@ export function App() {
     pending: game.state.pending.length ? t.scheduledNote(game.state.pending.length, nextChange) : null,
     onCancel: game.unschedule,
   } : undefined;
-  const dock = plan.active ? <PlanDock plan={plan} t={t} onOpenScorecard={() => setSel({ type: 'scorecard', id: 'plan' })} routeNames={routeNames}
-    schedule={schedule} /> : null;
+  const dock = !plan.active ? null : plan.tool === 'line' && line.design
+    ? <LineDock line={line} t={t} lang={settings.lang} date={game.state?.date ?? '2010-12-01'} />
+    : <PlanDock plan={plan} t={t} onOpenScorecard={() => setSel({ type: 'scorecard', id: 'plan' })} routeNames={routeNames}
+      schedule={schedule} onNewLine={game.state?.council ? () => line.start('lrt') : undefined} />;
   const inService = useMemo(() => (net ? vehiclesNow(net.playback, view.service, serviceDayNow()).length : 0), [net, view.service, serviceDayNow]);
   const routeName = useCallback((id: string) => {
     const r = game.operation?.network.routes.find((x) => x.id === id) ?? base?.network.routes.find((x) => x.id === id);
@@ -408,6 +437,7 @@ export function App() {
         inspector={sel && net ? (sel.type === 'scorecard' ? <ScorecardPanel plan={plan} t={t} />
           : sel.type === 'budget' ? <BudgetPanel game={game} t={t} lang={settings.lang} />
           : sel.type === 'council' ? <CouncilPanel game={game} t={t} lang={settings.lang} />
+          : sel.type === 'project' ? <ProjectsPanel game={game} t={t} lang={settings.lang} id={sel.id} onSelect={(id) => setSel({ type: 'project', id })} />
           : sel.type === 'load' ? <LoadPanel report={report} byStop={game.loads?.byStop ?? null} scale={loadScale} net={(opNet ?? net).network} t={t}
             lang={settings.lang} palette={pal} mode={loadMode} setMode={(m) => { setLoadMode(m); changeSettings({ riders: true }); }}
             onFocus={(c) => map?.flyTo({ center: c, zoom: Math.max(map.getZoom(), 13.5), duration: 900 })}
@@ -427,11 +457,13 @@ export function App() {
         boardings={net?.demand?.summary.boardings ?? null}
         ridersChip={<DailyRidersChip game={game} t={t} lang={settings.lang} fallback={net?.demand?.summary.boardings ?? null} onClick={openRidership} />}
         approval={<ApprovalChip game={game} t={t} lang={settings.lang} onClick={openOpinion} />} hasOpinion={!!game.state?.opinion} tempC={tempC}
-        ridersLegend={ridersLegend} capital={<CapitalChip game={game} t={t} onClick={() => setSel({ type: 'council', id: 'term' })} />}
+        ridersLegend={ridersLegend} capital={<><CapitalChip game={game} t={t} onClick={() => setSel({ type: 'council', id: 'term' })} />
+          <ProjectsChip game={game} t={t} onClick={() => setSel({ type: 'project', id: 'all' })} /></>}
         onMenu={openMenu} />
       {!params.has('nodecision') && !menu && <DecisionCard game={game} t={t} lang={settings.lang} />}
       {!menu && <NewsToasts game={game} t={t} lang={settings.lang} />}
       {!params.has('nodecision') && !menu && <ElectionNight game={game} t={t} lang={settings.lang} />}
+      {!params.has('nodecision') && !menu && <OpeningDay game={game} t={t} lang={settings.lang} />}
       {!params.has('nodecision') && !menu && <FrontPageCard game={game} t={t} lang={settings.lang} onShow={pauseForPaper} onClose={resumeAfterPaper} />}
       {menu && <StartScreen t={t} lang={settings.lang} onLang={(lang) => changeSettings({ lang })} time={view.time}
         campaign={menu === 'menu' || hadCampaign ? game.state : null} onContinue={closeMenu} />}

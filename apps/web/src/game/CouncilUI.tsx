@@ -1,7 +1,7 @@
 // M7: votes with a whip count, contract talks and strikes, partners' offers, election night, the Council panel.
 import { useEffect, useState } from 'react';
 import { LABOUR_2010, WARDS_2010, type AgendaItem, type Councillor, type GameEvent, type Lang } from '@otc/shared';
-import { CONSULT_COST, LOBBY_COST, STUDY_COST, isAlly, tally, whipCount, type Lean, type StoProposal } from '@otc/sim';
+import { CONSULT_COST, LOBBY_COST, STUDY_COST, isAlly, tally, whipCount, yearlyDebtService, type Lean, type StoProposal } from '@otc/sim';
 import type { Strings } from '../i18n/strings';
 import { fmtDate, money } from './GameUI';
 import type { GameApi } from './useGame';
@@ -27,6 +27,12 @@ function Effects({ item, t, lang }: { item: AgendaItem; t: Strings; lang: Lang }
   if (e.capital) lines.push(t.co.effect.capital(money(e.capital * 1e6, lang)));
   if (e.debt) lines.push(t.co.effect.debt(money(e.debt * 1e6, lang)));
   if (e.wage !== undefined) lines.push(t.co.effect.wage(pctText(e.wage, lang)));
+  // M8: a line's bill and riders; a budget's share for the lines already approved
+  if (e.project) {
+    lines.push(`${t.pj.cityShare}: ${money(e.project.city * 1e6, lang)} · ${t.pj.debtService(money(yearlyDebtService(e.project.city * 1e6), lang))}`);
+    if (e.project.riders) lines.push(t.pj.trips(`${e.project.riders > 0 ? '+' : ''}${Math.round(e.project.riders).toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')}`));
+  }
+  if (e.committed) lines.push(t.pj.committed(`${e.committed.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')}${lang === 'fr' ? ' %' : '%'}`));
   const wards = Object.entries(e.wards ?? {}).map(([w, x]) => ({ w: Number(w), ...x }));
   const removed = new Map<string, number[]>();
   const added = new Map<string, number[]>();

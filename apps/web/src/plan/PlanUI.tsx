@@ -60,8 +60,10 @@ export interface ScheduleControl {
   onCancel: () => void;
 }
 
-export function PlanDock({ plan, t, onOpenScorecard, routeNames, schedule }: {
+export function PlanDock({ plan, t, onOpenScorecard, routeNames, schedule, onNewLine }: {
   plan: PlanState; t: Strings; onOpenScorecard: () => void; routeNames: Map<string, string>; schedule?: ScheduleControl;
+  /** M8: draw a rapid-transit line (the campaign only) */
+  onNewLine?: () => void;
 }) {
   const { tool, setTool, draft, evalState: ev } = plan;
   const running = ev.status === 'running';
@@ -101,6 +103,7 @@ export function PlanDock({ plan, t, onOpenScorecard, routeNames, schedule }: {
           <p className="muted small">{t.planHint}</p>
           <div className="plan-tools">
             <button className="btn" onClick={() => setTool('draw')}><span aria-hidden>✎</span> {t.newRoute}</button>
+            {onNewLine && <button className="btn" onClick={onNewLine}><span aria-hidden>═</span> {t.pj.newLine}</button>}
             <button className="btn" onClick={() => setTool('iso')}><span aria-hidden>◎</span> {t.travelTimes}</button>
             <button className="btn primary" disabled={running} onClick={() => { plan.runEvaluation(); onOpenScorecard(); }}>
               {running ? `${t.evaluating}… ${Math.round(100 * (ev.progress ?? 0))}%` : t.evaluate}</button>

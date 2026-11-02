@@ -58,6 +58,13 @@ console.log(`  wards with a station: ${forecast.wards.join(', ')}`);
 let s: GameState = withOpinion(newGame({ boardings: demand.summary.boardingsByAgency.octranspo!, vehicleHours: svc.vehicleHours, peakVehicles: svc.peakVehicles }), world);
 if (process.env.SEED) s = { ...s, seed: Number(process.env.SEED) };
 const log = (m: string) => console.log(`${s.date}  ${m}`);
+// DUMP_DIR=dir saves the game at the moments worth a look: procurement, an overrun, mid-construction, opening day, a month in
+const dumped = new Set<string>();
+const dump = (name: string) => {
+  if (!process.env.DUMP_DIR || dumped.has(name)) return;
+  dumped.add(name);
+  writeFileSync(`${process.env.DUMP_DIR}/${name}.json`, JSON.stringify(s));
+};
 let proposed = false;
 const seen = new Set<string>();
 for (let day = 0; day < 365 * 12 && s.date < '2023-01-01'; day++) {
@@ -91,12 +98,15 @@ for (let day = 0; day < 365 * 12 && s.date < '2023-01-01'; day++) {
       if (item.kind === 'project' || item.kind === 'contract' || done.status === 'failed')
         log(`VOTE ${item.kind}: ${done.status} ${done.result?.yes}-${done.result?.no} (whip had ${t0.yes}; lobbied ${done.lobbied.length}; PC ${s.council!.capital})`);
     } else if (d.kind === 'procurement') {
+      dump('procurement');
       log(`PROCUREMENT for ${d.data.name}: ${how} (budget now ${M(Number(d.data.cost))})`);
       s = chooseProcurement(s, String(d.data.project), how);
     } else if (d.kind === 'overrun') {
+      dump('overrun');
       log(`OVERRUN ${d.data.name}: ${M(Number(d.data.amount))} (${d.data.share}%) → ${overrunChoice}`);
       s = answerOverrun(s, String(d.data.project), overrunChoice);
     } else if (d.kind === 'lineOpen') {
+      dump('opening');
       log(`OPENING DAY ${d.data.name}: ${d.data.km} km, ${d.data.stations} stations, ${M(Number(d.data.cost))}, ${d.data.years} years after the proposal${d.data.rough ? ' (a rough start)' : ''}`);
       s = openingDay(s, d.id, true);
     } else if (d.kind === 'labour') s = negotiate(s, cw, { wage: 2.8, scheduling: 'keep', years: 3 });
@@ -111,12 +121,21 @@ for (let day = 0; day < 365 * 12 && s.date < '2023-01-01'; day++) {
     log(`  ${what} ${JSON.stringify(rest)}`);
   }
   s = stepDay(s, world);
+  const p0 = s.projects?.[0];
+  if (p0?.phase === 'construction' && p0.dates.construction && s.date >= addYear(addYear(p0.dates.construction))) dump('construction');
+  if (p0?.opened && s.date >= addYear(p0.opened).replace(/^(\d{4})-(\d\d)/, (_m, y: string, mm: string) => `${Number(y) - 1}-${mm}`).slice(0, 7) + '-28' && s.date > p0.opened) {
+    if (s.date >= monthAfter(p0.opened)) dump('open');
+  }
   if (s.date.endsWith('-12-31')) {
     const p = s.projects?.[0];
     const o = s.opinion ? opinionSummary(s.opinion, world, s.date).approval : 0;
     log(`YEAR END: approval ${o.toFixed(1)}% · levy ${M(s.levy)} · reserve ${M(s.reserve)} · debt ${M(s.debt)} + lines ${M(s.lineDebt ?? 0)} · ${p ? `${p.phase}, spent ${M(p.spent)} (city ${M(p.citySpent)}), budget ${M(p.budget)}` : ''}`);
   }
   if (s.projects?.[0]?.phase === 'open' && s.date > addYear(s.projects[0].opened!)) break;
+}
+function monthAfter(d: string) {
+  const [y, m] = d.split('-').map(Number);
+  return m === 12 ? `${y! + 1}-01${d.slice(7)}` : `${y}-${String(m! + 1).padStart(2, '0')}${d.slice(7)}`;
 }
 function addYear(d: string) {
   return `${Number(d.slice(0, 4)) + 1}${d.slice(4)}`;

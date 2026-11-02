@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PERSONAS, type BusType, type Edit, type GameEvent, type GameState, type PendingFigures, type ZoneLos } from '@otc/shared';
+import { PERSONAS, type BusType, type Edit, type GameEvent, type GameState, type LineDesign, type PendingFigures, type Procurement, type ProjectForecast, type ZoneLos } from '@otc/shared';
 import {
   ORDER_VOTE_THRESHOLD, acknowledge, amend as amendItem, answerFunding, answerSto, assignWards, callVote as callVoteOn, delayFor, isBigPlan,
   lobby as lobbyOn, negotiate as negotiateOn, planEffects, proposeBudget, proposeDeficit, proposeGarage, proposeOrder, proposePlan, setPlanEffects,
   strikeChoice as strikeChoiceOn, withdraw as withdrawItem, type CouncilWorld,
+  answerOverrun as answerOverrunOn, askAgain as askAgainOn, cancelProject as cancelProjectOn, chooseProcurement as chooseProcurementOn,
+  openingDay as openingDayOn, proposeProject, reviveProject as reviveProjectOn,
   JourneyPlanner, Playback, agencyOnly, applyEdits, buildGarage, dismissEvent, newGame, openDecision, orderBuses, resolve, schedulePlan,
   serviceStats, setLevers, setPendingFigures, setService, stepDay, updateRoutines, withOpinion, type GameWorld, type PersonaTrips,
   type Resolution, type Scorecard,
@@ -60,6 +62,14 @@ export interface GameApi {
   answerSto: (accept: boolean) => void;
   answerFunding: (accept: boolean) => void;
   acknowledge: (eventId: string) => void;
+  /** M8: rapid-transit lines */
+  proposeLine: (design: LineDesign, forecast?: ProjectForecast) => void;
+  chooseProcurement: (projectId: string, how: Procurement) => void;
+  answerOverrun: (projectId: string, choice: 'pay' | 'trim' | 'pause') => void;
+  openingDay: (eventId: string, rework: boolean) => void;
+  cancelProject: (projectId: string) => void;
+  reviveProject: (projectId: string) => void;
+  askAgain: (projectId: string, gov: 'province' | 'federal') => void;
 }
 
 /** The assignment's loads for one network, and the model's OC Transpo weekday boardings on it (to scale by). */
@@ -335,6 +345,13 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
     answerSto: (accept) => setState((s) => (s ? answerSto(s, accept) : s)),
     answerFunding: (accept) => setState((s) => (s ? answerFunding(s, accept) : s)),
     acknowledge: (eventId) => setState((s) => (s ? acknowledge(s, eventId) : s)),
+    proposeLine: (design, forecast) => setState((s) => (s ? proposeProject(s, design, forecast, operation?.network) : s)),
+    chooseProcurement: (id, how) => setState((s) => (s ? chooseProcurementOn(s, id, how) : s)),
+    answerOverrun: (id, choice) => setState((s) => (s ? answerOverrunOn(s, id, choice) : s)),
+    openingDay: (eventId, rework) => setState((s) => (s ? openingDayOn(s, eventId, rework) : s)),
+    cancelProject: (id) => setState((s) => (s ? cancelProjectOn(s, id) : s)),
+    reviveProject: (id) => setState((s) => (s ? reviveProjectOn(s, id) : s)),
+    askAgain: (id, gov) => setState((s) => (s ? askAgainOn(s, id, gov) : s)),
     restart: () => {
       if (startFigures) setState(world ? withOpinion(newGame(startFigures), world) : newGame(startFigures));
       clock.setTime(60); // 00:01

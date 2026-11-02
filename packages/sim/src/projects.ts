@@ -1,5 +1,5 @@
 import {
-  LINE_HEADWAYS, PROJECT_COSTS, type Corridor, type Edit, type GameEvent, type GameState, type ItemEffects, type LineDesign,
+  LINE_COLORS, LINE_HEADWAYS, PROJECT_COSTS, type Corridor, type Edit, type GameEvent, type GameState, type ItemEffects, type LineDesign,
   type LineMode, type LineStation, type NetPattern, type NetRoute, type NetStop, type Network, type Procurement, type Project, type ProjectEstimate,
   type ProjectForecast, type Structure, type Zone,
 } from '@otc/shared';
@@ -163,8 +163,7 @@ export function lineEdit(design: LineDesign, id: string): Edit {
 
 /** A new line's starting design (no stations yet). */
 export function newDesign(mode: LineMode, n: number): LineDesign {
-  const colors = ['#D7263D', '#25965A', '#2856B8', '#E08A1E', '#7A3FB8', '#0E8C8C'];
-  return { mode, name: `Line ${n}`, shortName: mode === 'lrt' ? `L${n}` : `T${n}`, color: colors[(n - 1) % colors.length]!, stations: [], structure: [],
+  return { mode, name: `Line ${n}`, shortName: mode === 'lrt' ? `L${n}` : `T${n}`, color: LINE_COLORS[(n - 1) % LINE_COLORS.length]!, stations: [], structure: [],
     headways: { ...LINE_HEADWAYS[mode] } };
 }
 
@@ -604,6 +603,17 @@ function open(s: GameState, p: Project, today: string) {
   const rough = !!p.risk?.rough;
   decide(s, 'lineOpen', { project: p.id, name: p.design.name, km: p.estimate.lengthKm, stations: p.estimate.stations, rough: rough ? 1 : 0,
     cost: Math.round(p.spent), years: round1(monthsBetween(p.dates.proposed ?? today, today) / 12), rework: p.rework?.routes.length ?? 0 });
+}
+
+/**
+ * Light rail's daily capacity in bus-hour equivalents (a two-car train carries about 3¼ busloads):
+ * what riders feel as room when the opinion model weighs crowding (bus-hours alone would make a
+ * line that replaces buses look like a cut).
+ */
+export function lineCapacityHours(s: GameState): number {
+  let h = 0;
+  for (const p of s.projects ?? []) if (p.phase === 'open' && p.design.mode === 'lrt') h += (p.estimate.vehicles / 1.15) * 17 * 3.25;
+  return h;
 }
 
 // ------------------------------------------------------------------------------------------ neighbours

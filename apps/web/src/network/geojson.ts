@@ -1,5 +1,5 @@
 import type { FeatureCollection, LineString, Point, Polygon } from 'geojson';
-import type { DemandFile, Network, RouteClass, ZonesFile } from '@otc/shared';
+import type { DemandFile, LineDesign, Network, Project, RouteClass, ZonesFile } from '@otc/shared';
 import { prepareLine, sliceLine, type Draft, type Journey, type LoadReport, type Playback, type VehicleState } from '@otc/sim';
 
 export type LinesFC = FeatureCollection<LineString>;
@@ -17,7 +17,7 @@ export function networkLines(network: Network, demand?: DemandFile | null): Line
       features.push({
         type: 'Feature',
         id: `${c.id}-${i}`,
-        properties: { kind: 'corridor', corridor: c.kind, id: c.id, name: c.name },
+        properties: { kind: 'corridor', corridor: c.kind, id: c.id, name: c.name, ...(c.color ? { color: c.color } : {}) },
         geometry: { type: 'LineString', coordinates: line },
       }),
     );
@@ -35,6 +35,26 @@ export function networkLines(network: Network, demand?: DemandFile | null): Line
       geometry: { type: 'LineString', coordinates: p.shape },
     });
   }
+  return { type: 'FeatureCollection', features };
+}
+
+/**
+ * M8: lines not yet open (proposed, designed, tendered, being built) and the one being drawn:
+ * a feature per stretch (how it's built), and the stations.
+ */
+export function projectFeatures(projects: Project[], draft: LineDesign | null): FeatureCollection<LineString | Point> {
+  const features: FeatureCollection<LineString | Point>['features'] = [];
+  const add = (d: LineDesign, id: string, phase: string) => {
+    d.stations.forEach((s, i) => {
+      const next = d.stations[i + 1];
+      if (next) features.push({ type: 'Feature', properties: { id, phase, color: d.color, structure: d.structure[i] ?? 'surface', kind: 'stretch' },
+        geometry: { type: 'LineString', coordinates: [[s.lon, s.lat], [next.lon, next.lat]] } });
+      features.push({ type: 'Feature', properties: { id, phase, color: d.color, name: s.name, existing: !!s.existing, kind: 'station' },
+        geometry: { type: 'Point', coordinates: [s.lon, s.lat] } });
+    });
+  };
+  for (const p of projects) if (!['open', 'shelved', 'cancelled'].includes(p.phase)) add(p.design, p.id, p.phase === 'construction' || p.phase === 'testing' ? 'building' : 'planned');
+  if (draft) add(draft, 'draft', 'draft');
   return { type: 'FeatureCollection', features };
 }
 
@@ -65,14 +85,16 @@ export function vehicleFeatures(playback: Playback, vehicles: VehicleState[]): {
   for (const v of vehicles) {
     const r = playback.routes.get(v.routeId);
     const cls = r?.class ?? 'local';
+    // M8: a new line's trains wear its colour
+    const own = r && r.id.startsWith('line-') ? { color: r.color } : {};
     points.push({
       type: 'Feature',
-      properties: { trip: v.tripId, route: v.routeId, cls, bearing: v.bearing, dwelling: v.dwelling },
+      properties: { trip: v.tripId, route: v.routeId, cls, bearing: v.bearing, dwelling: v.dwelling, ...own },
       geometry: { type: 'Point', coordinates: v.lonlat },
     });
     const trail = playback.trail(v, TRAIL_M[r?.mode ?? 'bus'] ?? 180);
     if (trail.length >= 2 && !v.dwelling) {
-      trails.push({ type: 'Feature', properties: { cls }, geometry: { type: 'LineString', coordinates: trail } });
+      trails.push({ type: 'Feature', properties: { cls, ...own }, geometry: { type: 'LineString', coordinates: trail } });
     }
   }
   return { points: { type: 'FeatureCollection', features: points }, trails: { type: 'FeatureCollection', features: trails } };

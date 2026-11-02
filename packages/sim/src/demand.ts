@@ -22,7 +22,12 @@ export const PERIOD_SAMPLES: Record<Period, number[]> = {
   offpeak: [10.5 * 3600, 11 * 3600 + 600, 11 * 3600 + 3000, 12.5 * 3600],
 };
 const HORIZON_SEC = 2.5 * 3600;
-const ROUND_PENALTY_SEC = 150; // when picking the journey to a zone, each extra boarding "costs" this much
+// when picking the journey to a zone, each extra boarding "costs" this much:
+// - riders' route choice (the assignment, which counts boardings): calibrated on Ottawa's transfer rate;
+// - the skims mode choice sees: the model's own transfer penalty (coef.transfer / coef.ivt = 10 min), so a new
+//   fast line that only saves time with an extra transfer doesn't make transit look worse (M8).
+const ROUND_PENALTY_SEC = 150;
+const SKIM_ROUND_PENALTY_SEC = 600;
 
 export type Purpose = 'hbw' | 'hbu' | 'hbs' | 'hbo' | 'nhb';
 export const PURPOSES: Purpose[] = ['hbw', 'hbu', 'hbs', 'hbo', 'nhb'];
@@ -92,14 +97,14 @@ export function zoneAccess(rn: RaptorNetwork, zones: Zone[], radius: [number, nu
 }
 
 /** Per-stop best (round-penalised) arrival from the latest query, and the round it came from. */
-function bestByStop(r: Raptor, cost: Float32Array, round: Int8Array) {
+function bestByStop(r: Raptor, cost: Float32Array, round: Int8Array, penalty = ROUND_PENALTY_SEC) {
   const N = r.net.nStops;
   cost.fill(1e9);
   round.fill(-1);
   for (let k = 1; k <= r.lastRound; k++) {
     const base = k * N;
     for (let s = 0; s < N; s++) {
-      const t = r.tau[base + s]! + k * ROUND_PENALTY_SEC;
+      const t = r.tau[base + s]! + k * penalty;
       if (t < cost[s]!) {
         cost[s] = t;
         round[s] = k;
@@ -164,7 +169,7 @@ export function transitSkims(network: Network, zones: Zone[], params: DemandPara
       for (const t0 of samples) {
         r.run(Array.from(a.stops, (s, k) => ({ stop: s, time: t0 + a.sec[k]! })), t0 + HORIZON_SEC);
         a.stops.forEach((s, k) => (accessAt[s] = a.sec[k]!));
-        bestByStop(r, cost, round);
+        bestByStop(r, cost, round, SKIM_ROUND_PENALTY_SEC);
         pickEgress(acc, cost, egress, egRound, round);
         for (let j = 0; j < n; j++) {
           if (j === i || egress[j]! < 0) continue;

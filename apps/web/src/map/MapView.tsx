@@ -66,9 +66,10 @@ export function MapView({ style, padding, onMap }: Props) {
       if (isWindowImage(e.id)) map.addImage(e.id, windowTexture(e.id), { pixelRatio: 2 });
       else if (e.id === 'hatch-history') map.addImage(e.id, hatchTexture(), { pixelRatio: 2 });
       else if (e.id.startsWith('veh-')) {
-        const [, cls = 'local', dn] = e.id.split('-');
+        const [, cls = 'local', dn, hex] = e.id.split('-');
         const colors = (dn === 'n' ? TRANSIT_NIGHT : TRANSIT_DAY) as Record<string, string>;
-        map.addImage(e.id, vehicleIcon(cls, colors[cls] ?? '#8794AB', dn === 'n'), { pixelRatio: 2 });
+        const color = hex && /^[0-9a-fA-F]{6}$/.test(hex) ? `#${hex}` : colors[cls] ?? '#8794AB';
+        map.addImage(e.id, vehicleIcon(cls, color, dn === 'n'), { pixelRatio: 2 });
       }
     });
     window.__otc = { map, ready: false };

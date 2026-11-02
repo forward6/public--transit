@@ -5,7 +5,7 @@ import type { NetworkState } from '../network/useNetwork';
 import type { FromWorker, ToWorker } from './evaluator.worker';
 
 const STORE_KEY = 'otc.plan.v1';
-export type Tool = 'none' | 'draw' | 'iso';
+export type Tool = 'none' | 'draw' | 'iso' | 'line';
 
 export const NEW_ROUTE_HEADWAYS: Headways = { am: 10, midday: 15, pm: 10, evening: 30 };
 

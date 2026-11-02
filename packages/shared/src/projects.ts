@@ -159,4 +159,5 @@ export const LINE_HEADWAYS: Record<LineMode, Headways> = {
   busway: { am: 5, midday: 10, pm: 5, evening: 15 },
 };
 
-export const LINE_COLORS = ['#D7263D', '#25965A', '#2856B8', '#E08A1E', '#7A3FB8', '#0E8C8C'];
+/** Line colours that stand apart from the Transitway's red, the O-Train's green and the bus blues. */
+export const LINE_COLORS = ['#8E44C9', '#E0457B', '#E08A1E', '#0E9C9C', '#B8860B', '#D7263D'];

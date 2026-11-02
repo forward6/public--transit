@@ -10,7 +10,7 @@ import { segmentNow } from '@otc/sim';
 import { crowdOf, shownRiders, type OnBoardFn } from '../game/onBoard';
 
 export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard' | 'budget' | 'opinion' | 'zone' | 'persona'
-    | 'load' | 'council';
+    | 'load' | 'council' | 'project';
   id: string } | null;
 
 interface Props {
@@ -33,7 +33,7 @@ interface Props {
 
 export function RouteBadge({ route, palette, onClick }: { route: NetRoute; palette: Palette; onClick?: () => void }) {
   return (
-    <button className="route-badge" style={{ background: palette.transit[route.class] }} onClick={onClick} title={route.longName}>
+    <button className="route-badge" style={{ background: route.id.startsWith('line-') ? route.color : palette.transit[route.class] }} onClick={onClick} title={route.longName}>
       {route.shortName}
     </button>
   );

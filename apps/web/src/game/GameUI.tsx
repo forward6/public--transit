@@ -5,6 +5,7 @@ import type { Strings } from '../i18n/strings';
 import type { GameApi } from './useGame';
 import { Delta, weekOnWeek } from './Ridership';
 import { COUNCIL_KINDS, CouncilDecision } from './CouncilUI';
+import { PROJECT_KINDS, ProjectDecision } from './ProjectsUI';
 
 export function fmtDate(iso: string, lang: Lang, style: 'long' | 'short' | 'month' | 'day' | 'mon' = 'long'): string {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -19,7 +20,8 @@ export function fmtDate(iso: string, lang: Lang, style: 'long' | 'short' | 'mont
 
 export function money(x: number, lang: Lang): string {
   const v = Math.abs(x);
-  const s = v >= 1e9 ? `${(v / 1e9).toFixed(2)} G` : v >= 1e6 ? `${(v / 1e6).toFixed(1)} M` : v >= 1e3 ? `${Math.round(v / 1e3)} k` : `${Math.round(v)}`;
+  // billions: $2.22B in English, 2,22 G$ in French
+  const s = v >= 1e9 ? `${(v / 1e9).toFixed(2)} ${lang === 'fr' ? 'G' : 'B'}` : v >= 1e6 ? `${(v / 1e6).toFixed(1)} M` : v >= 1e3 ? `${Math.round(v / 1e3)} k` : `${Math.round(v)}`;
   const sign = x < 0 ? '−' : '';
   return lang === 'fr' ? `${sign}${s.replace('.', ',')} $` : `${sign}$${s.replace(' ', '')}`;
 }
@@ -84,8 +86,18 @@ export function DecisionCard({ game, t, lang }: { game: GameApi; t: Strings; lan
     const trial = { ...s, fareIndex: s.fareIndex * (1 + fare / 100), maintenance: maint };
     return projectYear(trial, ECONOMY_2010, from, Number(d.data.last) * (1 + levy / 100));
   }, [s, d, levy, fare, maint]);
-  if (!d || !s || d.kind === 'election') return null;
+  if (!d || !s || d.kind === 'election' || d.kind === 'lineOpen') return null;
   const f = fleetStatus(s);
+  if (PROJECT_KINDS.has(d.kind)) {
+    return (
+      <div className="decision-wrap" role="dialog" aria-modal="true" aria-label={t.pj.title}>
+        <section className="decision glass">
+          <div className="decision-kicker">{fmtDate(s.date, lang)} · {t.decisionKicker}</div>
+          <ProjectDecision game={game} d={d} t={t} lang={lang} />
+        </section>
+      </div>
+    );
+  }
   if (COUNCIL_KINDS.has(d.kind)) {
     const item = d.kind === 'vote' ? s.council?.items.find((i) => i.id === d.data.item) : undefined;
     return (
@@ -105,6 +117,7 @@ export function DecisionCard({ game, t, lang }: { game: GameApi; t: Strings; lan
         {d.kind === 'budget' && projection && (
           <>
             <p>{t.budgetIntro(money(Number(d.data.last), lang), pct(balancingPct, 1, lang))}</p>
+            {Number(d.data.committed) > 0 && <p className="muted small">{t.pj.committed(pct(Number(d.data.committed), 1, lang))}</p>}
             <ul className="steppers">
               <Stepper label={t.levyChange} value={levy} min={-3} max={12} step={0.5} fmt={(v) => pct(v, 1, lang)} onChange={setLevy} />
               <Stepper label={t.fareChange} value={fare} min={-10} max={15} step={2.5} fmt={(v) => pct(v, 1, lang)} onChange={setFare} />
@@ -149,7 +162,7 @@ export function DecisionCard({ game, t, lang }: { game: GameApi; t: Strings; lan
 
 /** Brief news: deliveries, service changes, garages, retirements. */
 export function NewsToasts({ game, t, lang }: { game: GameApi; t: Strings; lang: Lang }) {
-  const text = (e: GameEvent) => t.news[e.kind] ?? t.co.news[e.kind];
+  const text = (e: GameEvent) => t.news[e.kind] ?? t.co.news[e.kind] ?? (e.kind === 'project' && t.pj.news(e.data, lang) ? (d: GameEvent['data'], l: Lang) => t.pj.news(d, l) : undefined);
   const items = game.news.filter((e) => text(e));
   useEffect(() => {
     if (!items.length) return;
@@ -201,6 +214,7 @@ export function BudgetPanel({ game, t, lang }: { game: GameApi; t: Strings; lang
         <div><b>{money(s.debt, lang)}</b><span>{t.debt}</span></div>
         <div><b>{money(s.levy, lang)}</b><span>{t.levyThisYear}</span></div>
       </div>
+      {(s.lineDebt ?? 0) > 0 && <p className="riders-line"><b>{money(s.lineDebt!, lang)}</b> {t.pj.lineDebt}</p>}
       {reserves.length > 1 && (
         <svg className="reserve-chart" viewBox="0 0 300 74" preserveAspectRatio="none" aria-label={t.reserve}>
           <line x1="0" x2="300" y1={zeroY} y2={zeroY} className="zero" />

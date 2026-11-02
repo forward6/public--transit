@@ -42,6 +42,8 @@ export const NET_TRAILS = 'net-trails';
 export const NET_ZONES = 'net-zones';
 export const NET_LOADS = 'net-loads';
 export const PLAN_DRAFT = 'plan-draft';
+/** M8: lines on the way (and the one being drawn) */
+export const PROJECTS = 'projects';
 export const PLAN_DRAFT_PTS = 'plan-draft-pts';
 export const PLAN_ISO = 'plan-iso';
 export const OPINION_ZONES = 'op-zones';
@@ -49,7 +51,7 @@ export const RIDER_PATH = 'rider-path';
 export const RIDER_POS = 'rider-pos';
 export const CLASSES: RouteClass[] = ['local', 'peak', 'rural', 'sto', 'frequent', 'transitway', 'otrain'];
 /** Interactive layers, top-most first (click priority). */
-export const PICKABLE = ['rider-pos', 'net-vehicles', 'net-vehicle-dots', 'net-stations', 'net-stops', 'net-routes', 'net-otrain', 'net-transitway', 'op-zones'];
+export const PICKABLE = ['rider-pos', 'net-vehicles', 'net-vehicle-dots', 'proj-stations', 'proj-planned', 'proj-building', 'net-stations', 'net-stops', 'net-routes', 'net-otrain', 'net-transitway', 'op-zones'];
 export const TERRAIN = 'terrain';
 
 type Stops = number[];
@@ -194,6 +196,7 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
   if (o.plan) addIsoLayers(L, p);
   if (o.opinion) addOpinionLayers(L, p);
   if (o.network) addNetworkLayers(L, p, !!o.riders && !!o.network.zones?.features.length, !!o.plan || !!o.opinion, o.loadMode === 'crowding');
+  if (o.network) addProjectLayers(L, p);
   if (o.plan) addDraftLayers(L, p);
   if (o.rider) addRiderLayers(L, p, o.rider);
 
@@ -245,6 +248,7 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
     [NET_TRAILS]: { type: 'geojson' as const, data: { type: 'FeatureCollection', features: [] }, lineMetrics: true },
     [NET_ZONES]: { type: 'geojson' as const, data: o.network.zones ?? { type: 'FeatureCollection', features: [] } },
     [NET_LOADS]: { type: 'geojson' as const, data: o.network.loads ?? { type: 'FeatureCollection', features: [] } },
+    [PROJECTS]: { type: 'geojson' as const, data: { type: 'FeatureCollection', features: [] } },
   } : {};
   const planSources = o.plan ? {
     [PLAN_DRAFT]: { type: 'geojson' as const, data: o.plan.draftLine },
@@ -332,13 +336,13 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders
   // O-Train: green with a dashed white centre line (rail ties)
   if (glow) {
     L({ id: 'net-otrain-glow', type: 'line', ...lines, filter: corridor('rail'), layout: round,
-      paint: { 'line-color': T.otrain, 'line-width': w(10, 8, 16, 30), 'line-blur': w(10, 6, 16, 22), 'line-opacity': 0.35 } });
+      paint: { 'line-color': ['coalesce', ['get', 'color'], T.otrain] as unknown as ExpressionSpecification, 'line-width': w(10, 8, 16, 30), 'line-blur': w(10, 6, 16, 22), 'line-opacity': 0.35 } });
   } else {
     L({ id: 'net-otrain-case', type: 'line', ...lines, filter: corridor('rail'), layout: round,
       paint: { 'line-color': '#FFFFFF', 'line-width': w(9, 2.4, 12, 4.6, 16, 13) } });
   }
   L({ id: 'net-otrain', type: 'line', ...lines, filter: corridor('rail'), layout: round,
-    paint: { 'line-color': T.otrain, 'line-width': w(9, 1.3, 12, 2.8, 16, 8.5) } });
+    paint: { 'line-color': ['coalesce', ['get', 'color'], T.otrain] as unknown as ExpressionSpecification, 'line-width': w(9, 1.3, 12, 2.8, 16, 8.5) } });
   L({ id: 'net-otrain-centre', type: 'line', ...lines, filter: corridor('rail'), minzoom: 11.5,
     paint: { 'line-color': '#FFFFFF', 'line-width': w(11.5, 0.6, 16, 2.2), 'line-dasharray': [1, 1.6] } });
 
@@ -376,7 +380,7 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders
   // regional zooms: vehicles as bright dots (silhouettes would be specks)
   L({ id: 'net-vehicle-dots', type: 'circle', source: NET_VEHICLES, maxzoom: 13.6,
     paint: {
-      'circle-color': ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local] as unknown as ExpressionSpecification,
+      'circle-color': ['coalesce', ['get', 'color'], ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local]] as unknown as ExpressionSpecification,
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['match', ['get', 'cls'], 'otrain', 3.4, 2.4], 13.6, ['match', ['get', 'cls'], 'otrain', 7, 5]] as unknown as ExpressionSpecification,
       'circle-stroke-color': p.night ? '#FFFFFF' : '#14213A',
       'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, muted || riders ? 0.6 : 1.4, 13.6, 2.2],
@@ -384,7 +388,8 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders
     } });
   L({ id: 'net-vehicles', type: 'symbol', source: NET_VEHICLES, minzoom: 13.5,
     layout: {
-      'icon-image': ['concat', 'veh-', ['get', 'cls'], p.night ? '-n' : '-d'],
+      // a new line's trains in its colour: veh-otrain-d-8E44C9 (M8)
+      'icon-image': ['concat', 'veh-', ['get', 'cls'], p.night ? '-n' : '-d', ['case', ['has', 'color'], ['concat', '-', ['slice', ['get', 'color'], 1]], '']],
       'icon-rotate': ['get', 'bearing'],
       'icon-rotation-alignment': 'map',
       'icon-pitch-alignment': 'map',
@@ -471,6 +476,32 @@ function addIsoLayers(L: (l: LayerSpecification) => void, p: Palette) {
     } as never });
   L({ id: 'plan-iso-origin', type: 'circle', source: PLAN_ISO, filter: ['==', ['geometry-type'], 'Point'],
     paint: { 'circle-radius': 8, 'circle-color': '#F2A93B', 'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': 3 } });
+}
+
+/**
+ * M8 lines on the way: planned ones dashed in their colour, ones being built striped with
+ * construction amber, tunnels faint; the line being drawn bold. Stations as rings.
+ */
+function addProjectLayers(L: (l: LayerSpecification) => void, p: Palette) {
+  const round = { 'line-join': 'round', 'line-cap': 'round' } as const;
+  const opacity = ['case', ['==', ['get', 'structure'], 'tunnel'], 0.45, 1] as unknown as ExpressionSpecification;
+  const stretch = (phases: string[]): ExpressionSpecification =>
+    ['all', ['==', ['get', 'kind'], 'stretch'], ['in', ['get', 'phase'], ['literal', phases]]] as unknown as ExpressionSpecification;
+  L({ id: 'proj-case', type: 'line', source: PROJECTS, layout: round, filter: ['==', ['get', 'kind'], 'stretch'],
+    paint: { 'line-color': p.night ? '#0B1424' : '#FFFFFF', 'line-width': zoomExp(10, 6, 16, 18),
+      'line-opacity': ['case', ['==', ['get', 'structure'], 'elevated'], 1, 0.85] as unknown as ExpressionSpecification } });
+  L({ id: 'proj-planned', type: 'line', source: PROJECTS, layout: round, filter: stretch(['planned', 'draft']),
+    paint: { 'line-color': ['get', 'color'] as unknown as ExpressionSpecification, 'line-width': zoomExp(10, 3, 16, 10), 'line-dasharray': [1.4, 1.2], 'line-opacity': opacity } });
+  L({ id: 'proj-building', type: 'line', source: PROJECTS, layout: round, filter: stretch(['building']),
+    paint: { 'line-color': ['get', 'color'] as unknown as ExpressionSpecification, 'line-width': zoomExp(10, 3.5, 16, 11), 'line-opacity': opacity } });
+  L({ id: 'proj-building-stripes', type: 'line', source: PROJECTS, filter: stretch(['building']),
+    paint: { 'line-color': '#F2B33D', 'line-width': zoomExp(10, 2, 16, 6), 'line-dasharray': [0.7, 1.6], 'line-opacity': opacity } });
+  L({ id: 'proj-stations', type: 'circle', source: PROJECTS, filter: ['==', ['get', 'kind'], 'station'],
+    paint: { 'circle-radius': zoomExp(10, 4, 16, 9), 'circle-color': p.night ? '#0E1828' : '#FFFFFF',
+      'circle-stroke-color': ['get', 'color'] as unknown as ExpressionSpecification, 'circle-stroke-width': zoomExp(10, 2, 16, 3.5) } });
+  L({ id: 'proj-labels', type: 'symbol', source: PROJECTS, minzoom: 11.5, filter: ['==', ['get', 'kind'], 'station'],
+    layout: { 'text-field': ['get', 'name'], 'text-font': ['Inter SemiBold'], 'text-size': 11.5, 'text-offset': [0, 1.25], 'text-anchor': 'top', 'text-optional': true },
+    paint: { 'text-color': p.night ? '#EAF0FA' : '#14213A', 'text-halo-color': p.halo, 'text-halo-width': 1.6 } });
 }
 
 /** M4 the route being drawn: white casing, amber dashes, stops (reused stops ringed), waypoints as handles. */

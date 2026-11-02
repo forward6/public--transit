@@ -4,7 +4,7 @@ import {
   type TrustShock, type Zone, type ZoneLos,
 } from '@otc/shared';
 import { missedShare, monthBoardings, toDate } from './economy';
-import { constructionNear } from './projects';
+import { constructionNear, lineCapacityHours } from './projects';
 import { weatherDelay, weatherOn } from './weather';
 
 /**
@@ -60,7 +60,7 @@ interface Context {
 }
 
 function context(s: GameState, o: OpinionState, world: OpinionWorld, start: EconomyStart, date = s.date): Context {
-  const crowd = monthBoardings(s, start, date) / Math.max(1, s.service.vehicleHours) / Math.max(1e-6, o.crowdRef);
+  const crowd = monthBoardings(s, start, date) / Math.max(1, s.service.vehicleHours + lineCapacityHours(s)) / Math.max(1e-6, o.crowdRef);
   const events = o.shocks.reduce((a, k) => a + k.amount * Math.exp(-Math.max(0, days(k.date, date)) / OPINION_2010.tau.shocks), 0);
   const startDate = o.history[0]?.date ?? date;
   return {
