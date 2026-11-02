@@ -1,5 +1,5 @@
 // The planning contract (M4): the edits a player makes to the 2010 network, saved as a draft.
-import type { NetPattern, NetRoute, NetStop } from './network';
+import type { Corridor, NetPattern, NetRoute, NetStop } from './network';
 
 /** The service periods the planner edits (weekday). */
 export const PLAN_PERIODS = [
@@ -22,7 +22,7 @@ export type Edit =
   /** take a route out of service */
   | { kind: 'remove'; routeId: string }
   /** a new route drawn by the player, with its patterns and any new stops */
-  | { kind: 'add'; route: NetRoute; patterns: NetPattern[]; stops: NetStop[] };
+  | { kind: 'add'; route: NetRoute; patterns: NetPattern[]; stops: NetStop[]; corridor?: Corridor };
 
 export interface PlanDraft {
   version: 1;

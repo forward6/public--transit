@@ -5,6 +5,7 @@
 import type { Edit } from './plan';
 import type { DiaryEntry, FrontPage, OpinionState, Post } from './opinion';
 import type { CouncilState } from './council';
+import type { Project } from './projects';
 
 const WIKI_2010 = "Wikipedia 'OC Transpo' rev 399504447 (29 Nov 2010) https://en.wikipedia.org/w/index.php?oldid=399504447";
 
@@ -170,7 +171,9 @@ export interface MonthRecord {
 export type GameEventKind = 'budget' | 'deficit' | 'shortfall' | 'delivery' | 'serviceChange' | 'garageOpen' | 'retirement' | 'welcome'
   // M7: council, elections and partners
   | 'vote' | 'voteResult' | 'councilBudget' | 'motion' | 'directive' | 'routeRestored' | 'labour' | 'strike' | 'strikeEnds' | 'labourDeal'
-  | 'sto' | 'stoNews' | 'funding' | 'fundingNews' | 'nccReview' | 'election' | 'mayorCools' | 'reshuffle';
+  | 'sto' | 'stoNews' | 'funding' | 'fundingNews' | 'nccReview' | 'election' | 'mayorCools' | 'reshuffle'
+  // M8: big projects (news; and decisions: how to build it, an overrun, opening day)
+  | 'project' | 'procurement' | 'overrun' | 'lineOpen';
 
 export interface GameEvent {
   id: string;
@@ -211,6 +214,10 @@ export interface GameState {
   reserve: number;
   capitalReserve: number;
   debt: number;
+  /** M8: borrowing for rapid-transit lines, repaid over 30 years */
+  lineDebt?: number;
+  /** M8: the lines' yearly cost (debt service and running) the levy covered at the last budget */
+  lineCharge?: number;
   /** annual levy for the current year */
   levy: number;
   /** levy council approved for next year (applied on 1 January) */
@@ -229,6 +236,8 @@ export interface GameState {
   garages: Garage[];
   /** the network in operation: the 2010 network with these edits */
   applied: Edit[];
+  /** M8: rapid-transit lines, from proposal to opening */
+  projects?: Project[];
   /** edits scheduled for the next service change */
   pending: Edit[];
   /** weekday OC Transpo figures for the network in operation */

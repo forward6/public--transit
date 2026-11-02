@@ -3,6 +3,7 @@ import { addDays, advanceDay, openDecision } from './economy';
 import { diaryEntry, routineMinutes, type PersonaTrips } from './diary';
 import { advanceOpinion, startOpinion } from './opinion';
 import { advanceCouncil, startCouncil } from './council';
+import { advanceProjects } from './projects';
 import { dayPosts, frontPage, isFirstOfMonth, type FeedWorld } from './press';
 
 /**
@@ -52,6 +53,7 @@ export function stepDay(prev: GameState, world: GameWorld, start: EconomyStart =
   s.opinion = advanceOpinion(s.opinion, s, world, ended, start);
   let t = s;
   if (t.council && world.wardOf) t = advanceCouncil(t, { ...world, wardOf: world.wardOf }, ended, start);
+  if (t.projects?.length) advanceProjects(t);
   return dayEnd(t, world, ended, start);
 }
 

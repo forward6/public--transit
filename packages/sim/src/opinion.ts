@@ -4,6 +4,7 @@ import {
   type TrustShock, type Zone, type ZoneLos,
 } from '@otc/shared';
 import { missedShare, monthBoardings, toDate } from './economy';
+import { constructionNear } from './projects';
 import { weatherDelay, weatherOn } from './weather';
 
 /**
@@ -54,6 +55,8 @@ interface Context {
   events: number;
   weather: number;
   strikeNow: boolean;
+  /** M8: per zone, a line being built nearby (0..1) */
+  construction?: Float32Array;
 }
 
 function context(s: GameState, o: OpinionState, world: OpinionWorld, start: EconomyStart, date = s.date): Context {
@@ -71,6 +74,7 @@ function context(s: GameState, o: OpinionState, world: OpinionWorld, start: Econ
     events,
     weather: o.weather,
     strikeNow: !!s.strike,
+    construction: constructionNear(s, world.zones),
   };
 }
 
@@ -91,6 +95,7 @@ function reasonsFor(i: number, o: OpinionState, world: OpinionWorld, c: Context,
     r('weather', 'service', -clamp(c.weather * clamp(wait / 6, 0.4, 2) * 0.6, 0, 25)),
     r('cuts', 'service', -150 * c.cuts),
     ...(c.strikeNow ? [r('strike', 'service', -45)] : []),
+    ...(c.construction?.[i] ? [r('construction', 'service', -10 * c.construction[i]!)] : []),
   ];
   const s = serviceNow ?? service.reduce((a, x) => a + x.value, 0);
   return [
@@ -188,6 +193,21 @@ function notice(o: OpinionState, s: GameState, date: string): TrustShock[] {
     else if (e.kind === 'garageOpen') add('newGarage', 2, String(e.data.name));
     else if (e.kind === 'councilBudget' || e.kind === 'directive') add('councilOverrule', -2);
     else if (e.kind === 'labourDeal' && !s.strike) add('promiseKept', 1);
+    // M8: big projects
+    else if (e.kind === 'lineOpen') add('lineOpen', 7, String(e.data.name));
+    else if (e.kind === 'project') {
+      const w = e.data.what;
+      const name = String(e.data.name);
+      if (w === 'approved') add('projectApproved', 2, name);
+      else if (w === 'shelved' || w === 'cancelled') add('projectShelved', e.data.late ? -6 : -2, name);
+      else if (w === 'funding' && e.data.amount) add('projectApproved', 1, name);
+      else if (w === 'construction') add('projectApproved', 1, name);
+      else if (w === 'delay') add('projectDelay', -2.5, name);
+      else if (w === 'sinkhole') add('sinkhole', -5, name);
+      else if (w === 'overrunAnswered') add('overrun', e.data.choice === 'pause' ? -4 : e.data.choice === 'trim' ? -2 : -3, name);
+      else if (w === 'overrunP3') add('overrun', -1, name);
+      else if (w === 'trouble') add('lineTrouble', -5, name);
+    }
   }
   return out;
 }

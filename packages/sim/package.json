@@ -13,7 +13,8 @@
     "economy-demo": "tsx scripts/economy-demo.ts",
     "opinion-demo": "tsx scripts/opinion-demo.ts",
     "onboard-demo": "tsx scripts/onboard-demo.ts",
-    "council-demo": "tsx scripts/council-demo.ts"
+    "council-demo": "tsx scripts/council-demo.ts",
+    "projects-demo": "tsx scripts/projects-demo.ts"
   },
   "dependencies": {
     "@otc/shared": "workspace:*"

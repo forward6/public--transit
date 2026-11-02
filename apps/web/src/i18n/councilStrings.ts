@@ -107,6 +107,8 @@ export const COUNCIL_EN: CouncilStrings = {
     deficitBorrow: () => 'Borrowing to cover the deficit',
     restoreRoute: (p) => `Motion: restore route ${p.routeName}`,
     labourDeal: (p) => `Ratify the contract: ${p.wage}% a year for ${p.years} years`,
+    project: (p) => `${p.routeName}: fund the design and environmental assessment`,
+    contract: (p) => `${p.routeName}: award the construction contract ($${Math.round(Number(p.price ?? 0) / 1e6).toLocaleString('en-CA')}M)`,
   },
   effect: {
     levy: (x) => `Transit levy ${x}`, fares: (x) => `Fares ${x}`, service: (x) => `Bus service ${x}`, capital: (x) => `${x} in capital`,
@@ -201,7 +203,7 @@ export const COUNCIL_EN: CouncilStrings = {
     voteResult: (d) => {
       const what: Record<string, string> = { budget: 'Your budget', plan: 'Your service plan', garage: 'The new garage', order: 'The bus order',
         deficitLevy: 'The levy increase', deficitCut: 'The service cuts', deficitBorrow: 'The borrowing', restoreRoute: `The motion to restore route ${d.route}`,
-        labourDeal: 'The new contract' };
+        labourDeal: 'The new contract', project: `Designing ${d.route}`, contract: `The ${d.route} contract` };
       return `${what[String(d.kind)] ?? 'The proposal'} ${d.passed ? 'passed' : 'failed'} ${d.yes}–${d.no}`;
     },
     councilBudget: (d) => `Council rejected your budget and adopted its own: levy ${sgn(Number(d.levyChange))}${Math.abs(Number(d.levyChange))}%`,
@@ -238,6 +240,8 @@ export const COUNCIL_FR: CouncilStrings = {
     deficitBorrow: () => 'Un emprunt pour combler le déficit',
     restoreRoute: (p) => `Motion : rétablir la ligne ${p.routeName}`,
     labourDeal: (p) => `Ratifier la convention : ${String(p.wage).replace('.', ',')} % par an pendant ${p.years} ans`,
+    project: (p) => `${p.routeName} : financer la conception et l’évaluation environnementale`,
+    contract: (p) => `${p.routeName} : accorder le contrat de construction (${Math.round(Number(p.price ?? 0) / 1e6).toLocaleString('fr-CA')} M$)`,
   },
   effect: {
     levy: (x) => `Taxe de transport ${x}`, fares: (x) => `Tarifs ${x}`, service: (x) => `Service d’autobus ${x}`, capital: (x) => `${x} en immobilisations`,
@@ -332,7 +336,7 @@ export const COUNCIL_FR: CouncilStrings = {
     voteResult: (d) => {
       const what: Record<string, string> = { budget: 'votre budget', plan: 'votre plan de service', garage: 'le nouveau garage', order: 'la commande d’autobus',
         deficitLevy: 'la hausse de taxe', deficitCut: 'les compressions de service', deficitBorrow: 'l’emprunt', restoreRoute: `la motion pour rétablir la ligne ${d.route}`,
-        labourDeal: 'la nouvelle convention collective' };
+        labourDeal: 'la nouvelle convention collective', project: `la conception de la ${d.route}`, contract: `le contrat de la ${d.route}` };
       return `${d.kind === 'plan' ? 'La Commission' : 'Le conseil'} ${d.passed ? 'adopte' : 'rejette'} ${what[String(d.kind)] ?? 'la proposition'}, ${d.yes}–${d.no}`;
     },
     councilBudget: (d) => `Le conseil a rejeté votre budget et adopté le sien : taxe ${sgn(Number(d.levyChange))}${String(Math.abs(Number(d.levyChange))).replace('.', ',')} %`,

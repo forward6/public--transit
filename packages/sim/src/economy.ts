@@ -111,7 +111,20 @@ export function rampValue(r: Ramp | undefined, iso: string, fallback: number, st
 function ridershipFactor(s: GameState, start: EconomyStart, iso: string): number {
   const m = toDate(iso).getUTCMonth();
   return start.seasonal.values[m]! * (1 + start.ridershipGrowth.value) ** Math.max(0, yearsSince2011(iso))
-    * s.fareIndex ** start.fareElasticity.value * (1 - missedShare(s, start)) * s.serviceLevel ** 0.6 * (s.strike ? 0 : 1);
+    * s.fareIndex ** start.fareElasticity.value * (1 - missedShare(s, start)) * s.serviceLevel ** 0.6 * (s.strike ? 0 : 1)
+    * constructionDrag(s);
+}
+
+/** M8: lines under construction slow the buses around them (detours, lane closures): a few riders stay away. */
+export function constructionDrag(s: GameState): number {
+  let km = 0;
+  for (const p of s.projects ?? []) if (p.phase === 'construction') km += p.estimate.lengthKm - p.estimate.tunnelKm * 0.7;
+  return 1 - Math.min(0.03, 0.0012 * km);
+}
+
+/** M8: operating and maintaining the rapid-transit lines in service, a year. */
+export function linesOps(s: GameState): number {
+  return (s.projects ?? []).filter((p) => p.phase === 'open').reduce((a, p) => a + p.estimate.opsPerYear, 0);
 }
 
 /** The weekday boardings the network in operation carries this month (riders still settling after a change included). */
@@ -186,9 +199,9 @@ export function monthFlows(s: GameState, start: EconomyStart = ECONOMY_2010, iso
   return {
     boardings, fares,
     levy: s.levy / 12, gasTax: start.gasTax.value / 12, other: (start.otherRevenue.value / 12) * s.costIndex,
-    operations: busCost - maintenanceNeed, maintenance: maintenanceNeed * s.maintenance, maintenanceNeed,
+    operations: busCost - maintenanceNeed + (linesOps(s) / 12) * s.costIndex, maintenance: maintenanceNeed * s.maintenance, maintenanceNeed,
     para: (start.paraTranspo.value / 12) * s.costIndex, fixed: (start.fixedCosts.value / 12) * s.costIndex,
-    debtService: (s.debt * annuity(start.borrowingRate.value, start.borrowingYears.value)) / 12,
+    debtService: (s.debt * annuity(start.borrowingRate.value, start.borrowingYears.value) + (s.lineDebt ?? 0) * annuity(start.borrowingRate.value, LINE_DEBT_YEARS)) / 12,
   };
 }
 
@@ -294,7 +307,7 @@ export function advanceDay(prev: GameState, start: EconomyStart = ECONOMY_2010):
     s.fleet = s.fleet.filter((g) => g.count > 0);
     room -= o.type === 'rail' ? 0 : o.count - (o.replaces ? o.count - retire : 0);
     s.fleet.push({ type: o.type, model: o.model, year: d.getUTCFullYear(), count: o.count });
-    if (!o.paid) payCapital(s, start, BUS_TYPES[o.type].price * o.count);
+    if (!o.paid) payCapital(s, BUS_TYPES[o.type].price * o.count);
     s.orders = s.orders.filter((x) => x !== o);
     s.events.push(ev('delivery', today, false, { count: o.count, model: o.model }));
   }
@@ -320,7 +333,20 @@ export function advanceDay(prev: GameState, start: EconomyStart = ECONOMY_2010):
   return s;
 }
 
-function payCapital(s: GameState, start: EconomyStart, amount: number): number {
+/** Rapid-transit lines are financed over their long life, as cities do (M8). */
+export const LINE_DEBT_YEARS = 30;
+
+/** Pay for a line: the capital reserve first, then 30-year borrowing. Returns what was borrowed. */
+export function payLine(s: GameState, amount: number): number {
+  const fromReserve = Math.min(Math.max(0, s.capitalReserve), amount);
+  s.capitalReserve -= fromReserve;
+  const borrowed = amount - fromReserve;
+  s.lineDebt = (s.lineDebt ?? 0) + borrowed;
+  return borrowed;
+}
+
+/** Pay for capital works: the capital reserve first, then borrowing. Returns what was borrowed. */
+export function payCapital(s: GameState, amount: number): number {
   const fromReserve = Math.min(Math.max(0, s.capitalReserve), amount);
   s.capitalReserve -= fromReserve;
   const borrowed = amount - fromReserve;
@@ -344,6 +370,10 @@ function closeMonth(s: GameState, start: EconomyStart, lastDay: string) {
   const revenue = fl.fares + fl.levy + fl.gasTax + fl.other;
   const cost = fl.operations + fl.maintenance + fl.para + fl.fixed + fl.debtService;
   s.reserve += revenue - cost;
+  // debt service repays principal as well as interest: what's owed comes down
+  const r = start.borrowingRate.value / 12;
+  s.debt = Math.max(0, s.debt - Math.max(0, (s.debt * annuity(start.borrowingRate.value, start.borrowingYears.value)) / 12 - s.debt * r));
+  if (s.lineDebt) s.lineDebt = Math.max(0, s.lineDebt - Math.max(0, (s.lineDebt * annuity(start.borrowingRate.value, LINE_DEBT_YEARS)) / 12 - s.lineDebt * r));
   const rec: MonthRecord = {
     month: lastDay.slice(0, 7), boardings: Math.round(fl.boardings), fares: fl.fares, levy: fl.levy, gasTax: fl.gasTax, other: fl.other,
     operations: fl.operations, maintenance: fl.maintenance, para: fl.para, fixed: fl.fixed, debtService: fl.debtService,
@@ -439,7 +469,7 @@ export function orderBuses(prev: GameState, type: BusType, count: number): GameS
 /** Build a garage: paid now (capital money, then borrowing), opens after construction. */
 export function buildGarage(prev: GameState, start: EconomyStart = ECONOMY_2010): GameState {
   const s: GameState = structuredClone(prev);
-  payCapital(s, start, start.garageCost.value * s.costIndex);
+  payCapital(s, start.garageCost.value * s.costIndex);
   const n = s.garages.filter((g) => g.id.startsWith('new-')).length + 1;
   s.garages.push({ id: `new-${n}`, name: `New garage ${n}`, capacity: start.garageCapacity.value, opens: addMonths(s.date, start.garageMonths.value) });
   return s;

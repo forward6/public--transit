@@ -74,6 +74,7 @@ export function applyEdits(base: Network, edits: Edit[]): Network {
   let routes = base.routes.map((r) => ({ ...r }));
   let patterns = base.patterns;
   let stops = base.stops;
+  let corridors = base.corridors;
   for (const e of edits) {
     if (e.kind === 'remove') {
       const r = routes.find((x) => x.id === e.routeId);
@@ -97,9 +98,11 @@ export function applyEdits(base: Network, edits: Edit[]): Network {
       const have = new Set(stops.map((s) => s.id));
       stops = [...stops, ...e.stops.filter((s) => !have.has(s.id))];
       patterns = [...patterns.filter((p) => p.routeId !== e.route.id), ...e.patterns];
+      // a new rapid-transit line brings its own right of way (M8)
+      if (e.corridor) corridors = [...corridors.filter((c) => c.id !== e.corridor!.id), e.corridor];
     }
   }
-  return { ...base, routes, patterns, stops };
+  return { ...base, routes, patterns, stops, corridors };
 }
 
 // ------------------------------------------------------------------------------------------ drawing

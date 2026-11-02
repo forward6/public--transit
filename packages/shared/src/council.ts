@@ -98,7 +98,9 @@ export const TERM = {
 };
 
 /** Decisions that go to a vote (only the big items; frequencies are staff decisions). */
-export type ItemKind = 'budget' | 'plan' | 'garage' | 'order' | 'deficitLevy' | 'deficitCut' | 'deficitBorrow' | 'restoreRoute' | 'labourDeal';
+export type ItemKind = 'budget' | 'plan' | 'garage' | 'order' | 'deficitLevy' | 'deficitCut' | 'deficitBorrow' | 'restoreRoute' | 'labourDeal'
+  // M8: a rapid-transit line (approve design and the environmental assessment; award the contract)
+  | 'project' | 'contract';
 
 export type Vote = 'yes' | 'no';
 
@@ -119,6 +121,10 @@ export interface ItemEffects {
   wards?: Record<number, { access: number; removed: string[]; added: string[] }>;
   /** a wage settlement (% a year) */
   wage?: number;
+  /** M8: a line: the city's share ($M) and the weekday riders it gains */
+  project?: { city: number; riders: number };
+  /** M8: the part of a levy increase that pays for lines council already approved (%): not held against you */
+  committed?: number;
 }
 
 export interface AgendaItem {
@@ -147,6 +153,9 @@ export interface AgendaItem {
     wage?: number;
     scheduling?: 'keep' | 'reform';
     years?: number;
+    projectId?: string;
+    /** M8: the contract price ($) */
+    price?: number;
   };
   effects: ItemEffects;
   /** staff are still measuring a plan (no whip count yet) */
@@ -200,6 +209,8 @@ export interface LabourState {
   nextStrikeCheck?: string;
   /** a settlement on its way (arbitration, or meeting the demand) */
   settle?: { date: string; wage: number };
+  /** deals council refused to ratify in this round of bargaining */
+  refused?: number;
 }
 
 export interface FundingOffer {

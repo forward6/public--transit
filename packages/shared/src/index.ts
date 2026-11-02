@@ -36,3 +36,4 @@ export * from './economy';
 export * from './opinion';
 export * from './personas';
 export * from './council';
+export * from './projects';

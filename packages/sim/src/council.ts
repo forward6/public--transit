@@ -7,6 +7,8 @@ import {
 import { addDays, addMonths, buildGarage, orderBuses, resolve, schedulePlan, serviceChangeDates, toDate } from './economy';
 import { opinionSummary, toApproval, zoneScore, type OpinionWorld } from './opinion';
 import { rand } from './weather';
+import { tableInto, voteEvent } from './agenda';
+import { projectVoted } from './projects';
 import { wardsAt } from './wards';
 
 /**
@@ -101,8 +103,10 @@ function terms(c: Councillor, item: AgendaItem, moods: Record<number, WardMood>,
   const dir = item.byChair ? 1 : -1;
   const rural = !!WARDS_2010.find((w) => w.id === c.ward)?.rural;
   if (e.taxes !== undefined) {
-    add('taxes', -c.fiscal * 0.45 * (e.taxes - 2));
-    if (rural && e.taxes > 2) add('rural', -0.15 * (e.taxes - 2));
+    // what the lines council approved will cost is owed: only the rest counts against the budget
+    const discretionary = e.taxes - Math.min(e.committed ?? 0, Math.max(0, e.taxes - 2));
+    add('taxes', -c.fiscal * 0.45 * (discretionary - 2));
+    if (rural && discretionary > 2) add('rural', -0.15 * (discretionary - 2));
   }
   if (e.fares) add('fares', -0.12 * e.fares * (c.transit + 1) / 2 + c.fiscal * 0.05 * e.fares);
   if (e.service) {
@@ -114,6 +118,12 @@ function terms(c: Councillor, item: AgendaItem, moods: Record<number, WardMood>,
     add('service', c.transit * 0.005 * e.capital);
   }
   if (e.debt) add('debt', -c.fiscal * 0.03 * e.debt);
+  // a rapid-transit line: what the city pays, against the riders it brings (both on a log scale: a billion isn't ten times a hundred million)
+  if (e.project) {
+    const bill = Math.log10(1 + e.project.city / 40);
+    add('cost', -(c.fiscal * 0.9 + 0.1) * bill);
+    add('service', c.transit * 0.6 * Math.log10(1 + e.project.riders / 1500));
+  }
   if (e.wage !== undefined) add('labour', -c.fiscal * 0.35 * (e.wage - LABOUR_2010.baseline) + c.transit * 0.15);
   const w = e.wards?.[c.ward];
   if (w) {
@@ -126,6 +136,7 @@ function terms(c: Councillor, item: AgendaItem, moods: Record<number, WardMood>,
   if (item.kind === 'budget') add('status', 0.25);
   else if (item.kind === 'labourDeal') add('status', 0.4);
   else if (item.kind.startsWith('deficit')) add('status', 0.2);
+  else if (item.kind === 'project' || item.kind === 'contract') add('status', item.kind === 'contract' ? 0.15 : 0);
   else add('status', item.amended ? -0.05 : -0.15);
   // how their ward feels about transit (against the starting mood), and about you
   const mood = moods[c.ward]?.approval ?? 50;
@@ -172,24 +183,11 @@ export function tally(s: GameState, world: CouncilWorld, item: AgendaItem): { ye
 
 // ------------------------------------------------------------------------------------------ proposals
 
-const voteEvent = (item: AgendaItem, date: string): GameEvent => ({ id: `vote-${item.id}-${date}`, kind: 'vote', date, decision: true, data: { item: item.id } });
-
 function table(prev: GameState, kind: ItemKind, body: AgendaItem['body'], payload: AgendaItem['payload'], effects: ItemEffects, byChair = true,
   measuring = false): GameState {
   const s = structuredClone(prev);
   tableInto(s, kind, body, payload, effects, byChair, measuring);
   return s;
-}
-
-/** Put an item on the agenda (mutates `s`). */
-function tableInto(s: GameState, kind: ItemKind, body: AgendaItem['body'], payload: AgendaItem['payload'], effects: ItemEffects, byChair = true,
-  measuring = false): AgendaItem {
-  const c = s.council!;
-  const item: AgendaItem = { id: `${kind}-${s.date}-${c.items.length}`, kind, body, tabled: s.date, due: s.date, status: 'open', byChair, payload, effects,
-    lobbied: [], ...(measuring ? { measuring } : {}) };
-  c.items.push(item);
-  s.events.push(voteEvent(item, s.date));
-  return item;
 }
 
 /** The current agenda item awaiting you (the open vote event's item). */
@@ -204,8 +202,9 @@ export function proposeBudget(prev: GameState, eventId: string, choice: BudgetCh
   const e = s.events.find((x) => x.id === eventId);
   if (!e || !s.council) return prev;
   e.decision = false;
+  const committed = Number(e.data.committed ?? 0);
   return table(s, 'budget', 'council', { budgetEvent: eventId, levyChange: choice.levyChange, fareChange: choice.fareChange, maintenance: choice.maintenance },
-    { taxes: choice.levyChange, fares: choice.fareChange, service: (choice.maintenance - 1) * 10 });
+    { taxes: choice.levyChange, fares: choice.fareChange, service: (choice.maintenance - 1) * 10, ...(committed ? { committed } : {}) });
 }
 
 /** In a deficit: a levy hike, cuts or borrowing need council; deferring maintenance doesn't. */
@@ -347,6 +346,7 @@ export function withdraw(prev: GameState, itemId: string): GameState {
   if (!item || item.kind === 'budget' || !item.byChair) return prev;
   item.status = 'withdrawn';
   s.council!.capital = clamp(s.council!.capital - 2, 0, 100);
+  if ((item.kind === 'project' || item.kind === 'contract') && item.payload.projectId) projectVoted(s, item.kind, item.payload.projectId, false);
   for (const e of s.events) if (e.decision && e.kind === 'vote' && e.data.item === itemId) e.decision = false;
   return s;
 }
@@ -358,7 +358,8 @@ const news = (s: GameState, kind: GameEvent['kind'], data: GameEvent['data'] = {
 
 /** What council does with a budget it rejects: the median member's levy, milder fare changes. */
 function councilBudget(c: CouncilState, item: AgendaItem): BudgetChoice {
-  const ideal = c.councillors.map((m) => clamp(2.5 - 3 * m.fiscal, 0, 6)).sort((a, b) => a - b);
+  const committed = item.effects.committed ?? 0;
+  const ideal = c.councillors.map((m) => clamp(2.5 - 3 * m.fiscal, 0, 6) + committed).sort((a, b) => a - b);
   const levyChange = round1(ideal[Math.floor(ideal.length / 2)]!);
   const fare = item.payload.fareChange ?? 0;
   return { levyChange, fareChange: fare > 2.5 ? round1(fare / 2) : fare, maintenance: 1 };
@@ -410,6 +411,8 @@ export function callVote(prev: GameState, world: CouncilWorld, itemId: string, n
     news(s, 'directive', { choice: 'restore', route: p.routeName ?? '' });
   } else if (item.kind === 'labourDeal') {
     s = settleLabour(s, passed, p.wage ?? LABOUR_2010.baseline, p.scheduling ?? 'keep', p.years ?? 3);
+  } else if ((item.kind === 'project' || item.kind === 'contract') && p.projectId) {
+    projectVoted(s, item.kind, p.projectId, passed, p.price);
   }
   return s;
 }
@@ -485,11 +488,20 @@ function settleLabour(prev: GameState, ratified: boolean, wage: number, scheduli
 function settleInto(s: GameState, ratified: boolean, wage: number, scheduling: 'keep' | 'reform', years: number, protest = false) {
   const c = s.council!;
   if (!ratified) {
+    c.labour.refused = (c.labour.refused ?? 0) + 1;
+    // twice refused: the province appoints an arbitrator, whose award council can't refuse
+    if (c.labour.refused >= 2) {
+      delete c.labour.talks;
+      delete c.labour.nextTalks;
+      c.labour.settle = { date: addDays(s.date, 30), wage: round1((c.labour.offer ?? LABOUR_2010.baseline) + 0.3) };
+      return;
+    }
     // council won't ratify: back to the table, the union angrier
     c.labour.talks = { round: 2, demand: round1((c.labour.offer ?? LABOUR_2010.demand) + 0.3), opened: s.date };
     c.labour.nextTalks = addDays(s.date, 7);
     return;
   }
+  delete c.labour.refused;
   c.labour.wage = wage;
   c.labour.until = addMonths(c.labour.until > s.date ? c.labour.until : s.date, years * 12);
   if (scheduling === 'reform') {

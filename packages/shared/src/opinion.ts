@@ -19,6 +19,7 @@ export type ReasonKey =
   | 'cuts' // service cut to balance the budget
   | 'strike' // the memory of the 2008–09 strike, fading
   | 'events' // decisions and news: new routes, removed routes, deficits…
+  | 'construction' // M8: building a line nearby (detours, noise)
   | 'spillover'; // how service feels colours trust
 
 export interface Reason {
@@ -29,7 +30,9 @@ export interface Reason {
 }
 
 export type ShockKind = 'newRoute' | 'routeRemoved' | 'serviceUp' | 'serviceDown' | 'promiseKept' | 'fareHike' | 'fareCut'
-  | 'levyHike' | 'levyCut' | 'serviceCut' | 'deficit' | 'newBuses' | 'newGarage' | 'strike' | 'stoDeal' | 'councilOverrule';
+  | 'levyHike' | 'levyCut' | 'serviceCut' | 'deficit' | 'newBuses' | 'newGarage' | 'strike' | 'stoDeal' | 'councilOverrule'
+  // M8
+  | 'projectApproved' | 'projectShelved' | 'lineOpen' | 'lineTrouble' | 'overrun' | 'projectDelay' | 'sinkhole';
 
 /** A citywide event that moves trust, fading over months. */
 export interface TrustShock {
@@ -142,7 +145,10 @@ export type StoryKind =
   | 'riderStory' | 'quiet'
   // M7
   | 'budgetPassed' | 'budgetRewritten' | 'planApproved' | 'planRejected' | 'motionFiled' | 'motionPassed' | 'strike' | 'strikeOver' | 'contract'
-  | 'election' | 'stoRapibus' | 'gatineauVotes' | 'fundingLost' | 'reshuffle';
+  | 'election' | 'stoRapibus' | 'gatineauVotes' | 'fundingLost' | 'reshuffle'
+  // M8
+  | 'projectApproved' | 'projectShelved' | 'lineFunded' | 'contractAwarded' | 'constructionStarts' | 'overrun' | 'projectDelay' | 'sinkhole'
+  | 'lineOpen' | 'lineTrouble';
 
 export type Tone = 'good' | 'bad' | 'neutral';
 

@@ -17,6 +17,8 @@ const TONE: Record<StoryKind, Tone> = {
   serviceCuts: 'bad', newBuses: 'good', garage: 'good', riderStory: 'neutral', quiet: 'neutral',
   budgetPassed: 'neutral', budgetRewritten: 'bad', planApproved: 'good', planRejected: 'bad', motionFiled: 'bad', motionPassed: 'bad', strike: 'bad',
   strikeOver: 'good', contract: 'neutral', election: 'neutral', stoRapibus: 'neutral', gatineauVotes: 'neutral', fundingLost: 'bad', reshuffle: 'bad',
+  projectApproved: 'good', projectShelved: 'bad', lineFunded: 'good', contractAwarded: 'neutral', constructionStarts: 'neutral', overrun: 'bad',
+  projectDelay: 'bad', sinkhole: 'bad', lineOpen: 'good', lineTrouble: 'bad',
 };
 
 const story = (kind: StoryKind, salience: number, params: Story['params'] = {}): Story => ({ kind, tone: TONE[kind], salience: Math.round(salience), params });
@@ -94,6 +96,20 @@ export function frontPage(s: GameState, world: OpinionWorld, month: string, star
     else if (e.kind === 'stoNews' && g('kind') === 'election') stories.push(story('gatineauVotes', 50, { agenda: g('agenda') }));
     else if (e.kind === 'fundingNews' && g('clawedBack')) stories.push(story('fundingLost', 70, { amount: g('clawedBack') }));
     else if (e.kind === 'reshuffle') stories.push(story('reshuffle', 60, { out: g('out') }));
+    // M8: big projects
+    else if (e.kind === 'lineOpen') stories.push(story('lineOpen', 120, { name: g('name'), km: g('km'), stations: g('stations') }));
+    else if (e.kind === 'project') {
+      const name = g('name');
+      const what = g('what');
+      if (what === 'approved') stories.push(story('projectApproved', 70, { name, cost: g('cost') }));
+      else if (what === 'shelved' || what === 'cancelled') stories.push(story('projectShelved', 80, { name, stage: g('stage') || what }));
+      else if (what === 'funding' && g('amount')) stories.push(story('lineFunded', 55, { name, gov: g('gov'), amount: g('amount') }));
+      else if (what === 'construction') stories.push(story('constructionStarts', 75, { name, price: g('price'), opens: g('opens') }));
+      else if (what === 'delay') stories.push(story('projectDelay', 65, { name, months: g('months') }));
+      else if (what === 'sinkhole') stories.push(story('sinkhole', 90, { name }));
+      else if (what === 'overrunAnswered' || what === 'overrunP3') stories.push(story('overrun', 70, { name, amount: g('amount'), choice: g('choice') || 'p3' }));
+      else if (what === 'trouble') stories.push(story('lineTrouble', 85, { name }));
+    }
   }
   // a rider's month: the most striking one, good or bad, not featured lately
   const featured = new Set((s.press ?? []).slice(-3).flatMap((f) => f.stories).filter((x) => x.kind === 'riderStory').map((x) => x.params.persona));
@@ -114,7 +130,8 @@ export function frontPage(s: GameState, world: OpinionWorld, month: string, star
   const recent = (s.press ?? []).slice(-3).flatMap((f) => f.stories);
   for (const x of stories) {
     const again = recent.filter((r) => r.kind === x.kind && (x.kind !== 'riderStory' || r.params.persona === x.params.persona)).length;
-    if (again && !['routeLaunched', 'routeCut', 'fareHike', 'levyHike', 'deficit', 'serviceCuts', 'strike', 'election', 'budgetRewritten', 'motionPassed']
+    if (again && !['routeLaunched', 'routeCut', 'fareHike', 'levyHike', 'deficit', 'serviceCuts', 'strike', 'election', 'budgetRewritten', 'motionPassed',
+      'lineOpen', 'sinkhole', 'overrun', 'projectShelved', 'constructionStarts', 'projectApproved']
       .includes(x.kind)) x.salience = Math.round(x.salience / (1 + again));
   }
   // the three most newsworthy, one per kind

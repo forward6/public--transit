@@ -4,6 +4,8 @@ import type { DiaryKind, OpinionAxis, Persona, Post, ReasonKey, Story, StoryKind
 import type { WeatherKind } from '@otc/sim';
 
 type P = Story['params'];
+const mEN = (x: unknown) => `$${Math.round(Number(x) / 1e6).toLocaleString('en-CA')}M`;
+const mFR = (x: unknown) => `${Math.round(Number(x) / 1e6).toLocaleString('fr-CA')} M$`;
 
 export interface OpinionStrings {
   toggle: string;
@@ -80,7 +82,7 @@ export const OPINION_EN: OpinionStrings = {
   reason: {
     mood: 'Starting mood', frequency: 'How often buses come', reach: 'Where transit takes you', waits: 'Waits vs. what people are used to',
     reliability: 'Missed trips', crowding: 'Crowding', weather: 'Cold waits and storms', fares: 'Fares', taxes: 'Transit levy', cuts: 'Service cuts',
-    strike: 'Memory of the 2008–09 strike', events: 'News and decisions', spillover: 'How riding feels',
+    strike: 'Memory of the 2008–09 strike', events: 'News and decisions', spillover: 'How riding feels', construction: 'Construction nearby',
   },
   reasonHelp: {
     mood: 'How people felt about OC Transpo in late 2010.',
@@ -96,6 +98,7 @@ export const OPINION_EN: OpinionStrings = {
     strike: 'The 51-day strike of 2008–09 still weighs on trust, fading over the years.',
     events: 'New and removed routes, promises kept, fare and tax hikes, deficits, new buses. Fades over months.',
     spillover: 'Good or bad service colours how much people trust the Commission.',
+    construction: 'A line being built nearby: detours, closed lanes, noise. It lifts when construction ends.',
   },
   why: 'Why',
   whyNote: 'What opinion is heading towards, reason by reason (approval points). It catches up over weeks: faster when things get worse.',
@@ -158,6 +161,16 @@ export const OPINION_EN: OpinionStrings = {
     gatineauVotes: (p) => ({ head: 'Gatineau votes', deck: p.agenda === 'taxFreeze' ? 'The new council promises to freeze taxes; STO will look for savings.' : 'STO’s board keeps its course.' }),
     fundingLost: () => ({ head: 'Province claws back bus money after fare hike', deck: 'Fares rose faster than the agreement allowed.' }),
     reshuffle: (p) => ({ head: 'Council shakes up the Transit Commission', deck: `Out: ${p.out}.` }),
+    projectApproved: (p) => ({ head: `Council backs ${p.name}`, deck: `Design and the environmental assessment begin on a ${mEN(p.cost)} line.` }),
+    projectShelved: (p) => ({ head: `${p.name} shelved`, deck: p.stage === 'contract' ? 'Council balked at the price of the contract.' : p.stage === 'cancelled' ? 'The Chair pulls the plug; the money spent is gone.' : 'Council won’t pay to design it.' }),
+    lineFunded: (p) => ({ head: `${p.gov === 'province' ? 'Ontario' : 'The federal government'} commits ${mEN(p.amount)} to ${p.name}`, deck: 'A third of the cost, with strings attached.' }),
+    contractAwarded: (p) => ({ head: `${p.name} contract awarded`, deck: `${mEN(p.price)}.` }),
+    constructionStarts: (p) => ({ head: `Shovels in the ground for ${p.name}`, deck: `A ${mEN(p.price)} contract; trains are due in ${String(p.opens).slice(0, 4)}.` }),
+    overrun: (p) => ({ head: `${p.name} over budget`, deck: p.choice === 'trim' ? 'Stations simplified to save money.' : p.choice === 'pause' ? 'Work stops while contracts are re-tendered.' : p.choice === 'p3' ? `The builders absorb most of ${mEN(p.amount)}.` : `The city finds another ${mEN(p.amount)}.` }),
+    projectDelay: (p) => ({ head: `${p.name} delayed`, deck: `Opening pushed back ${p.months} months.` }),
+    sinkhole: (p) => ({ head: `Sinkhole opens above ${p.name} tunnel`, deck: 'Work stops downtown while engineers assess the damage.' }),
+    lineOpen: (p) => ({ head: `${p.name} opens`, deck: `${p.km} km and ${p.stations} stations: riders try out the city’s new line.` }),
+    lineTrouble: (p) => ({ head: `Rough first weeks for ${p.name}`, deck: 'Door faults and stalled trains frustrate riders.' }),
   },
   diary: {
     great: (n) => `Left at ${hhmm(n?.depart ?? 0)}, waited ${n?.waitMin ?? 0} min, ${routes(n)}. ${n?.minutes} minutes door to door. Easy.`,
@@ -196,6 +209,7 @@ export const OPINION_EN: OpinionStrings = {
     waits: 'I wait longer than I used to.', reliability: 'Another bus that never showed up.', crowding: 'Packed bus again this morning. Couldn’t even get on.',
     weather: 'Standing in the cold at a stop with no shelter, again.', fares: 'Fares are too high for what we get.', taxes: 'My taxes went up for this?',
     cuts: 'Cuts, cuts, cuts.', strike: 'Still haven’t forgotten the strike.', events: 'Hard to trust the Commission’s promises.', spillover: 'Taking the bus is a chore.',
+    construction: 'The construction on my street never ends. Detours everywhere.',
   },
   zoneSub: (d) => `${d} · Ottawa`,
   residents: 'residents',
@@ -245,7 +259,7 @@ export const OPINION_FR: OpinionStrings = {
   reason: {
     mood: 'Humeur de départ', frequency: 'Fréquence des autobus', reach: 'Où le transport en commun vous mène', waits: 'Attentes par rapport à l’habitude',
     reliability: 'Trajets annulés', crowding: 'Affluence', weather: 'Froid et tempêtes', fares: 'Tarifs', taxes: 'Taxe de transport en commun', cuts: 'Compressions de service',
-    strike: 'Souvenir de la grève de 2008-2009', events: 'Nouvelles et décisions', spillover: 'L’expérience du trajet',
+    strike: 'Souvenir de la grève de 2008-2009', events: 'Nouvelles et décisions', spillover: 'L’expérience du trajet', construction: 'Chantier à proximité',
   },
   reasonHelp: {
     mood: 'Ce que les gens pensaient d’OC Transpo à la fin de 2010.',
@@ -261,6 +275,7 @@ export const OPINION_FR: OpinionStrings = {
     strike: 'La grève de 51 jours de 2008-2009 pèse encore sur la confiance, de moins en moins avec les années.',
     events: 'Lignes ajoutées ou supprimées, promesses tenues, hausses de tarifs et de taxes, déficits, nouveaux autobus. S’estompe en quelques mois.',
     spillover: 'Un bon ou un mauvais service influence la confiance envers la Commission.',
+    construction: 'Une ligne en construction tout près : détours, voies fermées, bruit. Ça passe à la fin des travaux.',
   },
   why: 'Pourquoi',
   whyNote: 'Vers quoi l’opinion se dirige, raison par raison (en points d’appui). Elle rattrape en quelques semaines, plus vite quand ça se dégrade.',
@@ -323,6 +338,16 @@ export const OPINION_FR: OpinionStrings = {
     gatineauVotes: (p) => ({ head: 'Gatineau vote', deck: p.agenda === 'taxFreeze' ? 'Le nouveau conseil promet de geler les taxes; la STO cherchera des économies.' : 'Le conseil de la STO garde le cap.' }),
     fundingLost: () => ({ head: 'La Province reprend l’argent des autobus après la hausse des tarifs', deck: 'Les tarifs ont augmenté plus vite que l’entente ne le permettait.' }),
     reshuffle: (p) => ({ head: 'Le conseil remanie la Commission du transport en commun', deck: `Sortent : ${p.out}.` }),
+    projectApproved: (p) => ({ head: `Le conseil appuie la ${p.name}`, deck: `La conception et l’évaluation environnementale commencent pour une ligne de ${mFR(p.cost)}.` }),
+    projectShelved: (p) => ({ head: `La ${p.name} mise sur la glace`, deck: p.stage === 'contract' ? 'Le conseil recule devant le prix du contrat.' : p.stage === 'cancelled' ? 'La présidence met fin au projet; l’argent dépensé est perdu.' : 'Le conseil refuse de payer la conception.' }),
+    lineFunded: (p) => ({ head: `${p.gov === 'province' ? 'L’Ontario' : 'Le gouvernement fédéral'} accorde ${mFR(p.amount)} à la ${p.name}`, deck: 'Le tiers du coût, avec conditions.' }),
+    contractAwarded: (p) => ({ head: `Contrat accordé pour la ${p.name}`, deck: `${mFR(p.price)}.` }),
+    constructionStarts: (p) => ({ head: `Les travaux de la ${p.name} commencent`, deck: `Un contrat de ${mFR(p.price)}; les trains sont attendus en ${String(p.opens).slice(0, 4)}.` }),
+    overrun: (p) => ({ head: `Dépassement de coûts pour la ${p.name}`, deck: p.choice === 'trim' ? 'Des stations simplifiées pour économiser.' : p.choice === 'pause' ? 'Les travaux s’arrêtent le temps de relancer les appels d’offres.' : p.choice === 'p3' ? `Le consortium assume l’essentiel des ${mFR(p.amount)}.` : `La Ville trouve ${mFR(p.amount)} de plus.` }),
+    projectDelay: (p) => ({ head: `La ${p.name} retardée`, deck: `L’ouverture est repoussée de ${p.months} mois.` }),
+    sinkhole: (p) => ({ head: `Un affaissement au-dessus du tunnel de la ${p.name}`, deck: 'Les travaux s’arrêtent au centre-ville le temps d’évaluer les dégâts.' }),
+    lineOpen: (p) => ({ head: `La ${p.name} ouvre`, deck: `${String(p.km).replace('.', ',')} km et ${p.stations} stations : les usagers découvrent la nouvelle ligne.` }),
+    lineTrouble: (p) => ({ head: `Débuts difficiles pour la ${p.name}`, deck: 'Pannes de portes et trains immobilisés exaspèrent les usagers.' }),
   },
   diary: {
     great: (n) => `Départ à ${hhmm(n?.depart ?? 0)}, ${n?.waitMin ?? 0} min d’attente, ${routes(n)}. ${n?.minutes} minutes porte à porte. Facile.`,
@@ -361,6 +386,7 @@ export const OPINION_FR: OpinionStrings = {
     waits: 'J’attends plus longtemps qu’avant.', reliability: 'Encore un autobus qui n’est jamais venu.', crowding: 'Autobus bondé encore ce matin. Impossible de monter.',
     weather: 'Debout dans le froid à un arrêt sans abri, encore.', fares: 'Les tarifs sont trop chers pour ce qu’on a.', taxes: 'Mes taxes ont augmenté pour ça?',
     cuts: 'Des compressions, encore des compressions.', strike: 'Je n’ai pas oublié la grève.', events: 'Difficile de croire les promesses de la Commission.',
+    construction: 'Les travaux dans ma rue n’en finissent plus. Des détours partout.',
     spillover: 'Prendre l’autobus, c’est une corvée.',
   },
   zoneSub: (d) => `${d} · Ottawa`,

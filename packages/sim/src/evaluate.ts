@@ -50,7 +50,9 @@ export function agencyOnly(network: Network, agency: 'octranspo' | 'sto'): Netwo
 
 /** Vehicle-hours and the most vehicles in service at once on a weekday (with layover). */
 export function serviceStats(network: Network): { vehicleHours: number; peakVehicles: number } {
-  const trips = buildTimetable(network);
+  // new light-rail lines (M8) are costed by the line, not by the bus-hour
+  const lrt = new Set(network.routes.filter((r) => r.mode === 'rail' && r.id.startsWith('line-')).map((r) => r.id));
+  const trips = buildTimetable(network).filter((t) => !lrt.has(t.routeId));
   let hours = 0;
   const steps = new Float64Array(24 * 12 + 30);
   for (const t of trips) {

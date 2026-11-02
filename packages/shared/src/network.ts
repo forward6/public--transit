@@ -37,6 +37,8 @@ export interface Corridor {
   kind: 'busway' | 'rail';
   agency: AgencyId;
   lines: LonLat[][];
+  /** a line's own colour (new rapid-transit lines, M8) */
+  color?: string;
   provenance: Provenance;
 }
 
