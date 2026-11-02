@@ -90,10 +90,12 @@ export interface OpLoads {
   loads: Record<string, number[]>;
   peakLoads?: Record<string, number[]>;
   byStop: Record<string, number>;
+  /** weekday boardings per route */
+  byRoute?: Record<string, number>;
   oc: number;
 }
 
-const loadsOf = (sc: Scorecard): OpLoads | null => (sc.loads ? { loads: sc.loads, peakLoads: sc.peakLoads, byStop: sc.byStop ?? {},
+const loadsOf = (sc: Scorecard): OpLoads | null => (sc.loads ? { loads: sc.loads, peakLoads: sc.peakLoads, byStop: sc.byStop ?? {}, byRoute: sc.byRoute,
   oc: sc.byAgency.octranspo ?? 0 } : null);
 
 /** A zone's level of service once `plan` runs, from the current one and the model's before/after. */
@@ -296,7 +298,7 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
   const loads = useMemo<OpLoads | null>(() => {
     if (!state?.applied.length) {
       const d = base?.demand;
-      return d ? { loads: d.loads, peakLoads: d.peakLoads, byStop: d.stops, oc: d.summary.boardingsByAgency.octranspo ?? 0 } : null;
+      return d ? { loads: d.loads, peakLoads: d.peakLoads, byStop: d.stops, byRoute: d.routes, oc: d.summary.boardingsByAgency.octranspo ?? 0 } : null;
     }
     return loadsCache.current.get(appliedKey) ?? null;
   }, [base, appliedKey, loadsTick]); // eslint-disable-line react-hooks/exhaustive-deps

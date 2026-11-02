@@ -1,4 +1,5 @@
-import { MODES, formatClock, type CatalogueClass, type District, type GameState, type Lang, type NetRoute, type Provenance } from '@otc/shared';
+import { useState } from 'react';
+import { MODES, formatClock, type CatalogueClass, type District, type GameState, type Lang, type NetRoute } from '@otc/shared';
 import type { NetworkState } from '../network/useNetwork';
 import { fmtK, type Strings } from '../i18n/strings';
 import type { Palette } from '../map/palettes';
@@ -8,6 +9,8 @@ import { DailyChart, RouteTrend, WatchedRoutes } from '../game/Ridership';
 import { tripRuns, vehiclesNow, type ServiceDay } from '../sim/service';
 import { segmentNow } from '@otc/sim';
 import { crowdOf, shownRiders, type OnBoardFn } from '../game/onBoard';
+import { RoutePerf, RunPerf, StopPerf } from '../game/Performance';
+import type { OpLoads } from '../game/useGame';
 
 export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard' | 'budget' | 'opinion' | 'zone' | 'persona'
     | 'load' | 'council' | 'project' | 'ops' | 'growth';
@@ -29,6 +32,9 @@ interface Props {
   day?: ServiceDay;
   /** riders on board a vehicle */
   onBoard?: OnBoardFn;
+  /** the demand model's riders on the network in operation, and the service date (for how things are doing) */
+  loads?: OpLoads | null;
+  date?: string;
 }
 
 export function RouteBadge({ route, palette, onClick }: { route: NetRoute; palette: Palette; onClick?: () => void }) {
@@ -39,20 +45,21 @@ export function RouteBadge({ route, palette, onClick }: { route: NetRoute; palet
   );
 }
 
-function ProvenanceNote({ p, s }: { p?: Provenance; s: Strings }) {
-  if (!p) return null;
+const minutesUntil = (from: number, to: number) => Math.max(0, Math.round((to - from) / 60));
+
+/** A stop's routes; a big station's long list folds after the first sixteen. */
+function Badges({ routes, palette, onSelect, more }: { routes: NetRoute[]; palette: Palette; onSelect: (sel: Selection) => void; more: (n: number) => string }) {
+  const [all, setAll] = useState(false);
+  const shown = all || routes.length <= 18 ? routes : routes.slice(0, 16);
   return (
-    <div className={`prov prov-${p.verified ? 'ok' : p.confidence}`}>
-      <b>{p.verified ? s.verified : s.unverified}</b> · {s.confidence[p.confidence]}
-      <span>{p.source}</span>
-      {p.note && <span>{p.note}</span>}
+    <div className="badges">
+      {shown.map((r) => <RouteBadge key={r.id} route={r} palette={palette} onClick={() => onSelect({ type: 'route', id: r.id })} />)}
+      {shown.length < routes.length && <button className="link more-badges" onClick={() => setAll(true)}>{more(routes.length - shown.length)}</button>}
     </div>
   );
 }
 
-const minutesUntil = (from: number, to: number) => Math.max(0, Math.round((to - from) / 60));
-
-export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game, routeName, day = 'weekday', onBoard }: Props) {
+export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game, routeName, day = 'weekday', onBoard, loads = null, date }: Props) {
   const { network, playback } = net;
   const runs = (tripId: string) => tripRuns(tripId, day);
 
@@ -86,7 +93,9 @@ export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game,
             );
           })}
         </ol>
-        <ProvenanceNote p={route.provenance} s={s} />
+        {game && date && ob && ob !== 'measuring' && <RunPerf trip={trip} route={route} riders={ob.riders} capacity={ob.capacity}
+          stopName={(i) => playback.stops.get(pattern.stops[i] ?? '')?.name ?? ''} s={game} loads={loads} demand={net.demand} playback={playback} date={date} day={day}
+          t={s} lang={lang} onRoute={() => onSelect({ type: 'route', id: route.id })} onBoard={onBoard!} />}
       </div>
     );
   }
@@ -100,7 +109,7 @@ export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game,
       <div className="ins">
         <div className="ins-head"><div className="ins-icon station" /><div><div className="ins-title">{stop.name}</div>
           <div className="ins-sub">{stop.kind === 'station' ? s.station : s.stop} · OC Transpo</div></div></div>
-        {routes.length > 0 && <div className="badges">{routes.map((r) => <RouteBadge key={r.id} route={r} palette={palette} onClick={() => onSelect({ type: 'route', id: r.id })} />)}</div>}
+        {routes.length > 0 && <Badges routes={routes} palette={palette} onSelect={onSelect} more={s.pf.moreRoutes} />}
         <div className="sec">{s.nextDepartures}</div>
         {deps.length ? (
           <ul className="deps">
@@ -117,8 +126,8 @@ export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game,
             })}
           </ul>
         ) : <p className="muted">{routes.length ? s.noMoreToday : s.awaitingRoutes}</p>}
-        {net.demand && <p className="riders-line"><b>{(net.demand.stops[stop.id] ?? 0).toLocaleString()}</b> {s.stopBoardings}</p>}
-        <ProvenanceNote p={stop.provenance} s={s} />
+        {game && date ? <StopPerf stopId={stop.id} s={game} loads={loads} demand={net.demand} playback={playback} date={date} day={day} t={s} lang={lang} />
+          : net.demand && <p className="riders-line"><b>{(net.demand.stops[stop.id] ?? 0).toLocaleString()}</b> {s.stopBoardings}</p>}
       </div>
     );
   }
@@ -151,8 +160,9 @@ export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game,
           <div><b>{tripsToday}</b><span>{s.tripsToday}</span></div>
           <div><b>{km.toFixed(1)} km</b><span>{s.length}</span></div>
         </div>
-        {game?.routeRamps?.[route.id] ? <RouteTrend state={game} routeId={route.id} t={s} lang={lang} />
+        {game && date ? <RoutePerf route={route} s={game} loads={loads} demand={net.demand} playback={playback} date={date} tripsToday={tripsToday} t={s} lang={lang} />
           : net.demand && <p className="riders-line"><b>{(net.demand.routes[route.id] ?? 0).toLocaleString()}</b> {s.routeBoardings}</p>}
+        {game?.routeRamps?.[route.id] && <RouteTrend state={game} routeId={route.id} t={s} lang={lang} />}
         {plan?.active && <RouteServiceEditor route={route} net={net} plan={plan} t={s} />}
         {route.weekday && <>
           <div className="sec">{s.weekdayService}</div>
@@ -165,7 +175,6 @@ export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game,
           <li key={head}><span>→ {head}{ps.length > 1 && <em className="muted"> · {ps.length} {s.variants}</em>}</span>
             <b>{Math.max(...ps.map((p) => p.stops.length))} {s.stopsWord}</b></li>
         ))}</ul>
-        <ProvenanceNote p={route.provenance} s={s} />
       </div>
     );
   }
@@ -177,7 +186,6 @@ export function Inspector({ sel, net, t, s, lang, palette, onSelect, plan, game,
       <div className="ins-head"><div className="ins-icon" style={{ background: c.kind === 'rail' ? palette.transit.otrain : palette.transit.transitway }} />
         <div><div className="ins-title">{c.name}</div><div className="ins-sub">{c.kind === 'rail' ? s.railCorridor : s.busway} · OC Transpo</div></div></div>
       {network.status === 'infrastructure-only' && c.kind === 'busway' && <p className="notice">{s.awaitingRoutes}</p>}
-      <ProvenanceNote p={c.provenance} s={s} />
     </div>
   );
 }

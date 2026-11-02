@@ -1,4 +1,5 @@
 import { GROWTH_EN, GROWTH_FR, type GrowthStrings } from './growthStrings';
+import { PERF_EN, PERF_FR, type PerfStrings } from './perfStrings';
 import { OPINION_EN, OPINION_FR, type OpinionStrings } from './opinionStrings';
 import { LOAD_EN, LOAD_FR, type LoadStrings } from './loadStrings';
 import { COUNCIL_EN, COUNCIL_FR, type CouncilStrings } from './councilStrings';
@@ -219,6 +220,7 @@ export interface Strings {
   // M8 — rapid-transit lines
   pj: ProjectStrings;
   gr: GrowthStrings;
+  pf: PerfStrings;
   // the Operations panel
   ops: OpsStrings;
 }
@@ -386,6 +388,7 @@ export const STRINGS: Record<Lang, Strings> = {
     st: START_EN,
     pj: PROJECTS_EN,
     gr: GROWTH_EN,
+    pf: PERF_EN,
     ops: OPS_EN,
     plan: 'Plan',
     planTitle: 'Plan mode',
@@ -613,6 +616,7 @@ export const STRINGS: Record<Lang, Strings> = {
     st: START_FR,
     pj: PROJECTS_FR,
     gr: GROWTH_FR,
+    pf: PERF_FR,
     ops: OPS_FR,
     plan: 'Planifier',
     planTitle: 'Mode planification',

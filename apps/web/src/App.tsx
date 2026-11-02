@@ -347,7 +347,7 @@ export function App() {
     [game.state, game.loads, svcDate]);
   const onBoard = useOnBoard(net?.playback, game.loads, base?.zones?.zones, serviceDayNow(), dayScale);
   useEffect(() => {
-    if (sel?.type === 'vehicle' || sel?.type === 'ops') game.requestLoads();
+    if (sel?.type === 'vehicle' || sel?.type === 'ops' || sel?.type === 'route' || sel?.type === 'stop') game.requestLoads();
   }, [sel?.type, game.requestLoads]); // eslint-disable-line react-hooks/exhaustive-deps
   useStreamedSource(map, NET_LOADS, loadFc);
   const projectsFc = useMemo(() => projectFeatures(game.state?.projects ?? [], plan.active && plan.tool === 'line' ? line.design : null, line.rail),
@@ -487,7 +487,7 @@ export function App() {
           : sel.type === 'zone' ? <ZonePanel game={game} index={Number(sel.id)} t={t} lang={settings.lang} onPersona={(id) => setSel({ type: 'persona', id })} />
           : sel.type === 'persona' ? <PersonaPanel game={game} id={sel.id} t={t} lang={settings.lang} now={view.service} />
           : <Inspector sel={sel} net={net} t={view.service} s={t} lang={settings.lang} palette={pal} onSelect={setSel} plan={plan}
-            game={game.state} routeName={routeName} day={serviceDayNow()} onBoard={onBoard} />) : null}
+            game={game.state} routeName={routeName} day={serviceDayNow()} onBoard={onBoard} loads={game.loads} date={svcDate} />) : null}
         planActive={plan.active} onTogglePlan={() => plan.setActive(!plan.active)} dock={dock}
         dateLabel={game.state ? fmtDate(game.state.date, settings.lang) : undefined}
         dateShort={game.state ? fmtDate(game.state.date, settings.lang, 'short') : undefined}

@@ -1120,8 +1120,18 @@ to keep iteration fast; it expands to the full region afterwards.
       shows the month in review. The game now resumes at real time.
     - Not yet: urban boundary debates, ward redistribution, re-running the demand model on the grown
       city (riders from growth are scaled from 2011's shares), new buildings drawn on the map.
-14. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
-15. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
+14. ✅ **Added at your request:** how a bus, a route or a stop is doing ([screenshots](screenshots/perf/)),
+    and no more source and confidence notes in those panels.
+    - Riders are the demand model's weekday figures on the network in operation (per route, per
+      stop) scaled day by day like the network's: typical = this month's level × the day of the
+      week (no weather), ± the spread of the same kind of day over the last eight weeks (weather,
+      mostly); yesterday and last week from the days recorded. Routes you changed use their own
+      settling figures. Per bus-hour, cost per rider ($135 a bus-hour × the cost index) and the
+      fares' share ($1.15 a boarding × the fare index) are for a weekday. A run's riders are the
+      boardings implied by its loads (a lower bound), compared with the route's runs counted the
+      same way.
+15. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
+16. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 
 ---
 

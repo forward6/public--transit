@@ -90,6 +90,12 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
 - **A start screen:** continue the campaign saved in this browser (it shows the date, approval and
   reserve), or start a new game (after a confirmation). Tap the logo during the game to get back to
   it.
+- **How it's doing:** tap a bus, a route or a stop for its numbers: riders on a typical day like
+  today (± how much such days vary), yesterday against its typical day, the same day last week. A
+  route adds riders per trip and per bus-hour (against the network's), the cost per rider and how
+  much the fares cover; a stop, its rank among the network's stops and its departures today; a bus,
+  the riders on this run against the route's average run, how full it gets and where, and yesterday
+  on the same run.
 - **Riders on board:** tap a bus or train to see how many people are on it now, against its seats
   and room, and how many are on board as it leaves each coming stop. Estimated from the demand
   model: a route's riders between two stops are shared between its trips by time of day (commuters
