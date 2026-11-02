@@ -69,7 +69,7 @@ export interface GameApi {
   openingDay: (eventId: string, rework: boolean) => void;
   cancelProject: (projectId: string) => void;
   reviveProject: (projectId: string) => void;
-  askAgain: (projectId: string, gov: 'province' | 'federal') => void;
+  askAgain: (projectId: string, gov: 'province' | 'federal' | 'quebec') => void;
 }
 
 /** The assignment's loads for one network, and the model's OC Transpo weekday boardings on it (to scale by). */

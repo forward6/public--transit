@@ -26,7 +26,7 @@
 | Modes | Bus and BRT (Transitway), LRT/metro, commuter and regional rail, on-demand and para-transit, and the unusual modes: ferries, gondolas and streetcars. |
 | Team | Solo hobby project. Claude writes most of the code; you direct and playtest. |
 | Languages *(assumed)* | English and French from day one. Ottawa is officially bilingual and Gatineau is francophone. |
-| Big projects (M8) | **v1: light rail and Transitway busways** (commuter rail and river crossings later). **Realistic timelines** that scale with the line (a short busway about 3 years, a tunnelled LRT about 8). **A real procurement choice:** public build or P3. **Setbacks included** (overruns, delays, a sinkhole, a rough opening), each with a response. |
+| Big projects (M8) | **All modes at once:** light rail, Transitway busways, commuter rail and river crossings. **Compressed timelines** (0.42× real ones: a downtown light-rail line proposed in 2011 opens before the 2014 election). **A real procurement choice:** public build or P3. **Setbacks included** (overruns, delays, a sinkhole, a rough opening), each with a response. |
 | Council (M7) | **Only the big items go to a vote:** budgets, deficit choices, large service plans, big bus orders and garages. Routine changes are yours. The 2010 council starts **split**. **Labour talks open in 2011.** STO is a **light-touch partner with its own agenda**. |
 
 ---
@@ -996,8 +996,23 @@ to keep iteration fast; it expands to the full region afterwards.
       the evening otherwise; other trips follow a midday profile, and weekends have no peaks. Scaled
       to the day's riders. Above capacity it shows full: riders left behind.
       `pnpm --filter @otc/sim onboard-demo` prints a few routes through the day.
-11. 🔶 **M8 (v1):** big projects ([screenshots](screenshots/m8/)). Defaults chosen for you: light rail
-    and busways first, realistic timelines, a public build or P3, setbacks on.
+11. 🔶 **M8 (v1):** big projects ([screenshots](screenshots/m8/)). Your choices: all modes at once
+    (light rail, busways, commuter rail, river crossings), compressed timelines, a public build or
+    P3, setbacks on.
+    - **Commuter rail:** diesel trains (a locomotive and four bi-level coaches, 600 riders) at 110 km/h,
+      every 20 min at the peaks and hourly otherwise. On the 2010 railways (exported by the
+      pipeline's tiles step to `rail-2010.json` and drawn dashed while you draw) a stretch costs
+      $4M a km to upgrade (signals, sidings, crossings) instead of $18M for new track; $25M a train,
+      a $50M layover yard, $0.8M a km and $2.5M a train a year to run.
+    - **River crossings:** a stretch whose ends are in different cities crosses the Ottawa River and
+      must be a bridge (light rail $150M a km, busway and commuter rail $120M) or a tunnel; on the
+      old Prince of Wales rail bridge, $60M a km to rehabilitate. Quebec decides with the other
+      partners whether to pay a quarter (up to $400M), more likely the better you get on with
+      Gatineau and the STO (and it moves that relationship); the federal government likes a line
+      joining the capital's two halves; the NCC always sets conditions.
+    - **Compressed timelines:** every phase, delay and pause runs at 0.42× its real length (with
+      minimums): a 12 km light-rail line with a 3 km tunnel takes about 42 months from proposal to
+      opening instead of eight years.
     - **Drawing a line** (Plan mode): stations in order (a station within 200 m of an existing one
       shares it); each stretch on the surface, elevated or in a tunnel; a name and a colour. The
       line becomes a route with its own right of way: light rail (class O-Train, 2-car trains) or
@@ -1008,9 +1023,10 @@ to keep iteration fast; it expands to the full region afterwards.
       $10M a train, a $120M yard, 15% engineering and land, 10% contingency. A Confederation-like
       line (12.3 km, 3.1 km in tunnel, 3 underground stations) comes to $2.2B, against the 2012
       budget of $2.13B. Running it: $3.5M a km and $0.6M a train a year.
-    - **Timeline:** design and environmental assessment 9–22 months (more for tunnels and length),
-      procurement 6–10 months (+4 for a P3), construction from 14 months (a short busway) to about
-      5½ years (12 km of LRT with a tunnel), testing 1–6 months.
+    - **Timeline** (real-world lengths, then run at 0.42×): design and environmental assessment
+      9–24 months (more for tunnels, bridges and length), procurement 6–10 months (+4 for a P3),
+      construction from 14 months (a short busway) to about 5½ years (12 km of light rail with a
+      tunnel), testing 1–6 months.
     - **Votes:** council funds design (weighing the city's likely share: a third of the cost, less
       development charges), then awards the contract at the bid price (the city's actual share).
       Councillors weigh the bill on a log scale against the riders forecast (the trips it adds to
@@ -1048,8 +1064,8 @@ to keep iteration fast; it expands to the full region afterwards.
     - **Testing it:** `pnpm --filter @otc/sim projects-demo [public|p3] [pay|trim|pause]` builds a
       Confederation-like line in Node (`MEASURE=1` forecasts it; `DUMP_DIR=` saves the key moments);
       `apps/web/scripts/verify-projects.cjs` draws and proposes one in the browser.
-    - **Still to do:** commuter rail and river crossings, conversion of the Transitway to rail
-      (with bus detours), truncating (not just thinning) parallel routes, buses using a new busway
+    - **Still to do:** conversion of the Transitway to rail (with bus detours), snapping commuter
+      stations to the railway, truncating (not just thinning) parallel routes, buses using a new busway
       off its own route, capacity-constrained assignment (light rail's real advantage), land use
       responding to stations (M9), and a project timeline view.
 12. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.

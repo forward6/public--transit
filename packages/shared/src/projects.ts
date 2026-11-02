@@ -1,9 +1,9 @@
 // The big-projects contract (M8): rapid-transit lines from proposal to opening day.
 import type { Edit, Headways } from './plan';
 
-export type LineMode = 'lrt' | 'busway';
-/** How a stretch between two stations is built. */
-export type Structure = 'surface' | 'elevated' | 'tunnel';
+export type LineMode = 'lrt' | 'busway' | 'commuter';
+/** How a stretch between two stations is built (a bridge carries it over the Ottawa River). */
+export type Structure = 'surface' | 'elevated' | 'tunnel' | 'bridge';
 export type ProjectPhase = 'proposed' | 'design' | 'procurement' | 'construction' | 'testing' | 'open' | 'shelved' | 'cancelled';
 /** Public build (design-bid-build: the city carries the risk) or a public-private partnership (design-build-finance-maintain). */
 export type Procurement = 'public' | 'p3';
@@ -29,6 +29,10 @@ export interface LineDesign {
   /** one per stretch between consecutive stations */
   structure: Structure[];
   headways: Headways;
+  /** per stretch: the share that runs along an existing railway (commuter rail upgrades it instead of laying track) */
+  onRail?: number[];
+  /** per stretch: it crosses the Ottawa River between Ottawa and Gatineau */
+  crosses?: boolean[];
 }
 
 /** 2011 dollars. */
@@ -49,6 +53,11 @@ export interface ProjectEstimate {
   elevatedKm: number;
   stations: number;
   undergroundStations: number;
+  /** km along existing railway (upgraded), km over the river */
+  railKm: number;
+  bridgeKm: number;
+  /** it crosses the Ottawa River (Quebec, the STO and the NCC have a say) */
+  crossing: boolean;
   /** trains (2-car) or nothing (busway: buses come from the fleet) */
   vehicles: number;
   /** end to end, minutes */
@@ -92,7 +101,12 @@ export interface Project {
   /** cost growth and delay so far */
   overrun: number;
   delayMonths: number;
-  funding: { province: number; federal: number; provinceStatus: FundingStatus; federalStatus: FundingStatus; asked?: Record<string, string> };
+  funding: {
+    province: number; federal: number; provinceStatus: FundingStatus; federalStatus: FundingStatus;
+    /** a river crossing: Quebec pays a share if Gatineau and the STO sign on */
+    quebec?: number; quebecStatus?: FundingStatus;
+    asked?: Record<string, string>;
+  };
   /** risks drawn when the contract is awarded (hidden from the player): cost growth, delay, a sinkhole, a rough opening */
   risk?: { growth: number; delay: number; sinkholeAt?: number; rough: boolean };
   /** setbacks that have happened (ids), so each comes once */
@@ -119,8 +133,10 @@ export interface CostLine {
  */
 export const PROJECT_COSTS = {
   lrt: {
-    guideway: { surface: 35e6, elevated: 90e6, tunnel: 260e6 },
-    station: { surface: 12e6, elevated: 25e6, tunnel: 90e6 },
+    guideway: { surface: 35e6, elevated: 90e6, tunnel: 260e6, bridge: 150e6 },
+    station: { surface: 12e6, elevated: 25e6, tunnel: 90e6, bridge: 25e6 },
+    /** along an existing railway: not shared with freight, so no saving */
+    railUpgrade: 35e6,
     /** a two-car train */
     train: 10e6,
     depot: 120e6,
@@ -128,21 +144,38 @@ export const PROJECT_COSTS = {
     opsPerKm: 3.5e6,
     opsPerTrain: 0.6e6,
     /** cruising speed (km/h) by structure, acceleration (m/s²), dwell (s) */
-    speed: { surface: 55, elevated: 80, tunnel: 80 },
+    speed: { surface: 55, elevated: 80, tunnel: 80, bridge: 70 },
     accel: 1.0,
     dwell: 30,
   },
   busway: {
-    guideway: { surface: 25e6, elevated: 80e6, tunnel: 200e6 },
-    station: { surface: 6e6, elevated: 15e6, tunnel: 60e6 },
+    guideway: { surface: 25e6, elevated: 80e6, tunnel: 200e6, bridge: 120e6 },
+    station: { surface: 6e6, elevated: 15e6, tunnel: 60e6, bridge: 15e6 },
+    railUpgrade: 25e6,
     train: 0,
     depot: 0,
     opsPerKm: 0.3e6,
     opsPerTrain: 0,
-    speed: { surface: 70, elevated: 80, tunnel: 70 },
+    speed: { surface: 70, elevated: 80, tunnel: 70, bridge: 70 },
     accel: 1.2,
     dwell: 30,
   },
+  /** diesel commuter trains (a locomotive and four bi-level coaches) on existing railways where they can */
+  commuter: {
+    guideway: { surface: 18e6, elevated: 60e6, tunnel: 200e6, bridge: 120e6 },
+    station: { surface: 8e6, elevated: 20e6, tunnel: 60e6, bridge: 20e6 },
+    /** upgrading an existing railway: signals, sidings, crossings; an old rail bridge rehabilitated */
+    railUpgrade: 4e6,
+    train: 25e6,
+    depot: 50e6,
+    opsPerKm: 0.8e6,
+    opsPerTrain: 2.5e6,
+    speed: { surface: 110, elevated: 110, tunnel: 90, bridge: 80 },
+    accel: 0.6,
+    dwell: 45,
+  },
+  /** rehabilitating an existing rail bridge (the Prince of Wales Bridge), a km */
+  railBridgeRehab: 60e6,
   /** engineering, project management, property; contingency */
   softShare: 0.15,
   contingencyShare: 0.1,
@@ -150,6 +183,11 @@ export const PROJECT_COSTS = {
   p3Premium: 0.07,
   /** the part of the city's share that development charges pay (new growth along the line) */
   devCharges: 0.25,
+  /**
+   * Timelines run at this fraction of real ones (your choice: compressed), so a downtown light-rail
+   * line proposed in 2011 opens within the first term.
+   */
+  pace: 0.42,
   source: 'Estimates: City of Ottawa Confederation Line budget (2012, $2.13B for 12.5 km, 2.5 km tunnel, 13 stations, 34 LRVs, a maintenance yard); Transitway extensions of the 2000s',
 } as const;
 
@@ -157,6 +195,7 @@ export const PROJECT_COSTS = {
 export const LINE_HEADWAYS: Record<LineMode, Headways> = {
   lrt: { am: 5, midday: 6, pm: 5, evening: 10 },
   busway: { am: 5, midday: 10, pm: 5, evening: 15 },
+  commuter: { am: 20, midday: 60, pm: 20, evening: 60 },
 };
 
 /** Line colours that stand apart from the Transitway's red, the O-Train's green and the bus blues. */

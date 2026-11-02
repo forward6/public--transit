@@ -202,3 +202,27 @@ def build_tiles(workers: int = 0) -> None:
                       bbox=bbox, center=(home["center"][0], home["center"][1], int(home["zoom"])), metadata=metadata)
     sizes = sorted(len(v) for v in tiles.values())
     print(f"  tiles: {len(tiles):,} non-empty of {len(jobs):,}; largest {sizes[-1] / 1e3:.0f} kB gz; built in {time.time() - t1:.0f}s")
+    export_rail()
+
+
+def export_rail() -> None:
+    """The 2010 railway lines as a small JSON for the game (M8): commuter rail runs on them for the price
+    of upgrading track, not building it."""
+    import json
+    t = pq.read_table(config.BUILD / "2010" / "rail.parquet")
+    d = t.to_pydict()
+    geoms = shapely.from_wkb(np.array(d["geometry"]))
+    lines = []
+    for g, cls, name in zip(geoms, d["class"], d["name"]):
+        if g is None or shapely.is_empty(g):
+            continue
+        g = shapely.simplify(g, 0.00008)
+        parts = list(g.geoms) if hasattr(g, "geoms") else [g]
+        for part in parts:
+            coords = [[round(x, 5), round(y, 5)] for x, y in shapely.get_coordinates(part)]
+            if len(coords) >= 2:
+                lines.append({"class": cls, "name": name or "", "line": coords})
+    out = config.WEB_DATA / "rail-2010.json"
+    out.write_text(json.dumps({"snapshot": config.SNAPSHOT_DATE, "source": "OpenStreetMap via Overture Maps, as of 1 December 2010", "lines": lines},
+                              separators=(",", ":")))
+    print(f"  rail: {len(lines)} lines -> {out.name} ({out.stat().st_size / 1e3:.0f} kB)")

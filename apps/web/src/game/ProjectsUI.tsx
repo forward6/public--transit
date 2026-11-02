@@ -13,6 +13,8 @@ const num = (x: number, lang: Lang) => Math.round(x).toLocaleString(lang === 'fr
 const signed = (x: number, lang: Lang) => `${x > 0 ? '+' : x < 0 ? '−' : ''}${num(Math.abs(x), lang)}`;
 const ACTIVE: ProjectPhase[] = ['proposed', 'design', 'procurement', 'construction', 'testing'];
 const STRUCTURES: Structure[] = ['surface', 'elevated', 'tunnel'];
+/** Over the Ottawa River: a bridge or under it. */
+const CROSSING: Structure[] = ['bridge', 'tunnel'];
 
 /** The Plan-mode dock while drawing a line. */
 export function LineDock({ line, t, lang, date }: { line: LineDraw; t: Strings; lang: Lang; date: string }) {
@@ -31,7 +33,7 @@ export function LineDock({ line, t, lang, date }: { line: LineDraw; t: Strings; 
         <button className="btn ghost" onClick={line.clear}>{pj.cancel}</button>
       </div>
       <div className="seg wide" role="radiogroup" aria-label={pj.title}>
-        {(['lrt', 'busway'] as LineMode[]).map((m) => (
+        {(['lrt', 'busway', 'commuter'] as LineMode[]).map((m) => (
           <button key={m} role="radio" aria-checked={d.mode === m} className={d.mode === m ? 'on' : ''} onClick={() => line.setMode(m)}>{pj.mode[m]}</button>
         ))}
       </div>
@@ -49,9 +51,10 @@ export function LineDock({ line, t, lang, date }: { line: LineDraw; t: Strings; 
         <ol className="stretches">
           {d.structure.map((k, i) => (
             <li key={i}>
-              <span>{pj.stretch(d.stations[i]!.name, d.stations[i + 1]!.name, km((metres[i] ?? 0) / 1000, lang))}</span>
+              <span>{pj.stretch(d.stations[i]!.name, d.stations[i + 1]!.name, km((metres[i] ?? 0) / 1000, lang))}
+                {(d.onRail?.[i] ?? 0) >= 0.3 && <em className="on-track">{pj.onTrack(Math.round((d.onRail![i] ?? 0) * 100))}</em>}</span>
               <div className="seg mini" role="radiogroup">
-                {STRUCTURES.map((x) => (
+                {(d.crosses?.[i] ? CROSSING : STRUCTURES).map((x) => (
                   <button key={x} role="radio" aria-checked={k === x} className={k === x ? 'on' : ''} onClick={() => line.setStructure(i, x)}>{pj.structure[x]}</button>
                 ))}
               </div>
@@ -63,6 +66,8 @@ export function LineDock({ line, t, lang, date }: { line: LineDraw; t: Strings; 
         <div className="line-estimate">
           <div className="sec">{pj.estimate}</div>
           <p className="riders-line">{pj.stats(km(e.lengthKm, lang), e.stations, Math.round(e.runMin))}</p>
+          {(e.railKm > 0 || e.bridgeKm > 0) && <p className="muted small">{[e.railKm > 0 ? pj.railKm(km(e.railKm, lang)) : '', e.bridgeKm > 0 ? pj.bridgeKm(km(e.bridgeKm, lang)) : ''].filter(Boolean).join(' · ')}</p>}
+          {e.crossing && <p className="muted small crossing-note">{pj.crossing}</p>}
           <p className="big-cost"><b>{money(e.cost.total, lang)}</b> <span className="muted">{pj.costLine('', money(e.cost.total / Math.max(0.1, e.lengthKm), lang)).trim()}</span></p>
           <ul className="periods cost-parts">
             {(['guideway', 'stations', 'vehicles', 'depot', 'soft', 'contingency'] as const).filter((k) => e.cost[k] > 0).map((k) => (
@@ -125,7 +130,7 @@ function ProjectPanel({ game, p, t, lang }: { game: GameApi; p: Project; t: Stri
   const opens = p.phase === 'open' ? p.opened : p.due && p.phase === 'testing' ? p.due
     : p.phase === 'construction' && p.due ? addMonths(p.due, p.estimate.months.testing) : undefined;
   const history = s.events.filter((e) => e.kind === 'project' && e.data.project === p.id).slice(-8).reverse();
-  const govs = ['province', 'federal'] as const;
+  const govs = p.estimate.crossing ? (['province', 'federal', 'quebec'] as const) : (['province', 'federal'] as const);
   return (
     <div className="ins project-panel">
       <div className="ins-head"><div className="ins-icon line-badge" style={{ background: p.design.color }}>{p.design.shortName}</div>
@@ -145,12 +150,12 @@ function ProjectPanel({ game, p, t, lang }: { game: GameApi; p: Project; t: Stri
       <p className="muted small">{pj.debtService(money(yearlyDebtService(city), lang))}{p.overrun > 0 ? ` · ${pj.overruns(money(p.overrun, lang))}` : ''}{p.delayMonths ? ` · ${pj.delays(p.delayMonths)}` : ''}</p>
       <div className="sec">{pj.partners}</div>
       <ul className="periods">{govs.map((g) => {
-        const status = p.funding[`${g}Status`];
+        const status = p.funding[`${g}Status`] ?? 'none';
         const asked = p.funding.asked?.[g];
         const canAsk = status === 'declined' && ACTIVE.includes(p.phase) && (!asked || addMonths(asked, 12) <= s.date);
         return (
           <li key={g}><span>{pj.gov[g]}</span>
-            <b className={status === 'committed' ? 'up' : status === 'declined' ? 'down' : ''}>{pj.funding[status]}{p.funding[g] ? ` · ${money(p.funding[g], lang)}` : ''}</b>
+            <b className={status === 'committed' ? 'up' : status === 'declined' ? 'down' : ''}>{pj.funding[status]}{p.funding[g] ? ` · ${money(p.funding[g]!, lang)}` : ''}</b>
             {canAsk && <button className="btn mini" disabled={(s.council?.capital ?? 0) < ASK_COST} onClick={() => game.askAgain(p.id, g)}>{pj.askAgain(ASK_COST)}</button>}
             {status === 'declined' && asked && !canAsk && <em className="muted small">{pj.askedRecently}</em>}
           </li>
@@ -184,8 +189,8 @@ export function ProjectDecision({ game, d, t, lang }: { game: GameApi; d: GameEv
         <h2>{pj.procurement.title(p.design.name)}</h2>
         <p>{pj.procurement.intro(money(p.budget, lang))}</p>
         <ul className="effects">
-          {(['province', 'federal'] as const).map((g) => (
-            <li key={g}>{pj.procurement.funding(pj.gov[g], pj.funding[p.funding[`${g}Status`]], p.funding[g] ? money(p.funding[g], lang) : '')}</li>
+          {(p.estimate.crossing ? (['province', 'federal', 'quebec'] as const) : (['province', 'federal'] as const)).map((g) => (
+            <li key={g}>{pj.procurement.funding(pj.gov[g], pj.funding[p.funding[`${g}Status`] ?? 'none'], p.funding[g] ? money(p.funding[g]!, lang) : '')}</li>
           ))}
           <li>{pj.cityShare}: {money(cityShare(p), lang)} · {pj.debtService(money(yearlyDebtService(cityShare(p)), lang))}</li>
         </ul>

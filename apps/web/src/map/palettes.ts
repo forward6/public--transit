@@ -8,9 +8,11 @@ import type { RouteClass, Season, TimeOfDay } from '@otc/shared';
 export type TransitColors = Record<RouteClass, string>;
 export const TRANSIT_DAY: TransitColors = {
   transitway: '#D7263D', otrain: '#25965A', frequent: '#2856B8', local: '#8794AB', peak: '#6E7FA0', rural: '#9A8C7A', sto: '#0B97A3',
+  commuter: '#5B3A8E',
 };
 export const TRANSIT_NIGHT: TransitColors = {
   transitway: '#FF4A5C', otrain: '#38E08A', frequent: '#5F8DFF', local: '#7E8CA8', peak: '#8C9BC0', rural: '#B8A890', sto: '#22D4E2',
+  commuter: '#B08CF0',
 };
 
 export interface Palette {

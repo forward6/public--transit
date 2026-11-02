@@ -19,7 +19,7 @@ function Stretch({ x, net, t, lang, palette, onFocus, onRoute }: { x: SegmentLoa
   onFocus: (c: LngLat) => void; onRoute: (id: string) => void }) {
   const stop = (id: string) => net.stops.find((s) => s.id === id)?.name ?? id;
   // trunk routes first: rail, Transitway, frequent, then the rest by number
-  const rank = { otrain: 0, transitway: 1, frequent: 2, local: 3, peak: 4, sto: 5, rural: 6 } as const;
+  const rank = { otrain: 0, commuter: 0, transitway: 1, frequent: 2, local: 3, peak: 4, sto: 5, rural: 6 } as const;
   const routes = x.routes.map((r) => net.routes.find((q) => q.id === r)).filter((r): r is NonNullable<typeof r> => !!r)
     .sort((a, b) => rank[a.class] - rank[b.class] || a.shortName.localeCompare(b.shortName, undefined, { numeric: true })).slice(0, 3);
   const pct = `${Math.round(100 * x.lf)}${lang === 'fr' ? ' %' : '%'}`;

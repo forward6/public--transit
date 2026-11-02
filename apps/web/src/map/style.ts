@@ -49,7 +49,7 @@ export const PLAN_ISO = 'plan-iso';
 export const OPINION_ZONES = 'op-zones';
 export const RIDER_PATH = 'rider-path';
 export const RIDER_POS = 'rider-pos';
-export const CLASSES: RouteClass[] = ['local', 'peak', 'rural', 'sto', 'frequent', 'transitway', 'otrain'];
+export const CLASSES: RouteClass[] = ['local', 'peak', 'rural', 'sto', 'frequent', 'transitway', 'otrain', 'commuter'];
 /** Interactive layers, top-most first (click priority). */
 export const PICKABLE = ['rider-pos', 'net-vehicles', 'net-vehicle-dots', 'proj-stations', 'proj-planned', 'proj-building', 'net-stations', 'net-stops', 'net-routes', 'net-otrain', 'net-transitway', 'op-zones'];
 export const TERRAIN = 'terrain';
@@ -381,7 +381,7 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders
   L({ id: 'net-vehicle-dots', type: 'circle', source: NET_VEHICLES, maxzoom: 13.6,
     paint: {
       'circle-color': ['coalesce', ['get', 'color'], ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local]] as unknown as ExpressionSpecification,
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['match', ['get', 'cls'], 'otrain', 3.4, 2.4], 13.6, ['match', ['get', 'cls'], 'otrain', 7, 5]] as unknown as ExpressionSpecification,
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['match', ['get', 'cls'], ['otrain', 'commuter'], 3.4, 2.4], 13.6, ['match', ['get', 'cls'], ['otrain', 'commuter'], 7, 5]] as unknown as ExpressionSpecification,
       'circle-stroke-color': p.night ? '#FFFFFF' : '#14213A',
       'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, muted || riders ? 0.6 : 1.4, 13.6, 2.2],
       ...(muted || riders ? { 'circle-opacity': 0.3, 'circle-stroke-opacity': 0.3 } : {}),
@@ -487,6 +487,8 @@ function addProjectLayers(L: (l: LayerSpecification) => void, p: Palette) {
   const opacity = ['case', ['==', ['get', 'structure'], 'tunnel'], 0.45, 1] as unknown as ExpressionSpecification;
   const stretch = (phases: string[]): ExpressionSpecification =>
     ['all', ['==', ['get', 'kind'], 'stretch'], ['in', ['get', 'phase'], ['literal', phases]]] as unknown as ExpressionSpecification;
+  L({ id: 'proj-rail-hint', type: 'line', source: PROJECTS, layout: round, filter: ['==', ['get', 'kind'], 'rail'],
+    paint: { 'line-color': p.night ? '#F2C14E' : '#B07A10', 'line-width': zoomExp(10, 2, 16, 5), 'line-dasharray': [2, 1.5], 'line-opacity': 0.85 } });
   L({ id: 'proj-case', type: 'line', source: PROJECTS, layout: round, filter: ['==', ['get', 'kind'], 'stretch'],
     paint: { 'line-color': p.night ? '#0B1424' : '#FFFFFF', 'line-width': zoomExp(10, 6, 16, 18),
       'line-opacity': ['case', ['==', ['get', 'structure'], 'elevated'], 1, 0.85] as unknown as ExpressionSpecification } });

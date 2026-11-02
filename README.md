@@ -96,13 +96,19 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
   ride inbound in the morning and outbound in the evening) and how often the buses come, scaled to
   today's riders (season, weather, weekends).
 
-- M8 (v1) is under way: big projects. In Plan mode, draw a **light-rail line** or a **Transitway
-  busway**:
+- M8 (v1) is under way: big projects. In Plan mode, draw a **light-rail line**, a **Transitway
+  busway** or a **commuter rail line**, anywhere in the region, across the Ottawa River included:
   - tap the map to place stations (near an existing station, they share it for transfers), and
     choose for each stretch whether it runs on the surface, elevated or in a tunnel;
-  - the estimate updates as you draw: cost (about $35M a km on the surface, $260M in a tunnel,
-    plus stations, trains and a yard), years to opening, running cost; **Forecast riders** runs
-    the demand model on it;
+  - the estimate updates as you draw: cost (light rail about $35M a km on the surface, $260M in a
+    tunnel, $150M on a bridge, plus stations, trains and a yard; commuter rail $4M a km to upgrade
+    an existing railway, which the map shows dashed while you draw), years to opening, running cost;
+    **Forecast riders** runs the demand model on it;
+  - **crossing the river** needs a bridge or a tunnel: Quebec may pay a quarter if Gatineau and the
+    STO sign on, the NCC sets conditions, and the old Prince of Wales rail bridge is far cheaper to
+    rehabilitate than a new bridge;
+  - timelines are **compressed** (about 0.4× real ones), so even a downtown tunnel opens within your
+    first term;
   - **council votes twice**: to pay for design and the environmental assessment, then to award
     the contract once the bids are in. In between, Ontario and the federal government decide
     whether to pay a third each (likelier for more riders per dollar; you can ask again), and you
@@ -115,6 +121,8 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
     rework the bus routes that run alongside it.
 
 ![A light-rail line, drawn and estimated](docs/screenshots/m8/line-estimate.jpg)
+
+![Crossing the river on the old Prince of Wales rail bridge](docs/screenshots/m8/draw-crossing.jpg)
 
 ![Opening day](docs/screenshots/m8/opening.jpg)
 

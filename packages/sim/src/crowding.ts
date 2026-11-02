@@ -17,6 +17,7 @@ export const VEHICLE_CAPACITY: Record<RouteClass, number> = {
   rural: 60,
   sto: 70,
   otrain: 260, // a three-car Talent train
+  commuter: 600, // four bi-level coaches (M8)
 };
 
 /**

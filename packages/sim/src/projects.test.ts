@@ -4,7 +4,7 @@ import { addDays, newGame, openDecision } from './economy';
 import { callVote, openItem, proposeBudget, tally, type CouncilWorld } from './council';
 import { applyEdits } from './plan';
 import {
-  answerOverrun, askAgain, busRework, chooseProcurement, cityShare, estimateLine, lineEdit, newDesign, openingDay, projectOf, proposeProject, stationAt,
+  annotateDesign, answerOverrun, askAgain, busRework, chooseProcurement, cityShare, estimateLine, lineEdit, newDesign, openingDay, projectOf, proposeProject, stationAt,
   stationStructure,
 } from './projects';
 import { stepDay, withOpinion, type GameWorld } from './game';
@@ -63,7 +63,10 @@ describe('big projects', () => {
     expect(e.cost.total).toBeLessThan(2.5e9);
     expect(e.undergroundStations).toBe(3); // portal stations are at grade
     expect(stationStructure(d, 2)).toBe('surface');
-    expect(e.months.construction).toBeGreaterThan(48);
+    // compressed timelines (your choice): proposed in early 2011, it opens before the October 2014 election
+    const months = e.months.design + e.months.procurement + e.months.construction + e.months.testing;
+    expect(months).toBeLessThanOrEqual(44);
+    expect(e.months.construction).toBeGreaterThan(20);
     expect(e.runMin).toBeGreaterThan(15);
     expect(e.runMin).toBeLessThan(30);
     const b = newDesign('busway', 2);
@@ -97,18 +100,19 @@ describe('big projects', () => {
     s = proposeProject(s, b, { boardings: 20000, newRiders: 3000, reach: 1, wards: [3] });
     expect(projectOf(s, 'line-1')!.phase).toBe('proposed');
     expect(openItem(s)?.kind).toBe('project');
-    s = run(s, 365 * 4);
+    s = run(s, 365 * 2);
     const p = projectOf(s, 'line-1')!;
     // with the levy keeping up, it opens (or council shelved it: then nothing was built)
     if (p.phase === 'shelved') return;
     expect(p.phase).toBe('open');
-    expect(p.opened! > '2013-01-01').toBe(true);
+    expect(p.opened! > '2011-06-01').toBe(true);
     expect(s.applied.some((e) => e.kind === 'add' && e.route.id === 'line-1')).toBe(true);
     expect(p.spent).toBeGreaterThan(p.estimate.cost.total * 0.9);
     expect(p.citySpent).toBeGreaterThan(0); // a small line can come out of the capital reserve without borrowing
     expect(p.funding.provinceStatus).not.toBe('none');
     expect(p.dates.construction && p.dates.construction > p.dates.design!).toBe(true);
-    if (p.opened! < addDays(s.date, -40)) expect(s.press?.some((f) => f.stories.some((x) => x.kind === 'lineOpen'))).toBe(true);
+    // the front page the month after it opened (the last two years of papers are kept)
+    if (p.opened! < addDays(s.date, -40) && p.opened! > addDays(s.date, -700)) expect(s.press?.some((f) => f.stories.some((x) => x.kind === 'lineOpen'))).toBe(true);
   }, 60_000);
 
   it('weighs the bill: council likes a line its partners pay for better than one the city pays alone', () => {
@@ -141,5 +145,35 @@ describe('big projects', () => {
     } as unknown as Network;
     const rw = busRework(net, d, 'line-1');
     expect(rw?.routes[0]).toMatchObject({ id: 'oct-95', action: 'retire' });
+  });
+
+  it('runs commuter rail on existing railways for the price of upgrading them', () => {
+    const rail: [number, number][][] = [[[-75.90, 45.30], [-75.70, 45.35], [-75.60, 45.40]]];
+    const d = newDesign('commuter', 3);
+    d.stations = [stationAt(-75.90, 45.30, [], 'c0'), stationAt(-75.80, 45.325, [], 'c1'), stationAt(-75.70, 45.35, [], 'c2')];
+    d.structure = ['surface', 'surface'];
+    const onTrack = estimateLine(annotateDesign(d, { rail }));
+    const offTrack = estimateLine(annotateDesign({ ...d, stations: d.stations.map((x) => ({ ...x, lat: x.lat + 0.03 })) }, { rail }));
+    expect(onTrack.railKm).toBeGreaterThan(onTrack.lengthKm * 0.9);
+    expect(offTrack.railKm).toBe(0);
+    expect(onTrack.cost.guideway).toBeLessThan(offTrack.cost.guideway / 3);
+    expect(onTrack.vehicles).toBeGreaterThan(0);
+    expect(lineEdit(d, 'line-3')).toMatchObject({ route: { class: 'commuter', mode: 'rail' } });
+  });
+
+  it('knows a line crossing the Ottawa River: a bridge or a tunnel, and Quebec at the table', () => {
+    const z = (id: number, city: 'ottawa' | 'gatineau', lon: number, lat: number) => ({ ...zone(id, 1000, 1000, lon, lat), city });
+    const both = [z(0, 'ottawa', -75.70, 45.42), z(1, 'gatineau', -75.72, 45.44)];
+    const d = newDesign('lrt', 1);
+    d.stations = [stationAt(-75.70, 45.42, [], 'x0'), stationAt(-75.72, 45.44, [], 'x1')];
+    d.structure = ['surface'];
+    const a = annotateDesign(d, { zones: both });
+    expect(a.crosses).toEqual([true]);
+    expect(a.structure).toEqual(['bridge']);
+    const e = estimateLine(a);
+    expect(e.crossing).toBe(true);
+    expect(e.bridgeKm).toBeGreaterThan(2);
+    // a stretch on one side can't be a bridge
+    expect(annotateDesign({ ...d, structure: ['bridge'], stations: [d.stations[0]!, { ...d.stations[0]!, id: 'x2', lon: -75.69 }] }, { zones: both }).structure).toEqual(['surface']);
   });
 });

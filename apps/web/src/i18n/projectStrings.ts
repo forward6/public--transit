@@ -38,7 +38,11 @@ export interface ProjectStrings {
   cityShare: string;
   debtService: (m: string) => string;
   partners: string;
-  gov: { province: string; federal: string };
+  gov: { province: string; federal: string; quebec: string };
+  onTrack: (pct: number) => string;
+  crossing: string;
+  railKm: (km: string) => string;
+  bridgeKm: (km: string) => string;
   funding: Record<FundingStatus, string>;
   askAgain: (pc: number) => string;
   askedRecently: string;
@@ -93,13 +97,14 @@ const mFR = (x: unknown) => `${Math.round(Number(x) / 1e6).toLocaleString('fr-CA
 export const PROJECTS_EN: ProjectStrings = {
   title: 'Rapid transit',
   newLine: 'New rapid-transit line',
-  mode: { lrt: 'Light rail', busway: 'Transitway busway' },
+  mode: { lrt: 'Light rail', busway: 'Transitway busway', commuter: 'Commuter rail' },
   modeHelp: {
-    lrt: 'Trains on their own track: fast, high capacity, expensive. About $35M a km on the surface, $260M in a tunnel.',
+    lrt: 'Trains on their own track: fast, high capacity, expensive. About $35M a km on the surface, $260M in a tunnel, $150M on a bridge.',
     busway: 'Buses on their own roadway, like the Transitway: cheaper, and buses can leave it to reach neighbourhoods.',
+    commuter: 'Big diesel trains, mostly at rush hour, on the existing railways (shown dashed): about $4M a km to upgrade track, $18M to lay new track. Stations far apart.',
   },
   drawHint: 'Tap the map to place stations in order. A station near an existing one shares it, so riders can transfer.',
-  structure: { surface: 'Surface', elevated: 'Elevated', tunnel: 'Tunnel' },
+  structure: { surface: 'Surface', elevated: 'Elevated', tunnel: 'Tunnel', bridge: 'Bridge' },
   stretch: (a, b, km) => `${a} → ${b} · ${km} km`,
   name: 'Name',
   estimate: 'Estimate',
@@ -128,7 +133,11 @@ export const PROJECTS_EN: ProjectStrings = {
   cityShare: 'The city’s share',
   debtService: (m) => `About ${m} a year in debt service`,
   partners: 'Partners',
-  gov: { province: 'Ontario', federal: 'Federal government' },
+  gov: { province: 'Ontario', federal: 'Federal government', quebec: 'Quebec (with Gatineau and the STO)' },
+  onTrack: (p) => `${p}% on existing track`,
+  crossing: 'It crosses the Ottawa River: Quebec may pay a quarter if Gatineau and the STO sign on, and the NCC will set conditions. An old rail bridge (the Prince of Wales) costs far less to rehabilitate than a new bridge.',
+  railKm: (km) => `${km} km on existing railway`,
+  bridgeKm: (km) => `${km} km over the river`,
   funding: { none: 'Decides when design ends', committed: 'Committed', declined: 'Declined' },
   askAgain: (pc) => `Ask again · ${pc} capital`,
   askedRecently: 'Asked this year',
@@ -179,7 +188,10 @@ export const PROJECTS_EN: ProjectStrings = {
       case 'approved': return `${n}: council funds design and the environmental assessment`;
       case 'shelved': return `${n} shelved by council`;
       case 'cancelled': return `${n} cancelled`;
-      case 'funding': return Number(d.amount) ? `${d.gov === 'province' ? 'Ontario' : 'The federal government'} commits ${mEN(d.amount)} to ${n}` : `${d.gov === 'province' ? 'Ontario' : 'The federal government'} won’t fund ${n}`;
+      case 'funding': {
+        const who = d.gov === 'province' ? 'Ontario' : d.gov === 'quebec' ? 'Quebec' : 'The federal government';
+        return Number(d.amount) ? `${who} commits ${mEN(d.amount)} to ${n}` : `${who} won’t fund ${n}`;
+      }
       case 'ncc': return `${n}: the NCC approves the alignment, with conditions`;
       case 'bids': return `${n}: bids are in at ${mEN(d.price)}`;
       case 'construction': return `${n}: construction begins`;
@@ -199,13 +211,14 @@ export const PROJECTS_EN: ProjectStrings = {
 export const PROJECTS_FR: ProjectStrings = {
   title: 'Transport rapide',
   newLine: 'Nouvelle ligne de transport rapide',
-  mode: { lrt: 'Train léger', busway: 'Transitway (voie réservée)' },
+  mode: { lrt: 'Train léger', busway: 'Transitway (voie réservée)', commuter: 'Train de banlieue' },
   modeHelp: {
-    lrt: 'Des trains sur leurs propres voies : rapide, grande capacité, coûteux. Environ 35 M$ le km en surface, 260 M$ en tunnel.',
+    lrt: 'Des trains sur leurs propres voies : rapide, grande capacité, coûteux. Environ 35 M$ le km en surface, 260 M$ en tunnel, 150 M$ sur un pont.',
     busway: 'Des autobus sur leur propre chaussée, comme le Transitway : moins cher, et les autobus peuvent en sortir pour desservir les quartiers.',
+    commuter: 'De gros trains diesel, surtout aux heures de pointe, sur les voies ferrées existantes (en pointillé) : environ 4 M$ le km pour moderniser la voie, 18 M$ pour en poser une nouvelle. Stations espacées.',
   },
   drawHint: 'Touchez la carte pour placer les stations dans l’ordre. Une station près d’une station existante la partage, pour les correspondances.',
-  structure: { surface: 'Surface', elevated: 'Aérien', tunnel: 'Tunnel' },
+  structure: { surface: 'Surface', elevated: 'Aérien', tunnel: 'Tunnel', bridge: 'Pont' },
   stretch: (a, b, km) => `${a} → ${b} · ${km} km`,
   name: 'Nom',
   estimate: 'Estimation',
@@ -234,7 +247,11 @@ export const PROJECTS_FR: ProjectStrings = {
   cityShare: 'Part de la Ville',
   debtService: (m) => `Environ ${m} par an en service de la dette`,
   partners: 'Partenaires',
-  gov: { province: 'Ontario', federal: 'Gouvernement fédéral' },
+  gov: { province: 'Ontario', federal: 'Gouvernement fédéral', quebec: 'Québec (avec Gatineau et la STO)' },
+  onTrack: (p) => `${p} % sur voie existante`,
+  crossing: 'Elle traverse la rivière des Outaouais : Québec pourrait payer le quart si Gatineau et la STO embarquent, et la CCN fixera ses conditions. Réhabiliter un vieux pont ferroviaire (le pont Prince-de-Galles) coûte bien moins cher qu’un pont neuf.',
+  railKm: (km) => `${km} km sur voie ferrée existante`,
+  bridgeKm: (km) => `${km} km au-dessus de la rivière`,
   funding: { none: 'Décide à la fin de la conception', committed: 'Engagé', declined: 'Refusé' },
   askAgain: (pc) => `Redemander · ${pc} de capital`,
   askedRecently: 'Déjà demandé cette année',
@@ -281,7 +298,7 @@ export const PROJECTS_FR: ProjectStrings = {
   lineDebt: 'Dette des lignes (30 ans)',
   news: (d) => {
     const n = d.name;
-    const gov = d.gov === 'province' ? 'L’Ontario' : 'Le fédéral';
+    const gov = d.gov === 'province' ? 'L’Ontario' : d.gov === 'quebec' ? 'Québec' : 'Le fédéral';
     switch (d.what) {
       case 'approved': return `${n} : le conseil finance la conception et l’évaluation environnementale`;
       case 'shelved': return `${n} mise sur la glace par le conseil`;

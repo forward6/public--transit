@@ -191,14 +191,15 @@ export function App() {
   const planRef = useRef(plan);
   planRef.current = plan;
   // M8: drawing a rapid-transit line in Plan mode
-  const line = useLineDraw(game.operation ?? base, plan, game, settings.lang);
+  const line = useLineDraw(game.operation ?? base, plan, game, settings.lang, baseUrl);
   const lineRef = useRef(line);
   lineRef.current = line;
-  // &line=lon,lat;lon,lat… (with ?plan=1) draws a line: &linemode=busway, &tunnel=2,3 (stretches in tunnel), &linename=…
+  // &line=lon,lat;lon,lat… (with ?plan=1) draws a line: &linemode=busway|commuter, &tunnel=2,3 (stretches in tunnel), &linename=…
   useEffect(() => {
     const pts = params.get('line');
     if (!base || !params.get('plan') || !pts || !game.state?.council) return;
-    lineRef.current.start(params.get('linemode') === 'busway' ? 'busway' : 'lrt');
+    const lm = params.get('linemode');
+    lineRef.current.start(lm === 'busway' || lm === 'commuter' ? lm : 'lrt');
     setTimeout(() => {
       pts.split(';').forEach((pt) => {
         const [x, y] = pt.split(',').map(Number);
@@ -339,8 +340,8 @@ export function App() {
     if (sel?.type === 'vehicle') game.requestLoads();
   }, [sel?.type, game.requestLoads]); // eslint-disable-line react-hooks/exhaustive-deps
   useStreamedSource(map, NET_LOADS, loadFc);
-  const projectsFc = useMemo(() => projectFeatures(game.state?.projects ?? [], plan.active && plan.tool === 'line' ? line.design : null),
-    [game.state?.projects, plan.active, plan.tool, line.design]);
+  const projectsFc = useMemo(() => projectFeatures(game.state?.projects ?? [], plan.active && plan.tool === 'line' ? line.design : null, line.rail),
+    [game.state?.projects, plan.active, plan.tool, line.design, line.rail]);
   useStreamedSource(map, PROJECTS, projectsFc);
   const openLoad = () => setSel({ type: 'load', id: 'peak' });
   const closeMenu = () => {

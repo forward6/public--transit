@@ -42,8 +42,10 @@ export function networkLines(network: Network, demand?: DemandFile | null): Line
  * M8: lines not yet open (proposed, designed, tendered, being built) and the one being drawn:
  * a feature per stretch (how it's built), and the stations.
  */
-export function projectFeatures(projects: Project[], draft: LineDesign | null): FeatureCollection<LineString | Point> {
+export function projectFeatures(projects: Project[], draft: LineDesign | null, rail?: [number, number][][] | null): FeatureCollection<LineString | Point> {
   const features: FeatureCollection<LineString | Point>['features'] = [];
+  // drawing commuter rail: the railways it can run on
+  if (draft?.mode === 'commuter') for (const line of rail ?? []) features.push({ type: 'Feature', properties: { kind: 'rail' }, geometry: { type: 'LineString', coordinates: line } });
   const add = (d: LineDesign, id: string, phase: string) => {
     d.stations.forEach((s, i) => {
       const next = d.stations[i + 1];
@@ -60,13 +62,13 @@ export function projectFeatures(projects: Project[], draft: LineDesign | null): 
 
 /** Stations and stops, tagged with the most prominent class serving them. */
 export function networkStops(network: Network, playback: Playback): PointsFC {
-  const rank: RouteClass[] = ['otrain', 'transitway', 'frequent', 'sto', 'local', 'peak', 'rural'];
+  const rank: RouteClass[] = ['otrain', 'commuter', 'transitway', 'frequent', 'sto', 'local', 'peak', 'rural'];
   return {
     type: 'FeatureCollection',
     features: network.stops.map((s) => {
       const classes = new Set(playback.routesAt(s.id).map((r) => r.class));
       const top = rank.find((c) => classes.has(c)) ?? (s.kind === 'station' ? 'transitway' : 'local');
-      const rail = classes.has('otrain');
+      const rail = classes.has('otrain') || classes.has('commuter');
       return {
         type: 'Feature',
         properties: { id: s.id, name: s.name, kind: s.kind, cls: top, rail, transfer: rail && classes.size > 1 },

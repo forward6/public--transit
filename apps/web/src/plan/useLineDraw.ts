@@ -1,14 +1,16 @@
 // M8: drawing a rapid-transit line in Plan mode: stations in order, how each stretch is built, a
 // cost estimate as you go, and a ridership forecast from the demand model before you propose it.
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Lang, LineDesign, LineMode, LonLat, ProjectEstimate, ProjectForecast, Structure } from '@otc/shared';
-import { estimateLine, lineEdit, newDesign, stationAt, wardsAt } from '@otc/sim';
+import { annotateDesign, estimateLine, lineEdit, newDesign, stationAt, wardsAt } from '@otc/sim';
 import type { GameApi } from '../game/useGame';
 import type { NetworkState } from '../network/useNetwork';
 import type { PlanState } from './usePlan';
 
 export interface LineDraw {
   design: LineDesign | null;
+  /** the 2010 railways (commuter rail runs on them), once loaded */
+  rail: [number, number][][] | null;
   estimate: ProjectEstimate | null;
   forecast: ProjectForecast | null;
   measuring: boolean;
@@ -25,8 +27,18 @@ export interface LineDraw {
   clear: () => void;
 }
 
-export function useLineDraw(net: NetworkState | null, plan: PlanState, game: GameApi, lang: Lang): LineDraw {
-  const [design, setDesign] = useState<LineDesign | null>(null);
+export function useLineDraw(net: NetworkState | null, plan: PlanState, game: GameApi, lang: Lang, baseUrl: string): LineDraw {
+  const [raw, setDesign] = useState<LineDesign | null>(null);
+  const [rail, setRail] = useState<[number, number][][] | null>(null);
+  useEffect(() => {
+    if (!raw || rail) return;
+    fetch(`${baseUrl}data/rail-2010.json`).then((r) => (r.ok ? r.json() : null))
+      .then((d: { lines: { line: [number, number][] }[] } | null) => setRail(d ? d.lines.map((x) => x.line) : []))
+      .catch(() => setRail([]));
+  }, [!!raw, rail, baseUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  // what each stretch runs beside: existing railways, the river
+  const zones = game.world?.zones;
+  const design = useMemo(() => (raw && raw.stations.length >= 2 ? annotateDesign(raw, { rail: rail ?? undefined, zones }) : raw), [raw, rail, zones]);
   const [forecast, setForecast] = useState<ProjectForecast | null>(null);
   const [measuring, setMeasuring] = useState(false);
   const [error, setError] = useState(false);
@@ -67,7 +79,7 @@ export function useLineDraw(net: NetworkState | null, plan: PlanState, game: Gam
     }).catch(() => setError(true)).finally(() => setMeasuring(false));
   }, [design, game.state, game.councilWorld, plan]);
   return {
-    design, estimate, forecast, measuring, error, start, addStation, measure,
+    design, rail, estimate, forecast, measuring, error, start, addStation, measure,
     setMode: (mode) => change((d) => ({ ...newDesign(mode, n), name: d.name, color: d.color, stations: d.stations, structure: d.structure })),
     undo: () => change((d) => ({ ...d, stations: d.stations.slice(0, -1), structure: d.structure.slice(0, Math.max(0, d.stations.length - 2)) })),
     setStructure: (i, k) => change((d) => ({ ...d, structure: d.structure.map((x, j) => (j === i ? k : x)) })),

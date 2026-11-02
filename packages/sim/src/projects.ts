@@ -80,7 +80,39 @@ export function runSeconds(metres: number, structure: Structure, mode: LineMode)
 export function stationStructure(design: LineDesign, i: number): Structure {
   const sides = [design.structure[i - 1], design.structure[i]].filter(Boolean) as Structure[];
   if (sides.length && sides.every((x) => x === 'tunnel')) return 'tunnel';
-  return sides.includes('elevated') ? 'elevated' : 'surface';
+  return sides.includes('elevated') ? 'elevated' : 'surface'; // a bridge lands at grade
+}
+
+/** Points along a stretch, for checking what it runs beside. */
+function along(a: LineStation, b: LineStation, n = 16): [number, number][] {
+  return Array.from({ length: n + 1 }, (_, k) => [a.lon + ((b.lon - a.lon) * k) / n, a.lat + ((b.lat - a.lat) * k) / n] as [number, number]);
+}
+
+/**
+ * What each stretch runs beside: the share along an existing railway (within 120 m), and whether
+ * it crosses the Ottawa River (its two ends nearest to zones in different cities). A crossing must
+ * be a bridge or a tunnel; a bridge is only for crossings.
+ */
+export function annotateDesign(design: LineDesign, world: { rail?: [number, number][][]; zones?: Zone[] }): LineDesign {
+  const st = design.stations;
+  const onRail = design.structure.map((_, i) => {
+    if (!world.rail?.length) return 0;
+    const pts = along(st[i]!, st[i + 1]!);
+    const near = pts.filter((p) => world.rail!.some((line) => line.some((q, k) => k > 0 && segDistM(p, line[k - 1]!, q) < 120))).length;
+    return Math.round((near / pts.length) * 100) / 100;
+  });
+  const cityAt = (lon: number, lat: number) => {
+    let best: Zone | undefined;
+    let bd = Infinity;
+    for (const z of world.zones ?? []) {
+      const d = (z.lon - lon) ** 2 * 0.5 + (z.lat - lat) ** 2;
+      if (d < bd) (bd = d), (best = z);
+    }
+    return best?.city;
+  };
+  const crosses = design.structure.map((_, i) => !!world.zones?.length && cityAt(st[i]!.lon, st[i]!.lat) !== cityAt(st[i + 1]!.lon, st[i + 1]!.lat));
+  const structure = design.structure.map((k, i) => (crosses[i] ? (k === 'tunnel' ? 'tunnel' : 'bridge') : k === 'bridge' ? 'surface' : k) as Structure);
+  return { ...design, structure, onRail, crosses };
 }
 
 /** Trains needed at the busiest headway (round trip with turnaround, plus spares). */
@@ -98,12 +130,21 @@ export function estimateLine(design: LineDesign, costIndex = 1): ProjectEstimate
   const km = (k: Structure) => m.reduce((a, x, i) => a + (design.structure[i] === k ? x : 0), 0) / 1000;
   const tunnelKm = km('tunnel');
   const elevatedKm = km('elevated');
-  const surfaceKm = lengthKm - tunnelKm - elevatedKm;
+  const bridgeKm = km('bridge');
+  const railShare = (i: number) => design.onRail?.[i] ?? 0;
+  const railKm = m.reduce((a, x, i) => a + (design.structure[i] === 'surface' || design.structure[i] === 'bridge' ? x * railShare(i) : 0), 0) / 1000;
   const st = design.stations.map((_, i) => stationStructure(design, i));
   const runSec = m.reduce((a, x, i) => a + runSeconds(x, design.structure[i] ?? 'surface', design.mode), 0) + Math.max(0, design.stations.length - 2) * c.dwell;
   const runMin = runSec / 60;
-  const vehicles = design.mode === 'lrt' ? trainsNeeded(runMin, design.headways) : 0;
-  const guideway = surfaceKm * c.guideway.surface + elevatedKm * c.guideway.elevated + tunnelKm * c.guideway.tunnel;
+  const vehicles = design.mode === 'busway' ? 0 : trainsNeeded(runMin, design.headways);
+  // on the surface along a railway, upgrade it; over the river on an old rail bridge, rehabilitate it
+  const guideway = m.reduce((a, x, i) => {
+    const k = design.structure[i] ?? 'surface';
+    const r = railShare(i);
+    const perKm = k === 'surface' ? r * c.railUpgrade + (1 - r) * c.guideway.surface
+      : k === 'bridge' && r >= 0.6 ? PROJECT_COSTS.railBridgeRehab + c.railUpgrade : c.guideway[k];
+    return a + (x / 1000) * perKm;
+  }, 0);
   const stations = st.reduce((a, k) => a + c.station[k], 0);
   const veh = vehicles * c.train;
   const depot = c.depot;
@@ -114,22 +155,29 @@ export function estimateLine(design: LineDesign, costIndex = 1): ProjectEstimate
   const cost = { guideway: guideway * k, stations: stations * k, vehicles: veh * k, depot: depot * k, soft: soft * k, contingency: contingency * k,
     total: (hard + soft + contingency) * k };
   const lrt = design.mode === 'lrt';
-  const months = {
-    design: Math.round(clamp((lrt ? 12 : 9) + 1.5 * tunnelKm + 0.2 * lengthKm, 9, 22)),
-    procurement: lrt ? 10 : 6,
-    construction: Math.round(lrt ? 22 + 1.6 * lengthKm + 1.5 * elevatedKm + 8 * tunnelKm : 14 + 1.4 * lengthKm + 1.5 * elevatedKm + 6 * tunnelKm),
-    testing: lrt ? 6 : 1,
+  const commuter = design.mode === 'commuter';
+  const newKm = lengthKm - railKm;
+  // real-world months, then run at the game's pace (your choice: compressed)
+  const real = {
+    design: clamp((lrt ? 12 : 9) + 1.5 * tunnelKm + 0.2 * lengthKm + 3 * bridgeKm, 9, 24),
+    procurement: lrt ? 10 : commuter ? 8 : 6,
+    construction: lrt ? 22 + 1.6 * newKm + 0.6 * railKm + 1.5 * elevatedKm + 8 * tunnelKm + 10 * bridgeKm
+      : commuter ? 12 + 1.4 * newKm + 0.4 * railKm + 6 * tunnelKm + 10 * bridgeKm
+        : 14 + 1.4 * lengthKm + 1.5 * elevatedKm + 6 * tunnelKm + 10 * bridgeKm,
+    testing: lrt ? 6 : commuter ? 3 : 1,
   };
+  const pace = (x: number, min: number) => Math.max(min, Math.round(x * PROJECT_COSTS.pace));
+  const months = { design: pace(real.design, 4), procurement: pace(real.procurement, 3), construction: pace(real.construction, 6), testing: pace(real.testing, 1) };
   return {
     lengthKm: round1(lengthKm), tunnelKm: round1(tunnelKm), elevatedKm: round1(elevatedKm), stations: design.stations.length,
-    undergroundStations: st.filter((x) => x === 'tunnel').length, vehicles, runMin: round1(runMin), cost, months,
+    undergroundStations: st.filter((x) => x === 'tunnel').length, railKm: round1(railKm), bridgeKm: round1(bridgeKm),
+    crossing: !!design.crosses?.some(Boolean), vehicles, runMin: round1(runMin), cost, months,
     opsPerYear: (lengthKm * c.opsPerKm + vehicles * c.opsPerTrain) * k,
   };
 }
 
 /** The edit that puts the line into service: a two-way route, its new stations, its right of way. */
 export function lineEdit(design: LineDesign, id: string): Edit {
-  const lrt = design.mode === 'lrt';
   const c = PROJECT_COSTS[design.mode];
   const m = stretches(design);
   const n = design.stations.length;
@@ -151,19 +199,21 @@ export function lineEdit(design: LineDesign, id: string): Edit {
   const provenance = { source: 'Your project', confidence: 'high' as const, verified: false, note: `${design.name}: built in the game.` };
   const route: NetRoute = {
     id, agency: 'octranspo', shortName: design.shortName, longName: `${design.name}: ${first.name} ↔ ${last.name}`,
-    mode: lrt ? 'rail' : 'brt', class: lrt ? 'otrain' : 'transitway', color: design.color, patterns: [pa.id, pb.id],
+    mode: design.mode === 'busway' ? 'brt' : 'rail', class: design.mode === 'busway' ? 'transitway' : design.mode === 'commuter' ? 'commuter' : 'otrain',
+    color: design.color, patterns: [pa.id, pb.id],
     weekday: periodsFromHeadways(design.headways), offPeakFactor: 1, provenance,
   };
   const stops: NetStop[] = design.stations.filter((s) => !s.existing).map((s) => ({
     id: s.id, name: s.name, lon: s.lon, lat: s.lat, kind: 'station', agencies: ['octranspo'], provenance,
   }));
-  const corridor: Corridor = { id: `${id}-row`, name: design.name, kind: lrt ? 'rail' : 'busway', agency: 'octranspo', lines: [shape], color: design.color, provenance };
+  const corridor: Corridor = { id: `${id}-row`, name: design.name, kind: design.mode === 'busway' ? 'busway' : 'rail', agency: 'octranspo', lines: [shape],
+    color: design.color, provenance };
   return { kind: 'add', route, patterns: [pa, pb], stops, corridor };
 }
 
 /** A new line's starting design (no stations yet). */
 export function newDesign(mode: LineMode, n: number): LineDesign {
-  return { mode, name: `Line ${n}`, shortName: mode === 'lrt' ? `L${n}` : `T${n}`, color: LINE_COLORS[(n - 1) % LINE_COLORS.length]!, stations: [], structure: [],
+  return { mode, name: `Line ${n}`, shortName: mode === 'lrt' ? `L${n}` : mode === 'commuter' ? `R${n}` : `T${n}`, color: LINE_COLORS[(n - 1) % LINE_COLORS.length]!, stations: [], structure: [],
     headways: { ...LINE_HEADWAYS[mode] } };
 }
 
@@ -187,8 +237,11 @@ const likelyCityShare = (total: number) => (total / 3) * (1 - PROJECT_COSTS.devC
 
 /** What the city pays from its own budget: the price less the partners' money and development charges. */
 export function cityShare(p: Project, price = p.budget): number {
-  return Math.max(0, price - p.funding.province - p.funding.federal) * (1 - PROJECT_COSTS.devCharges);
+  return Math.max(0, price - partnersMoney(p)) * (1 - PROJECT_COSTS.devCharges);
 }
+
+/** What the partners have committed: Ontario, the federal government, and Quebec for a river crossing. */
+export const partnersMoney = (p: Project) => p.funding.province + p.funding.federal + (p.funding.quebec ?? 0);
 
 /** The new debt service a year the city's share will cost (30-year borrowing at 4.5%). */
 export function yearlyDebtService(city: number): number {
@@ -196,10 +249,13 @@ export function yearlyDebtService(city: number): number {
   return city * (r / (1 - (1 + r) ** -30));
 }
 
+export type Government = 'province' | 'federal' | 'quebec';
+
 /** Ask a government that said no to think again (Political Capital; once a year each). */
-export function askAgain(prev: GameState, projectId: string, gov: 'province' | 'federal'): GameState {
+export function askAgain(prev: GameState, projectId: string, gov: Government): GameState {
   const p0 = projectOf(prev, projectId);
   if (!p0 || p0.funding[`${gov}Status`] !== 'declined' || !prev.council || prev.council.capital < ASK_COST) return prev;
+  if (gov === 'quebec' && !p0.estimate.crossing) return prev;
   if (p0.phase === 'open' || p0.phase === 'cancelled' || p0.phase === 'shelved') return prev;
   const last = p0.funding.asked?.[gov];
   if (last && addMonths(last, 12) > prev.date) return prev;
@@ -207,8 +263,8 @@ export function askAgain(prev: GameState, projectId: string, gov: 'province' | '
   const p = projectOf(s, projectId)!;
   s.council!.capital -= ASK_COST;
   (p.funding.asked ??= {})[gov] = s.date;
-  const yes = rand(s.seed, `${p.id}:ask:${gov}:${s.date}`) < fundingChance(p) * 0.6;
-  const amount = yes ? Math.min(600e6 * s.costIndex, Math.round(p.estimate.cost.total / 3 / 1e6) * 1e6) : 0;
+  const yes = rand(s.seed, `${p.id}:ask:${gov}:${s.date}`) < fundingChance(p, gov, s) * 0.6;
+  const amount = yes ? share(p, gov, s) : 0;
   if (yes) {
     p.funding[gov] = amount;
     p.funding[`${gov}Status`] = 'committed';
@@ -218,10 +274,22 @@ export function askAgain(prev: GameState, projectId: string, gov: 'province' | '
 }
 export const ASK_COST = 10;
 
-/** How likely a government is to pay its third: more riders per dollar, likelier. */
-function fundingChance(p: Project): number {
+/**
+ * How likely a government is to pay: more riders per dollar, likelier. Quebec follows Gatineau and
+ * the STO (their relationship with you); the federal government likes a line joining the two
+ * halves of the capital.
+ */
+function fundingChance(p: Project, gov: Government, s: GameState): number {
   const perM = ridersValue(p.forecast) / Math.max(1, p.estimate.cost.total / 1e6);
-  return clamp(0.2 + 0.07 * perM, 0.15, 0.85);
+  const base = clamp(0.2 + 0.07 * perM, 0.15, 0.85);
+  if (gov === 'quebec') return clamp(0.45 + (s.council?.sto.relationship ?? 0) / 100 + (perM - 5) * 0.02, 0.15, 0.85);
+  return gov === 'federal' && p.estimate.crossing ? Math.min(0.9, base + 0.1) : base;
+}
+
+/** Ontario and the federal government pay a third (up to $600M); Quebec a quarter of a crossing (up to $400M). */
+function share(p: Project, gov: Government, s: GameState): number {
+  const t = p.estimate.cost.total;
+  return gov === 'quebec' ? Math.min(400e6 * s.costIndex, Math.round(t / 4 / 1e6) * 1e6) : Math.min(600e6 * s.costIndex, Math.round(t / 3 / 1e6) * 1e6);
 }
 
 /**
@@ -322,7 +390,7 @@ export function chooseProcurement(prev: GameState, projectId: string, how: Procu
   p.procurement = how;
   p.phase = 'procurement';
   p.dates.procurement = s.date;
-  p.due = addMonths(s.date, p.estimate.months.procurement + (how === 'p3' ? 4 : 0));
+  p.due = addMonths(s.date, p.estimate.months.procurement + (how === 'p3' ? paced(4) : 0));
   return s;
 }
 
@@ -348,7 +416,7 @@ function award(s: GameState, p: Project, price: number) {
   const tunnelShare = p.estimate.lengthKm > 0 ? p.estimate.tunnelKm / p.estimate.lengthKm : 0;
   const p3 = p.procurement === 'p3';
   const growth = 0.03 + 0.25 * r('growth') ** 2 + 0.12 * tunnelShare;
-  const delay = Math.round((p3 ? 14 : 12) * r('delay') ** 1.8 + (tunnelShare > 0 ? 2 : 0));
+  const delay = paced((p3 ? 14 : 12) * r('delay') ** 1.8 + (tunnelShare > 0 ? 2 : 0) + (p.estimate.bridgeKm > 0 ? 2 : 0));
   const sinkhole = p.estimate.tunnelKm > 0 && r('sinkhole') < Math.min(0.6, 0.12 * p.estimate.tunnelKm);
   p.risk = { growth: round1(growth * 100) / 100, delay, ...(sinkhole ? { sinkholeAt: 0.3 + 0.4 * r('sinkholeAt') } : {}),
     rough: r('rough') < (p3 ? 0.42 : 0.35) + (p.design.mode === 'lrt' ? 0.05 : -0.15) };
@@ -368,8 +436,8 @@ export function answerOverrun(prev: GameState, projectId: string, choice: 'pay' 
   p.overrun += added;
   if (choice === 'trim' && p.risk) p.risk.rough = p.risk.rough || rand(s.seed, `${p.id}:trim`) < 0.5;
   if (choice === 'pause') {
-    p.delayMonths += 9;
-    if (p.due) p.due = addMonths(p.due, 9);
+    p.delayMonths += paced(9);
+    if (p.due) p.due = addMonths(p.due, paced(9));
   }
   news(s, { what: 'overrunAnswered', project: p.id, name: p.design.name, choice, amount: Math.round(amount) });
   return s;
@@ -397,7 +465,7 @@ export function reviveProject(prev: GameState, projectId: string): GameState {
   if (!p || p.phase !== 'shelved' || !s.council) return prev;
   if (p.dates.procurement) {
     p.phase = 'procurement';
-    p.due = addMonths(s.date, 6);
+    p.due = addMonths(s.date, paced(6));
     news(s, { what: 'retender', project: p.id, name: p.design.name });
   } else {
     p.phase = 'proposed';
@@ -429,6 +497,8 @@ const sCurve = (f: number) => {
   return x - Math.sin(2 * Math.PI * x) / (2 * Math.PI);
 };
 const DESIGN_SHARE = 0.04;
+/** Months at the game's pace (compressed). */
+const paced = (months: number) => Math.max(months > 0 ? 1 : 0, Math.round(months * PROJECT_COSTS.pace));
 const PROCUREMENT_SHARE = 0.01;
 
 /** What should have been spent by today (all partners). */
@@ -456,7 +526,7 @@ function payMonth(s: GameState, p: Project, today: string) {
   const target = spendTarget(p, today);
   const due = target - p.spent;
   if (due <= 0) return;
-  const partners = p.funding.province + p.funding.federal;
+  const partners = partnersMoney(p);
   const paidByPartners = Math.min(due * (partners / Math.max(p.budget, 1)), Math.max(0, partners - (p.partnersSpent ?? 0)));
   p.partnersSpent = (p.partnersSpent ?? 0) + paidByPartners;
   // development charges pay a quarter of the rest
@@ -473,23 +543,25 @@ function payMonth(s: GameState, p: Project, today: string) {
 
 /** Ontario and the federal government decide on a third each: likelier for more riders per dollar. */
 function seekFunding(s: GameState, p: Project) {
-  const cap = 600e6 * s.costIndex;
-  for (const gov of ['province', 'federal'] as const) {
-    const chance = fundingChance(p);
-    const yes = rand(s.seed, `${p.id}:funding:${gov}`) < chance;
-    const amount = yes ? Math.min(cap, Math.round(p.estimate.cost.total / 3 / 1e6) * 1e6) : 0;
+  const govs: Government[] = p.estimate.crossing ? ['province', 'federal', 'quebec'] : ['province', 'federal'];
+  for (const gov of govs) {
+    const yes = rand(s.seed, `${p.id}:funding:${gov}`) < fundingChance(p, gov, s);
+    const amount = yes ? share(p, gov, s) : 0;
     p.funding[gov] = amount;
     p.funding[`${gov}Status`] = yes ? 'committed' : 'declined';
     news(s, { what: 'funding', project: p.id, name: p.design.name, gov, amount });
+    // Gatineau remembers whether you built it together
+    if (gov === 'quebec' && s.council) s.council.sto.relationship = clamp(s.council.sto.relationship + (yes ? 5 : -5), -50, 50);
   }
 }
 
 /** The NCC reviews alignments along its parkways and the river: conditions add time and money. */
 function nccReview(s: GameState, p: Project) {
   const names = p.design.stations.map((x) => x.name).join(' ');
-  if (!/parkway|promenade|driveway|colonel by|river|canal/i.test(names)) return;
+  // a bridge or tunnel under the river is always the NCC's business (and federal waters)
+  if (!p.estimate.crossing && !/parkway|promenade|driveway|colonel by|river|canal/i.test(names)) return;
   p.budget *= 1.04;
-  p.estimate.months.construction += 3;
+  p.estimate.months.construction += paced(3);
   news(s, { what: 'ncc', project: p.id, name: p.design.name });
 }
 
@@ -505,7 +577,7 @@ export function lineCostsNextYear(s: GameState): number {
     if (p.phase === 'open') ops += p.estimate.opsPerYear;
     if (!['design', 'procurement', 'construction', 'testing'].includes(p.phase)) continue;
     const due = Math.max(0, spendTarget(p, ahead) - p.spent);
-    const partners = p.funding.province + p.funding.federal;
+    const partners = partnersMoney(p);
     const fromPartners = Math.min(due * (partners / Math.max(p.budget, 1)), Math.max(0, partners - (p.partnersSpent ?? 0)));
     borrow += (due - fromPartners) * (1 - PROJECT_COSTS.devCharges);
     const opens = p.due && p.phase === 'testing' ? p.due : undefined;
@@ -589,8 +661,8 @@ function setbacks(s: GameState, p: Project, today: string) {
     news(s, { what: 'delay', project: p.id, name: p.design.name, months: r.delay, damages: Math.round(damages) });
   });
   if (r.sinkholeAt !== undefined) once('sinkhole', r.sinkholeAt, () => {
-    p.delayMonths += 4;
-    if (p.due) p.due = addMonths(p.due, 4);
+    p.delayMonths += paced(4);
+    if (p.due) p.due = addMonths(p.due, paced(4));
     const cost = p.budget * 0.03 * (p.procurement === 'p3' ? 0.2 : 1);
     p.budget += cost;
     p.overrun += cost;
@@ -618,7 +690,11 @@ function open(s: GameState, p: Project, today: string) {
  */
 export function lineCapacityHours(s: GameState): number {
   let h = 0;
-  for (const p of s.projects ?? []) if (p.phase === 'open' && p.design.mode === 'lrt') h += (p.estimate.vehicles / 1.15) * 17 * 3.25;
+  for (const p of s.projects ?? []) {
+    if (p.phase !== 'open') continue;
+    if (p.design.mode === 'lrt') h += (p.estimate.vehicles / 1.15) * 17 * 3.25;
+    else if (p.design.mode === 'commuter') h += (p.estimate.vehicles / 1.15) * 10 * 7.5; // peak-heavy, 4 bi-levels
+  }
   return h;
 }
 

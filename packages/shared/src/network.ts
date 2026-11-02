@@ -5,7 +5,7 @@
 export type AgencyId = 'octranspo' | 'sto';
 export type Mode = 'bus' | 'brt' | 'rail';
 /** Visual / planning class; drives colour and line weight (VISUAL_DESIGN §3). */
-export type RouteClass = 'transitway' | 'otrain' | 'frequent' | 'local' | 'peak' | 'rural' | 'sto';
+export type RouteClass = 'transitway' | 'otrain' | 'frequent' | 'local' | 'peak' | 'rural' | 'sto' | 'commuter';
 export type Confidence = 'high' | 'medium' | 'low';
 
 /** Where a piece of network data came from, and how sure we are. */
