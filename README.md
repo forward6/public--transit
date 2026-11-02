@@ -122,6 +122,33 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
 
   - drawing a line, every change can be **undone and redone** (⌘Z / Ctrl+Z); **Close** keeps the
     draft for later (in this browser), **Discard draft** asks first.
+- **Streetcars** (M8): a fourth mode, drawn stop by stop along the streets (each stretch follows the
+  2010 streets between the stops you place). Each stretch runs **in traffic** (about bus speed:
+  lights and traffic) or **in its own lane** with signal priority (faster, dearer, a lane taken from
+  cars). About $14M a km in traffic, $20M in its own lane, plus cars and a small yard; the street is
+  dug up for longer, since the utilities under it move first.
+- **Growth** (M9 v1): the city grows after 2010, and where depends on what you do.
+  - Each month the region adds about 1.3% residents and 0.9% jobs a year (a little more when transit
+    lets more people reach more jobs). A land-use model places them where people can **reach jobs**
+    by car and by transit (the network running now), where there is **room to build** (the
+    suburban edge has plenty; the core redevelops slowly, a little faster where transit improved),
+    near rapid-transit **stations** where the zoning allows (developers pay more, most for a new
+    line's), and **not beside construction** (homes wait, some shops close while a street is torn
+    up).
+  - A line that is no faster than the bus it replaces (a streetcar in traffic, say) adds little
+    reach, so it draws little growth; its construction still costs the businesses along it. The
+    real lever is **zoning**: developers offer to build near stations if council rezones (a vote:
+    homes near transit and development charges against the neighbours).
+  - New residents and jobs bring riders as their neighbourhoods use transit.
+  - **Growth** view (top bar): the map washed by new residents and jobs since 2010, zones beside
+    construction outlined; the Growth panel shows where growth went (near stations, the core, the
+    suburban edge, Gatineau, rural), month by month, the fastest-growing places, developers' offers
+    and what draws growth. Tap a zone: then and now, room left, reach by transit and by car, and why
+    it grows (or doesn't).
+- **+1 month**: plays the rest of the month at once (stopping at a decision), then shows the **month
+  in review**: weekday riders, approval, reserves, Political Capital, riders from growth, new
+  residents and jobs and where they went, and what happened. Another month, or see where it grew.
+- Coming back to the game, it now plays at **real time** (▶); speed it up when you want.
 - **Operations, right now:** tap the **"in service" chip** in the top bar (under the reserve on an iPad,
   in the sheet on a phone). Buses and trains running, riders on
   board (estimated), places running against the whole fleet's, buses spare at the garage or **in the
@@ -131,6 +158,14 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
 
 - **Settings** (the gear at the end of the top bar): language (English or French), 3D buildings and
   terrain (off for a flat map that runs faster on older devices), and the main menu.
+
+![Growth: where new residents and jobs went](docs/screenshots/m9/growth-panel.jpg)
+
+![A Bank Street streetcar, drawn along the street](docs/screenshots/m9/streetcar-bank.jpg)
+
+![The month in review](docs/screenshots/m9/month-review.jpg)
+
+![A developer's offer at Lees](docs/screenshots/m9/developer-offer.jpg)
 
 ![Operations: the fleet and the network right now](docs/screenshots/ops/ops.jpg)
 

@@ -751,7 +751,7 @@ to keep iteration fast; it expands to the full region afterwards.
 | M6 🔶 | **Opinion and media** | Opinion grid, rider diaries, "Follow a rider", headline generator, opinion maps | The public's reaction is visible and explainable | M |
 | M7 🔶 | **Council, elections and partners** | Councillors, whip counts, votes, Political Capital, elections, STO AI, funders, NCC, labour | A full four-year term plays out with soft consequences | L |
 | M8 🔶 | **Big projects** | LRT, commuter rail, Transitway segments, river crossings; procurement, construction disruption, opening day | You can build a rapid-transit line from proposal to opening | L |
-| M9 | **Growth** | Land-use allocation, developer proposals, TOD, urban boundary debates, ward redistribution | The 2030 city looks different depending on how you played | M |
+| M9 🔶 | **Growth** | Land-use allocation, developer proposals, TOD, urban boundary debates, ward redistribution | The 2030 city looks different depending on how you played | M |
 | M10 | **Campaign and content** | Tutorial, term goals, scenarios, achievements, 2030 legacy retrospective, sandbox options | A complete campaign from 2010 to 2030 | M |
 | M11 | **Polish** | Schematic morph, seasonal effects, signature moments, audio, accessibility pass, French pass, performance (including a mobile battery and memory budget), offline PWA | The game feels finished and lovely, and plays well on a phone | L |
 
@@ -854,7 +854,7 @@ to keep iteration fast; it expands to the full region afterwards.
 7. 🔶 **M5 (v1):** money and fleet ([screenshots](screenshots/m5/)).
    - **The calendar** starts at 00:01 on Wednesday 1 December 2010 and runs on the game clock, which
      crosses midnight (late trips run on the timetable's 24:00+ times). Speeds: pause, real time,
-     1 min/s, 15 min/s, 2 h/s and 1 day/s; vehicles are hidden at 1 day/s. Decisions pause the
+     1 min/s, 15 min/s, 2 h/s and 1 day/s (it starts, and resumes, at real time), and "+1 month"; vehicles are hidden at 1 day/s. Decisions pause the
      game. The campaign and the time of day are saved in the browser.
    - **The look follows the calendar:** the season from the month (snow from December to March) and
      night from Ottawa's sunrise and sunset (with daylight saving time). There are no season or
@@ -1088,8 +1088,40 @@ to keep iteration fast; it expands to the full region afterwards.
       does). Language and 3D moved off the top bar into a settings menu (the gear), with the main
       menu; on a phone it opens as a sheet. On a narrow iPad (portrait) the top bar uses the short
       date to stay on one line.
-13. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
-14. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
+13. ✅ **Added at your request:** streetcars, growth (M9 v1), a month at a time, and a slow start
+    ([screenshots](screenshots/m9/)).
+    - **Streetcars** (a fourth M8 mode): stops placed on the map; each stretch follows the 2010
+      street graph (a 'tram' routing: shortest way on main streets, side streets avoided, never
+      highways, ramps or the Transitway; straight new track where the street path is over 1.5× the
+      direct distance, e.g. the Bank Street bridge is not connected in the 2010 graph). Per stretch:
+      in traffic ('street': 22 km/h cruising plus 30 s a km of lights and traffic) or its own lane
+      ('surface': 35 km/h plus 10 s a km with signal priority), tunnel, or an existing road bridge
+      across the river. Costs (2011 $): $14M a km in traffic, $20M in its own lane, curb stops
+      $0.8–1.5M, 150-place cars $4.5M, a $25M yard; construction 14 months + 2.2 a km (real, before
+      the 0.42 pace). Checked against Kansas City, Cincinnati and Atlanta (about $25–30M US a km all
+      in). Route class 'streetcar' (capacity 150, 60 seats).
+    - **Growth (M9 v1)**: monthly allocation of the region's growth (1.3% residents, 0.9% jobs a
+      year, ×0.85–1.25 by the population-weighted change in transit reach). Residents go to zones
+      by room^0.75 × exp(0.6 ln transit reach + 0.5 ln car reach) (each against the region's
+      average) × the station premium (up to +25% within 800 m of a 2010 rapid-transit station, +40%
+      for a committed new line's, half for a streetcar's) × (1 − 0.6 × construction nearby). 65% of
+      new jobs follow reach (0.9 transit, 0.4 car), 35% follow the new residents; businesses beside
+      construction lose 0.4% of retail (and 30% of office) jobs a month. Room as of right: core
+      infill (4% + 120/km², redeveloping 0.6% a year, up to 4× faster where transit reach doubled),
+      partly built suburban cells filling to 1,950/km², built-out suburbs 4%, villages 3%. Car
+      reach from the 2011 car skim (jobs within 30 min).
+    - **Riders from growth** replace the flat 1.2% a year: new residents (60%) and jobs (40%) weighted
+      by their zone's transit share (more where transit reach improved).
+    - **Developers' offers** every 5–9 months near the best-placed station without room (Ottawa
+      only; new lines' stations twice as likely): 600–3,000 homes. Backing one tables a rezoning
+      (council: homes near transit and development charges, $1,800 a home, against the ward's
+      neighbours); passing adds the room.
+    - **A month at a time**: "+1 month" runs the days to the next month (stopping at a decision) and
+      shows the month in review. The game now resumes at real time.
+    - Not yet: urban boundary debates, ward redistribution, re-running the demand model on the grown
+      city (riders from growth are scaled from 2011's shares), new buildings drawn on the map.
+14. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
+15. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 
 ---
 
