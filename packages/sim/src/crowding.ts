@@ -18,6 +18,7 @@ export const VEHICLE_CAPACITY: Record<RouteClass, number> = {
   sto: 70,
   otrain: 260, // a three-car Talent train
   commuter: 600, // four bi-level coaches (M8)
+  streetcar: 150, // a 30-metre low-floor car
 };
 
 /**

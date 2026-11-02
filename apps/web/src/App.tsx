@@ -198,12 +198,13 @@ export function App() {
   const line = useLineDraw(game.operation ?? base, plan, game, settings.lang, baseUrl);
   const lineRef = useRef(line);
   lineRef.current = line;
-  // &line=lon,lat;lon,lat… (with ?plan=1) draws a line: &linemode=busway|commuter, &tunnel=2,3 (stretches in tunnel), &linename=…
+  // &line=lon,lat;lon,lat… (with ?plan=1) draws a line: &linemode=busway|commuter|streetcar, &tunnel=2,3 (stretches in tunnel), &lane=0,1
+  // (a streetcar's stretches in their own lane), &linename=…
   useEffect(() => {
     const pts = params.get('line');
     if (!base || !params.get('plan') || !pts || !game.state?.council) return;
     const lm = params.get('linemode');
-    lineRef.current.start(lm === 'busway' || lm === 'commuter' ? lm : 'lrt');
+    lineRef.current.start(lm === 'busway' || lm === 'commuter' || lm === 'streetcar' ? lm : 'lrt');
     setTimeout(() => {
       pts.split(';').forEach((pt) => {
         const [x, y] = pt.split(',').map(Number);
@@ -211,6 +212,7 @@ export function App() {
       });
       setTimeout(() => {
         for (const i of (params.get('tunnel') ?? '').split(',').filter(Boolean).map(Number)) lineRef.current.setStructure(i, 'tunnel');
+        for (const i of (params.get('lane') ?? '').split(',').filter(Boolean).map(Number)) lineRef.current.setStructure(i, 'surface');
         if (params.get('linename')) lineRef.current.setName(params.get('linename')!);
       }, 0);
     }, 0);
@@ -380,8 +382,9 @@ export function App() {
   useStreamedSource(map, OPINION_ZONES, opinionFc);
   // M9: the Growth view (redrawn when a month's growth is added)
   const growthOn = settings.growth && !!game.state;
-  const growthFc = useMemo(() => (growthOn ? growthPolys(base?.zones ?? null, game.state?.growth, zoneSel) : null),
-    [growthOn, game.state?.growth?.history.length, base, zoneSel]); // eslint-disable-line react-hooks/exhaustive-deps
+  const buildingKey = (game.state?.projects ?? []).map((p) => `${p.id}:${p.phase}`).join();
+  const growthFc = useMemo(() => (growthOn ? growthPolys(base?.zones ?? null, game.state, zoneSel) : null),
+    [growthOn, game.state?.growth?.history.length, buildingKey, base, zoneSel]); // eslint-disable-line react-hooks/exhaustive-deps
   useStreamedSource(map, GROWTH_ZONES, growthFc);
   // skip a month: play the rest of it at once, pause, and show what changed
   const [review, setReview] = useState<MonthSkip | null>(null);

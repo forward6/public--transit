@@ -132,7 +132,7 @@ export function growthStations(s: GameState, world: GrowthWorld): GrowthStation[
   for (const p of s.projects ?? []) {
     if (!committed(p)) continue;
     // a streetcar stop is a smaller draw than a rapid-transit station: the car comes every 10 minutes and runs at bus speeds
-    const weight = (p.design.mode as string) === 'streetcar' ? 0.5 : 1;
+    const weight = p.design.mode === 'streetcar' ? 0.5 : 1;
     for (const st of p.design.stations) out.push({ lon: st.lon, lat: st.lat, name: st.name, newLine: p.id, weight });
   }
   return out;

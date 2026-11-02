@@ -49,8 +49,10 @@ export function projectFeatures(projects: Project[], draft: LineDesign | null, r
   const add = (d: LineDesign, id: string, phase: string) => {
     d.stations.forEach((s, i) => {
       const next = d.stations[i + 1];
+      // a streetcar follows its streets; other lines run straight between stations
+      const path = d.paths?.[i];
       if (next) features.push({ type: 'Feature', properties: { id, phase, color: d.color, structure: d.structure[i] ?? 'surface', kind: 'stretch' },
-        geometry: { type: 'LineString', coordinates: [[s.lon, s.lat], [next.lon, next.lat]] } });
+        geometry: { type: 'LineString', coordinates: path && path.length >= 2 ? path : [[s.lon, s.lat], [next.lon, next.lat]] } });
       features.push({ type: 'Feature', properties: { id, phase, color: d.color, name: s.name, existing: !!s.existing, kind: 'station' },
         geometry: { type: 'Point', coordinates: [s.lon, s.lat] } });
     });
@@ -62,13 +64,13 @@ export function projectFeatures(projects: Project[], draft: LineDesign | null, r
 
 /** Stations and stops, tagged with the most prominent class serving them. */
 export function networkStops(network: Network, playback: Playback): PointsFC {
-  const rank: RouteClass[] = ['otrain', 'commuter', 'transitway', 'frequent', 'sto', 'local', 'peak', 'rural'];
+  const rank: RouteClass[] = ['otrain', 'commuter', 'transitway', 'streetcar', 'frequent', 'sto', 'local', 'peak', 'rural'];
   return {
     type: 'FeatureCollection',
     features: network.stops.map((s) => {
       const classes = new Set(playback.routesAt(s.id).map((r) => r.class));
       const top = rank.find((c) => classes.has(c)) ?? (s.kind === 'station' ? 'transitway' : 'local');
-      const rail = classes.has('otrain') || classes.has('commuter');
+      const rail = classes.has('otrain') || classes.has('commuter') || classes.has('streetcar');
       return {
         type: 'Feature',
         properties: { id: s.id, name: s.name, kind: s.kind, cls: top, rail, transfer: rail && classes.size > 1 },

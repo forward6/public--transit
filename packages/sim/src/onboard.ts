@@ -26,6 +26,7 @@ export const SEATS: Record<RouteClass, number> = {
   sto: 40,
   otrain: 135, // three Talent cars
   commuter: 560, // four bi-level coaches
+  streetcar: 60,
 };
 
 type Profile = number[];

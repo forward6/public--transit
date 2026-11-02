@@ -49,6 +49,8 @@ export interface PlanState {
   tool: Tool;
   setTool: (t: Tool) => void;
   graphReady: boolean;
+  /** the street graph (loaded when Plan mode first opens) */
+  graph: StreetGraph | null;
   /** the network the game shows and runs: the base network with the edits applied */
   view: NetworkState | null;
   // drawing
@@ -192,7 +194,7 @@ export function usePlan(base: NetworkState | null, baseUrl: string, baseEdits: E
   }, [tool]);
 
   return {
-    active, setActive, edits, addEdit, undo, reset, removeEdit, tool, setTool, graphReady: !!graph, view,
+    active, setActive, edits, addEdit, undo, reset, removeEdit, tool, setTool, graphReady: !!graph, graph, view,
     waypoints, draft, newHeadways, setNewHeadways,
     addWaypoint: (p) => setWaypoints((w) => [...w, p]),
     undoWaypoint: () => setWaypoints((w) => w.slice(0, -1)),

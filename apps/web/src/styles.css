@@ -763,3 +763,10 @@ body.layout-phone .controls > .toggle { min-width: calc(50% - 30px); }
 .review-news li { padding: 5px 0; border-top: 1px solid var(--divider); }
 .review-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
 .riders-line.warn-line { color: var(--amber); font-weight: 600; }
+.sw-building { background: transparent; border: 2px dashed #2F6DB0; box-sizing: border-box; }
+/* a narrow iPad (portrait): the reserve and "in service" chips move from the top bar to the map card */
+.narrow-only { display: none; }
+@media (max-width: 1099px) {
+  body.layout-tablet .topbar .chips { display: none; }
+  body.layout-tablet .lg-status .narrow-only { display: contents; }
+}

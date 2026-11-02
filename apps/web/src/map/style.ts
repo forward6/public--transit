@@ -52,7 +52,7 @@ export const OPINION_ZONES = 'op-zones';
 export const GROWTH_ZONES = 'gr-zones';
 export const RIDER_PATH = 'rider-path';
 export const RIDER_POS = 'rider-pos';
-export const CLASSES: RouteClass[] = ['local', 'peak', 'rural', 'sto', 'frequent', 'transitway', 'otrain', 'commuter'];
+export const CLASSES: RouteClass[] = ['local', 'peak', 'rural', 'sto', 'frequent', 'transitway', 'streetcar', 'otrain', 'commuter'];
 /** Interactive layers, top-most first (click priority). */
 export const PICKABLE = ['rider-pos', 'net-vehicles', 'net-vehicle-dots', 'proj-stations', 'proj-planned', 'proj-building', 'net-stations', 'net-stops', 'net-routes', 'net-otrain', 'net-transitway', 'op-zones', 'gr-zones'];
 export const TERRAIN = 'terrain';
@@ -386,7 +386,7 @@ function addNetworkLayers(L: (l: LayerSpecification) => void, p: Palette, riders
   L({ id: 'net-vehicle-dots', type: 'circle', source: NET_VEHICLES, maxzoom: 13.6,
     paint: {
       'circle-color': ['coalesce', ['get', 'color'], ['match', ['get', 'cls'], ...CLASSES.flatMap((c) => [c, T[c]]), T.local]] as unknown as ExpressionSpecification,
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['match', ['get', 'cls'], ['otrain', 'commuter'], 3.4, 2.4], 13.6, ['match', ['get', 'cls'], ['otrain', 'commuter'], 7, 5]] as unknown as ExpressionSpecification,
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['match', ['get', 'cls'], ['otrain', 'commuter'], 3.4, 'streetcar', 2.9, 2.4], 13.6, ['match', ['get', 'cls'], ['otrain', 'commuter'], 7, 'streetcar', 6, 5]] as unknown as ExpressionSpecification,
       'circle-stroke-color': p.night ? '#FFFFFF' : '#14213A',
       'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, muted || riders ? 0.6 : 1.4, 13.6, 2.2],
       ...(muted || riders ? { 'circle-opacity': 0.3, 'circle-stroke-opacity': 0.3 } : {}),
@@ -452,15 +452,18 @@ function addOpinionLayers(L: (l: LayerSpecification) => void, p: Palette) {
 }
 
 /** M9 Growth view: new residents and jobs per km² since 2010, warm where the city grew; cool where jobs were lost. */
-export const GROWTH_RAMP: [number, string][] = [[-200, '#3E7CB1'], [-1, '#9DB9D3'], [0, 'rgba(246,227,161,0)'], [15, '#F6E3A1'], [80, '#F2B45C'], [300, '#E57A2E'],
-  [1000, '#C8432B'], [3000, '#8E1F3A']];
+export const GROWTH_RAMP: [number, string][] = [[-200, '#3E7CB1'], [-5, '#9DB9D3'], [0, '#F6E3A1'], [20, '#F6E3A1'], [150, '#F2B45C'], [600, '#E57A2E'],
+  [2000, '#C8432B'], [5000, '#8E1F3A']];
 function addGrowthLayers(L: (l: LayerSpecification) => void, p: Palette) {
   L({ id: 'gr-zones', type: 'fill', source: GROWTH_ZONES, filter: ['==', ['geometry-type'], 'Polygon'],
     paint: {
       'fill-color': ['interpolate', ['linear'], ['get', 'v'], ...GROWTH_RAMP.flat()],
-      'fill-opacity': ['case', ['==', ['get', 'v'], 0], 0, ['boolean', ['get', 'coarse'], false], 0.5, 0.66],
+      'fill-opacity': ['case', ['==', ['get', 'v'], 0], 0, ['boolean', ['get', 'coarse'], false], 0.42, 0.56],
       'fill-outline-color': p.night ? 'rgba(10,18,30,0.3)' : 'rgba(255,255,255,0.4)',
     } as never });
+  // beside a street torn up for a line: homes wait, some shops close
+  L({ id: 'gr-zones-building', type: 'line', source: GROWTH_ZONES, filter: ['==', ['get', 'building'], true],
+    paint: { 'line-color': p.night ? '#7FB2E5' : '#2F6DB0', 'line-width': 2, 'line-dasharray': [2, 1.5] } });
   L({ id: 'gr-zones-selected', type: 'line', source: GROWTH_ZONES, filter: ['==', ['get', 'selected'], true],
     paint: { 'line-color': p.night ? '#FFFFFF' : '#14213A', 'line-width': 2.5 } });
 }

@@ -111,8 +111,8 @@ export class StreetGraph {
     return x * 100003 + y;
   }
 
-  /** Nearest node to a point (searching outwards up to ~2.5 km), or -1. */
-  nearestNode(lon: number, lat: number): number {
+  /** Nearest node to a point (searching outwards up to ~2.5 km), or -1; `accept` limits it to nodes on some edge it accepts. */
+  nearestNode(lon: number, lat: number, accept?: (edge: number) => boolean): number {
     let best = -1;
     let bd = Infinity;
     for (let r = 0; r <= 10 && best < 0; r++) {
@@ -120,6 +120,7 @@ export class StreetGraph {
         for (let dy = -r; dy <= r; dy++) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
           for (const k of this.grid.get(this.cellKey(lon, lat, dx, dy)) ?? []) {
+            if (accept && !this.edgesAt(k).some(accept)) continue;
             const d = Math.hypot((this.lon[k]! - lon) * KX, (this.lat[k]! - lat) * KY);
             if (d < bd) {
               bd = d;
@@ -132,16 +133,30 @@ export class StreetGraph {
     return best;
   }
 
+  /** The edges meeting a node. */
+  edgesAt(node: number): number[] {
+    return Array.from(this.adjEdge.subarray(this.adjStart[node]!, this.adjStart[node + 1]!));
+  }
+
+  /** A street a streetcar can run on (not a highway, a ramp or the Transitway), and how much it would rather not (side streets). */
+  tramFactor(edge: number): number {
+    const c = this.meta.classes[this.cls[edge]!]!;
+    return c === 'busway' || c === 'motorway' || c === 'trunk' || c === 'link' ? Infinity
+      : c === 'primary' || c === 'secondary' ? 1 : c === 'tertiary' ? 1.15 : c === 'minor' ? 1.8 : 4;
+  }
+
   other(edge: number, node: number): number {
     return this.eu[edge] === node ? this.ev[edge]! : this.eu[edge]!;
   }
 
   /**
    * Least-cost path between two nodes (Dijkstra, binary heap): the edges in order, or null.
-   * 'local' routes keep off highways; 'express' routes may use them.
+   * 'local' routes keep off highways; 'express' routes may use them; a 'tram' takes the shortest way
+   * along city streets, main streets first (never highways or the Transitway).
    */
-  path(a: number, b: number, kind: 'local' | 'express' = 'local'): number[] | null {
+  path(a: number, b: number, kind: 'local' | 'express' | 'tram' = 'local'): number[] | null {
     const penalty = kind === 'local' ? this.localPenalty : null;
+    const tram = kind === 'tram';
     if (a === b) return [];
     const dist = new Float64Array(this.nNodes).fill(Infinity);
     const via = new Int32Array(this.nNodes).fill(-1);
@@ -155,7 +170,8 @@ export class StreetGraph {
       for (let j = this.adjStart[u]!; j < this.adjStart[u + 1]!; j++) {
         const e = this.adjEdge[j]!;
         const v = this.other(e, u);
-        const nd = d + this.cost[e]! * (penalty ? penalty[this.cls[e]!]! : 1);
+        const nd = d + (tram ? this.len[e]! * this.tramFactor(e) : this.cost[e]! * (penalty ? penalty[this.cls[e]!]! : 1));
+        if (!Number.isFinite(nd)) continue;
         if (nd < dist[v]!) {
           dist[v] = nd;
           via[v] = e;

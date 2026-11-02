@@ -73,7 +73,7 @@ export function OpsPanel({ state, playback, t, day, onBoard, s, lang, palette, o
   const trainsOwned = (routeId: string) => (routeId.startsWith('line-')
     ? state.projects?.find((p) => p.id === routeId)?.estimate.vehicles ?? 0 : fleet.trains);
   const linesCap = (state.projects ?? []).filter((p) => p.phase === 'open' && p.design.mode !== 'busway')
-    .reduce((a, p) => a + p.estimate.vehicles * (p.design.mode === 'commuter' ? VEHICLE_CAPACITY.commuter : VEHICLE_CAPACITY.otrain), 0);
+    .reduce((a, p) => a + p.estimate.vehicles * VEHICLE_CAPACITY[p.design.mode === 'commuter' ? 'commuter' : p.design.mode === 'streetcar' ? 'streetcar' : 'otrain'], 0);
   const maxCap = fleet.maxCapacity + fleet.trains * TYPE_CAPACITY.rail + linesCap;
   const trainsRunning = now.lines.reduce((a, l) => a + l.running, 0);
   const trainRoutes = playback.network.routes.filter((r) => r.mode === 'rail' && r.agency === 'octranspo');

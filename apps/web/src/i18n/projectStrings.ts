@@ -10,6 +10,8 @@ export interface ProjectStrings {
   modeHelp: Record<LineMode, string>;
   drawHint: string;
   structure: Record<Structure, string>;
+  /** a streetcar's 'surface': its own lane */
+  ownLane: string;
   stretch: (a: string, b: string, km: string) => string;
   name: string;
   estimate: string;
@@ -104,14 +106,16 @@ const mFR = (x: unknown) => `${Math.round(Number(x) / 1e6).toLocaleString('fr-CA
 export const PROJECTS_EN: ProjectStrings = {
   title: 'Rapid transit',
   newLine: 'New rapid-transit line',
-  mode: { lrt: 'Light rail', busway: 'Transitway busway', commuter: 'Commuter rail' },
+  mode: { lrt: 'Light rail', busway: 'Transitway busway', commuter: 'Commuter rail', streetcar: 'Streetcar' },
   modeHelp: {
     lrt: 'Trains on their own track: fast, high capacity, expensive. About $35M a km on the surface, $260M in a tunnel, $150M on a bridge.',
     busway: 'Buses on their own roadway, like the Transitway: cheaper, and buses can leave it to reach neighbourhoods.',
     commuter: 'Big diesel trains, mostly at rush hour, on the existing railways (shown dashed): about $4M a km to upgrade track, $18M to lay new track. Stations far apart.',
+    streetcar: 'A tram along the streets, stopping every few blocks: it follows the streets between the stops you place. About $14M a km in traffic, $20M in its own lane. In traffic it is no faster than a bus.',
   },
   drawHint: 'Tap the map to place stations in order. A station near an existing one shares it, so riders can transfer.',
-  structure: { surface: 'Surface', elevated: 'Elevated', tunnel: 'Tunnel', bridge: 'Bridge' },
+  structure: { surface: 'Surface', street: 'In traffic', elevated: 'Elevated', tunnel: 'Tunnel', bridge: 'Bridge' },
+  ownLane: 'Own lane',
   stretch: (a, b, km) => `${a} → ${b} · ${km} km`,
   name: 'Name',
   estimate: 'Estimate',
@@ -225,14 +229,16 @@ export const PROJECTS_EN: ProjectStrings = {
 export const PROJECTS_FR: ProjectStrings = {
   title: 'Transport rapide',
   newLine: 'Nouvelle ligne de transport rapide',
-  mode: { lrt: 'Train léger', busway: 'Transitway (voie réservée)', commuter: 'Train de banlieue' },
+  mode: { lrt: 'Train léger', busway: 'Transitway (voie réservée)', commuter: 'Train de banlieue', streetcar: 'Tramway' },
   modeHelp: {
     lrt: 'Des trains sur leurs propres voies : rapide, grande capacité, coûteux. Environ 35 M$ le km en surface, 260 M$ en tunnel, 150 M$ sur un pont.',
     busway: 'Des autobus sur leur propre chaussée, comme le Transitway : moins cher, et les autobus peuvent en sortir pour desservir les quartiers.',
     commuter: 'De gros trains diesel, surtout aux heures de pointe, sur les voies ferrées existantes (en pointillé) : environ 4 M$ le km pour moderniser la voie, 18 M$ pour en poser une nouvelle. Stations espacées.',
+    streetcar: 'Un tramway dans la rue, avec un arrêt tous les quelques coins de rue : il suit les rues entre les arrêts que vous placez. Environ 14 M$ le km dans la circulation, 20 M$ en voie réservée. Dans la circulation, il ne va pas plus vite qu’un autobus.',
   },
   drawHint: 'Touchez la carte pour placer les stations dans l’ordre. Une station près d’une station existante la partage, pour les correspondances.',
-  structure: { surface: 'Surface', elevated: 'Aérien', tunnel: 'Tunnel', bridge: 'Pont' },
+  structure: { surface: 'Surface', street: 'Dans la circulation', elevated: 'Aérien', tunnel: 'Tunnel', bridge: 'Pont' },
+  ownLane: 'Voie réservée',
   stretch: (a, b, km) => `${a} → ${b} · ${km} km`,
   name: 'Nom',
   estimate: 'Estimation',

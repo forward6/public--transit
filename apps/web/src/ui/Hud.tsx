@@ -325,7 +325,8 @@ export function Hud(props: HudProps) {
       {dock}
       {!dock && <Legend t={t} riders={settings.riders && hasRiders} opinion={settings.opinion && hasOpinion} ridersLegend={ridersLegend}
         growth={settings.growth && hasGrowth ? growthLegend : undefined}
-        status={<>{layout !== 'desktop' && <>{approval}{capital}{ridersChip}</>}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></>} />}
+        status={<>{layout === 'tablet' && <span className="narrow-only">{treasury}{opsChip}</span>}{layout !== 'desktop' && <>{approval}{capital}{ridersChip}</>}
+          <StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></>} />}
     </>
   );
 }

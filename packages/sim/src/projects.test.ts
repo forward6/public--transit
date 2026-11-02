@@ -161,6 +161,30 @@ describe('big projects', () => {
     expect(lineEdit(d, 'line-3')).toMatchObject({ route: { class: 'commuter', mode: 'rail' } });
   });
 
+  it('runs a streetcar along the street: in traffic at about bus speed, faster in its own lane', () => {
+    // 4 km, a stop every 400 m, along a street with a jog in it
+    const stops = Array.from({ length: 11 }, (_, i) => stationAt(-75.70 + i * 0.0051, 45.40, [], `s${i}`));
+    const d = newDesign('streetcar', 2);
+    d.stations = stops;
+    d.structure = stops.slice(1).map(() => 'street' as const);
+    d.paths = stops.slice(1).map((b, i) => [[stops[i]!.lon, stops[i]!.lat], [stops[i]!.lon + 0.0025, stops[i]!.lat + 0.0004], [b.lon, b.lat]] as [number, number][]);
+    const mixed = estimateLine(d);
+    const lane = estimateLine({ ...d, structure: d.structure.map(() => 'surface' as const) });
+    const kmh = (e: typeof mixed) => (e.lengthKm / e.runMin) * 60;
+    expect(mixed.lengthKm).toBeGreaterThan(4); // along its path, not straight
+    expect(kmh(mixed)).toBeGreaterThan(11);
+    expect(kmh(mixed)).toBeLessThan(17);
+    expect(kmh(lane)).toBeGreaterThan(kmh(mixed) + 3);
+    // about $30–45M a km all in, far less than light rail; cars, a small yard
+    expect(mixed.cost.total / mixed.lengthKm / 1e6).toBeGreaterThan(25);
+    expect(mixed.cost.total / mixed.lengthKm / 1e6).toBeLessThan(50);
+    expect(lane.cost.total).toBeGreaterThan(mixed.cost.total);
+    expect(mixed.vehicles).toBeGreaterThan(3);
+    const e = lineEdit(d, 'line-2');
+    expect(e).toMatchObject({ route: { class: 'streetcar', mode: 'rail', shortName: 'S2' } });
+    if (e.kind === 'add') expect(e.patterns[0]!.shape.length).toBeGreaterThan(stops.length); // it follows the street
+  });
+
   it('knows a line crossing the Ottawa River: a bridge or a tunnel, and Quebec at the table', () => {
     const z = (id: number, city: 'ottawa' | 'gatineau', lon: number, lat: number) => ({ ...zone(id, 1000, 1000, lon, lat), city });
     const both = [z(0, 'ottawa', -75.70, 45.42), z(1, 'gatineau', -75.72, 45.44)];

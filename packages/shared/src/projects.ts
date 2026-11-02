@@ -1,9 +1,10 @@
 // The big-projects contract (M8): rapid-transit lines from proposal to opening day.
 import type { Edit, Headways } from './plan';
 
-export type LineMode = 'lrt' | 'busway' | 'commuter';
+export type LineMode = 'lrt' | 'busway' | 'commuter' | 'streetcar';
 /** How a stretch between two stations is built (a bridge carries it over the Ottawa River). */
-export type Structure = 'surface' | 'elevated' | 'tunnel' | 'bridge';
+/** 'surface' is its own right of way (for a streetcar, its own lane); 'street' runs in traffic (streetcars). */
+export type Structure = 'surface' | 'street' | 'elevated' | 'tunnel' | 'bridge';
 export type ProjectPhase = 'proposed' | 'design' | 'procurement' | 'construction' | 'testing' | 'open' | 'shelved' | 'cancelled';
 /** Public build (design-bid-build: the city carries the risk) or a public-private partnership (design-build-finance-maintain). */
 export type Procurement = 'public' | 'p3';
@@ -33,6 +34,8 @@ export interface LineDesign {
   onRail?: number[];
   /** per stretch: it crosses the Ottawa River between Ottawa and Gatineau */
   crosses?: boolean[];
+  /** per stretch: the path along the streets (streetcars follow them; other lines run straight between stations) */
+  paths?: [number, number][][];
 }
 
 /** 2011 dollars. */
@@ -133,8 +136,8 @@ export interface CostLine {
  */
 export const PROJECT_COSTS = {
   lrt: {
-    guideway: { surface: 35e6, elevated: 90e6, tunnel: 260e6, bridge: 150e6 },
-    station: { surface: 12e6, elevated: 25e6, tunnel: 90e6, bridge: 25e6 },
+    guideway: { surface: 35e6, street: 30e6, elevated: 90e6, tunnel: 260e6, bridge: 150e6 },
+    station: { surface: 12e6, street: 3e6, elevated: 25e6, tunnel: 90e6, bridge: 25e6 },
     /** along an existing railway: not shared with freight, so no saving */
     railUpgrade: 35e6,
     /** a two-car train */
@@ -144,36 +147,55 @@ export const PROJECT_COSTS = {
     opsPerKm: 3.5e6,
     opsPerTrain: 0.6e6,
     /** cruising speed (km/h) by structure, acceleration (m/s²), dwell (s) */
-    speed: { surface: 55, elevated: 80, tunnel: 80, bridge: 70 },
+    speed: { surface: 55, street: 25, elevated: 80, tunnel: 80, bridge: 70 },
     accel: 1.0,
     dwell: 30,
   },
   busway: {
-    guideway: { surface: 25e6, elevated: 80e6, tunnel: 200e6, bridge: 120e6 },
-    station: { surface: 6e6, elevated: 15e6, tunnel: 60e6, bridge: 15e6 },
+    guideway: { surface: 25e6, street: 2e6, elevated: 80e6, tunnel: 200e6, bridge: 120e6 },
+    station: { surface: 6e6, street: 0.5e6, elevated: 15e6, tunnel: 60e6, bridge: 15e6 },
     railUpgrade: 25e6,
     train: 0,
     depot: 0,
     opsPerKm: 0.3e6,
     opsPerTrain: 0,
-    speed: { surface: 70, elevated: 80, tunnel: 70, bridge: 70 },
+    speed: { surface: 70, street: 25, elevated: 80, tunnel: 70, bridge: 70 },
     accel: 1.2,
     dwell: 30,
   },
   /** diesel commuter trains (a locomotive and four bi-level coaches) on existing railways where they can */
   commuter: {
-    guideway: { surface: 18e6, elevated: 60e6, tunnel: 200e6, bridge: 120e6 },
-    station: { surface: 8e6, elevated: 20e6, tunnel: 60e6, bridge: 20e6 },
+    guideway: { surface: 18e6, street: 30e6, elevated: 60e6, tunnel: 200e6, bridge: 120e6 },
+    station: { surface: 8e6, street: 3e6, elevated: 20e6, tunnel: 60e6, bridge: 20e6 },
     /** upgrading an existing railway: signals, sidings, crossings; an old rail bridge rehabilitated */
     railUpgrade: 4e6,
     train: 25e6,
     depot: 50e6,
     opsPerKm: 0.8e6,
     opsPerTrain: 2.5e6,
-    speed: { surface: 110, elevated: 110, tunnel: 90, bridge: 80 },
+    speed: { surface: 110, street: 25, elevated: 110, tunnel: 90, bridge: 80 },
     accel: 0.6,
     dwell: 45,
   },
+  /**
+   * A modern streetcar (a 30-metre, 150-place car) along the streets: in traffic, or in its own lane
+   * (curb or median, with signal priority). Track in a street means moving the utilities under it.
+   * Stops are platforms at the curb, every 400 m or so.
+   */
+  streetcar: {
+    guideway: { surface: 20e6, street: 14e6, elevated: 80e6, tunnel: 220e6, bridge: 120e6 },
+    station: { surface: 1.5e6, street: 0.8e6, elevated: 15e6, tunnel: 60e6, bridge: 10e6 },
+    railUpgrade: 20e6,
+    train: 4.5e6,
+    depot: 25e6,
+    opsPerKm: 1.2e6,
+    opsPerTrain: 0.4e6,
+    speed: { surface: 35, street: 22, elevated: 60, tunnel: 60, bridge: 40 },
+    accel: 1.0,
+    dwell: 20,
+  },
+  /** traffic lights and traffic: seconds lost a km in traffic, and in its own lane with signal priority */
+  trafficDelay: { street: 30, lane: 10 },
   /** rehabilitating an existing rail bridge (the Prince of Wales Bridge), a km */
   railBridgeRehab: 60e6,
   /** engineering, project management, property; contingency */
@@ -188,7 +210,7 @@ export const PROJECT_COSTS = {
    * line proposed in 2011 opens within the first term.
    */
   pace: 0.42,
-  source: 'Estimates: City of Ottawa Confederation Line budget (2012, $2.13B for 12.5 km, 2.5 km tunnel, 13 stations, 34 LRVs, a maintenance yard); Transitway extensions of the 2000s',
+  source: 'Estimates: City of Ottawa Confederation Line budget (2012, $2.13B for 12.5 km, 2.5 km tunnel, 13 stations, 34 LRVs, a maintenance yard); Transitway extensions of the 2000s; modern North American streetcars of the 2010s (about $25–40M a km with utilities, cars about $5M)',
 } as const;
 
 /** Default service on a new line. */
@@ -196,6 +218,7 @@ export const LINE_HEADWAYS: Record<LineMode, Headways> = {
   lrt: { am: 5, midday: 6, pm: 5, evening: 10 },
   busway: { am: 5, midday: 10, pm: 5, evening: 15 },
   commuter: { am: 20, midday: 60, pm: 20, evening: 60 },
+  streetcar: { am: 8, midday: 10, pm: 8, evening: 15 },
 };
 
 /** Line colours that stand apart from the Transitway's red, the O-Train's green and the bus blues. */

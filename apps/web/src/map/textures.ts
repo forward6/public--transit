@@ -58,9 +58,9 @@ export function hatchTexture(): ImageData {
  * trains are two-car sets. Image ids look like `veh-<class>-<d|n>` (day / night).
  */
 export function vehicleIcon(cls: string, color: string, night: boolean): ImageData {
-  const train = cls === 'otrain' || cls === 'commuter';
-  const w = train ? 18 : cls === 'local' || cls === 'rural' ? 14 : 16;
-  const h = train ? 74 : cls === 'transitway' ? 44 : cls === 'local' || cls === 'rural' ? 30 : 36;
+  const train = cls === 'otrain' || cls === 'commuter' || cls === 'streetcar';
+  const w = train ? (cls === 'streetcar' ? 16 : 18) : cls === 'local' || cls === 'rural' ? 14 : 16;
+  const h = cls === 'streetcar' ? 50 : train ? 74 : cls === 'transitway' ? 44 : cls === 'local' || cls === 'rural' ? 30 : 36;
   const pad = 7;
   const c = document.createElement('canvas');
   c.width = w + pad * 2;

@@ -7,6 +7,7 @@ import { addDays, addMonths, payLine, toDate } from './economy';
 import { currentHeadways, mainPatterns, periodsFromHeadways } from './plan';
 import { rand } from './weather';
 import { tableInto } from './agenda';
+import type { StreetGraph } from './streetgraph';
 
 /**
  * Big projects (M8, PLAN §12): rapid-transit lines from proposal to opening day.
@@ -64,7 +65,42 @@ export function stationAt(lon: number, lat: number, stops: NetStop[], id: string
 
 /** Metres between consecutive stations. */
 export function stretches(design: LineDesign): number[] {
-  return design.stations.slice(1).map((s, i) => distM([design.stations[i]!.lon, design.stations[i]!.lat], [s.lon, s.lat]) * 1.06);
+  return design.stations.slice(1).map((s, i) => {
+    const path = design.paths?.[i];
+    if (path && path.length >= 2) return pathLength(path);
+    return distM([design.stations[i]!.lon, design.stations[i]!.lat], [s.lon, s.lat]) * 1.06;
+  });
+}
+
+const pathLength = (path: [number, number][]) => path.slice(1).reduce((a, p, k) => a + distM(path[k]!, p), 0);
+
+/**
+ * A streetcar's path between two stops, along the 2010 streets (main streets first; never the
+ * highways or the Transitway), or null where the streets don't connect directly.
+ */
+export function streetPath(graph: StreetGraph, from: [number, number], to: [number, number]): [number, number][] | null {
+  // a stop on a main street if one is near, else the nearest street a streetcar can use
+  const snap = (p: [number, number]) => {
+    const main = graph.nearestNode(p[0], p[1], (e) => graph.tramFactor(e) <= 1.15);
+    const near = main >= 0 && Math.hypot((graph.lon[main]! - p[0]) * 78_300, (graph.lat[main]! - p[1]) * 111_100) < 120 ? main : -1;
+    return near >= 0 ? near : graph.nearestNode(p[0], p[1], (e) => Number.isFinite(graph.tramFactor(e)));
+  };
+  const a = snap(from);
+  const b = snap(to);
+  if (a < 0 || b < 0) return null;
+  const edges = graph.path(a, b, 'tram');
+  if (!edges) return null;
+  const out: [number, number][] = [from];
+  let at = a;
+  for (const e of edges) {
+    const pts = graph.edgeCoords(e, at);
+    for (const p of pts.slice(1)) out.push([p[0], p[1]]);
+    at = graph.other(e, at);
+  }
+  out.push(to);
+  // where the streets don't connect directly (a missing bridge in the street data, a park in the way), lay new track straight across
+  const straight = distM(from, to);
+  return pathLength(out) > Math.max(1.5 * straight, straight + 500) ? null : out;
 }
 
 /** Seconds to run a stretch: accelerate, cruise, brake (or never reach cruising speed on short ones). */
@@ -73,13 +109,16 @@ export function runSeconds(metres: number, structure: Structure, mode: LineMode)
   const v = c.speed[structure] / 3.6;
   const a = c.accel;
   const dAccel = (v * v) / a; // accelerating and braking together
-  return Math.round(metres >= dAccel ? metres / v + v / a : 2 * Math.sqrt(metres / a));
+  // on the street: traffic lights and traffic (less in its own lane, with signal priority)
+  const traffic = structure === 'street' ? PROJECT_COSTS.trafficDelay.street : mode === 'streetcar' && structure === 'surface' ? PROJECT_COSTS.trafficDelay.lane : 0;
+  return Math.round((metres >= dAccel ? metres / v + v / a : 2 * Math.sqrt(metres / a)) + (traffic * metres) / 1000);
 }
 
 /** A station is underground between two tunnelled stretches (portal stations are at grade), elevated beside a viaduct. */
 export function stationStructure(design: LineDesign, i: number): Structure {
   const sides = [design.structure[i - 1], design.structure[i]].filter(Boolean) as Structure[];
   if (sides.length && sides.every((x) => x === 'tunnel')) return 'tunnel';
+  if (sides.length && sides.every((x) => x === 'street')) return 'street'; // a curb stop
   return sides.includes('elevated') ? 'elevated' : 'surface'; // a bridge lands at grade
 }
 
@@ -111,7 +150,10 @@ export function annotateDesign(design: LineDesign, world: { rail?: [number, numb
     return best?.city;
   };
   const crosses = design.structure.map((_, i) => !!world.zones?.length && cityAt(st[i]!.lon, st[i]!.lat) !== cityAt(st[i + 1]!.lon, st[i + 1]!.lat));
-  const structure = design.structure.map((k, i) => (crosses[i] ? (k === 'tunnel' ? 'tunnel' : 'bridge') : k === 'bridge' ? 'surface' : k) as Structure);
+  // a streetcar following the streets crosses the river on an existing road bridge (or a new one, if you choose)
+  const streetcar = design.mode === 'streetcar';
+  const structure = design.structure.map((k, i) => (crosses[i] ? (k === 'tunnel' ? 'tunnel' : streetcar && design.paths?.[i] && k !== 'bridge' ? k : 'bridge')
+    : k === 'bridge' ? (streetcar ? 'street' : 'surface') : k) as Structure);
   return { ...design, structure, onRail, crosses };
 }
 
@@ -156,15 +198,18 @@ export function estimateLine(design: LineDesign, costIndex = 1): ProjectEstimate
     total: (hard + soft + contingency) * k };
   const lrt = design.mode === 'lrt';
   const commuter = design.mode === 'commuter';
+  const streetcar = design.mode === 'streetcar';
   const newKm = lengthKm - railKm;
   // real-world months, then run at the game's pace (your choice: compressed)
   const real = {
     design: clamp((lrt ? 12 : 9) + 1.5 * tunnelKm + 0.2 * lengthKm + 3 * bridgeKm, 9, 24),
-    procurement: lrt ? 10 : commuter ? 8 : 6,
+    procurement: lrt ? 10 : commuter ? 8 : streetcar ? 8 : 6,
+    // a streetcar digs up the whole street: the utilities under it move first
     construction: lrt ? 22 + 1.6 * newKm + 0.6 * railKm + 1.5 * elevatedKm + 8 * tunnelKm + 10 * bridgeKm
       : commuter ? 12 + 1.4 * newKm + 0.4 * railKm + 6 * tunnelKm + 10 * bridgeKm
-        : 14 + 1.4 * lengthKm + 1.5 * elevatedKm + 6 * tunnelKm + 10 * bridgeKm,
-    testing: lrt ? 6 : commuter ? 3 : 1,
+        : streetcar ? 14 + 2.2 * lengthKm + 1.5 * elevatedKm + 6 * tunnelKm + 10 * bridgeKm
+          : 14 + 1.4 * lengthKm + 1.5 * elevatedKm + 6 * tunnelKm + 10 * bridgeKm,
+    testing: lrt ? 6 : commuter ? 3 : streetcar ? 3 : 1,
   };
   const pace = (x: number, min: number) => Math.max(min, Math.round(x * PROJECT_COSTS.pace));
   const months = { design: pace(real.design, 4), procurement: pace(real.procurement, 3), construction: pace(real.construction, 6), testing: pace(real.testing, 1) };
@@ -183,7 +228,10 @@ export function lineEdit(design: LineDesign, id: string): Edit {
   const n = design.stations.length;
   const dist = [0];
   for (const x of m) dist.push(dist.at(-1)! + x);
-  const shape = design.stations.map((s) => [s.lon, s.lat] as [number, number]);
+  // along its streets (a streetcar), else straight between stations
+  const shape: [number, number][] = design.paths && design.paths.length === n - 1 && design.paths.every((p) => p && p.length >= 2)
+    ? design.paths.flatMap((p, i) => (i ? p.slice(1) : p))
+    : design.stations.map((s) => [s.lon, s.lat] as [number, number]);
   const runTimes = m.map((x, i) => runSeconds(x, design.structure[i] ?? 'surface', design.mode));
   const first = design.stations[0]!;
   const last = design.stations[n - 1]!;
@@ -199,7 +247,8 @@ export function lineEdit(design: LineDesign, id: string): Edit {
   const provenance = { source: 'Your project', confidence: 'high' as const, verified: false, note: `${design.name}: built in the game.` };
   const route: NetRoute = {
     id, agency: 'octranspo', shortName: design.shortName, longName: `${design.name}: ${first.name} ↔ ${last.name}`,
-    mode: design.mode === 'busway' ? 'brt' : 'rail', class: design.mode === 'busway' ? 'transitway' : design.mode === 'commuter' ? 'commuter' : 'otrain',
+    mode: design.mode === 'busway' ? 'brt' : 'rail',
+    class: design.mode === 'busway' ? 'transitway' : design.mode === 'commuter' ? 'commuter' : design.mode === 'streetcar' ? 'streetcar' : 'otrain',
     color: design.color, patterns: [pa.id, pb.id],
     weekday: periodsFromHeadways(design.headways), offPeakFactor: 1, provenance,
   };
@@ -213,7 +262,7 @@ export function lineEdit(design: LineDesign, id: string): Edit {
 
 /** A new line's starting design (no stations yet). */
 export function newDesign(mode: LineMode, n: number): LineDesign {
-  return { mode, name: `Line ${n}`, shortName: mode === 'lrt' ? `L${n}` : mode === 'commuter' ? `R${n}` : `T${n}`, color: LINE_COLORS[(n - 1) % LINE_COLORS.length]!, stations: [], structure: [],
+  return { mode, name: `Line ${n}`, shortName: mode === 'lrt' ? `L${n}` : mode === 'commuter' ? `R${n}` : mode === 'streetcar' ? `S${n}` : `T${n}`, color: LINE_COLORS[(n - 1) % LINE_COLORS.length]!, stations: [], structure: [],
     headways: { ...LINE_HEADWAYS[mode] } };
 }
 
@@ -694,6 +743,7 @@ export function lineCapacityHours(s: GameState): number {
     if (p.phase !== 'open') continue;
     if (p.design.mode === 'lrt') h += (p.estimate.vehicles / 1.15) * 17 * 3.25;
     else if (p.design.mode === 'commuter') h += (p.estimate.vehicles / 1.15) * 10 * 7.5; // peak-heavy, 4 bi-levels
+    else if (p.design.mode === 'streetcar') h += (p.estimate.vehicles / 1.15) * 18 * 1.6; // a car carries about 1½ busloads
   }
   return h;
 }
@@ -716,7 +766,9 @@ export function constructionNear(s: GameState, zones: Zone[]): Float32Array | un
       let d = Infinity;
       for (let k = 0; k < pts.length - 1; k++) {
         if (p.design.structure[k] === 'tunnel') continue; // tunnels are dug from the stations
-        d = Math.min(d, segDistM([z.lon, z.lat], pts[k]!, pts[k + 1]!));
+        const path = p.design.paths?.[k];
+        if (path && path.length >= 2) for (let q = 0; q < path.length - 1; q++) d = Math.min(d, segDistM([z.lon, z.lat], path[q]!, path[q + 1]!));
+        else d = Math.min(d, segDistM([z.lon, z.lat], pts[k]!, pts[k + 1]!));
       }
       for (const q of pts) d = Math.min(d, distM([z.lon, z.lat], q)); // every station is a building site
       if (d < 700) out[i] = Math.max(out[i]!, 1 - d / 700);

@@ -1,6 +1,6 @@
 // M9: growth in the game: the Growth view's map wash, the Growth panel, a zone's growth, a
 // developer's offer, and the month in review (after skipping a month).
-import { GROWTH_PLACES, RESIDENTS_PER_HOME, WARDS_2010, type GameEvent, type GameState, type GrowthState, type Lang, type ZonesFile } from '@otc/shared';
+import { GROWTH_PLACES, RESIDENTS_PER_HOME, WARDS_2010, type GameEvent, type GameState, type Lang, type ZonesFile } from '@otc/shared';
 import {
   GROWTH, constructionNear, growthStations, growthSummary, monthBoardings, opinionSummary, roomLeft, startGrowth, zoneNow, type GameWorld,
 } from '@otc/sim';
@@ -16,15 +16,22 @@ const signed = (x: number, lang: Lang) => `${x >= 0 ? '+' : '−'}${fmt(Math.abs
 const pct = (x: number, lang: Lang, digits = 0) => `${(100 * x).toLocaleString(loc(lang), { maximumFractionDigits: digits, minimumFractionDigits: digits })}${lang === 'fr' ? ' %' : '%'}`;
 const jobsOf = (z: { jobs: Record<string, number | undefined> }) => Object.values(z.jobs).reduce<number>((a, x) => a + (x ?? 0), 0);
 
-/** The Growth view's wash: new residents and jobs per km² since 2010 (negative: jobs lost beside construction). */
-export function growthPolys(zones: ZonesFile | null, g: GrowthState | undefined, selected: number | null): PolysFC {
-  if (!zones || !g) return { type: 'FeatureCollection', features: [] };
+/**
+ * The Growth view's wash: new residents and jobs per km² since 2010 (negative: jobs lost beside
+ * construction); zones beside a street being torn up for a line are outlined.
+ */
+export function growthPolys(zones: ZonesFile | null, s: GameState | null, selected: number | null): PolysFC {
+  const g = s?.growth;
+  if (!zones || !s) return { type: 'FeatureCollection', features: [] };
+  const building = constructionNear(s, zones.zones);
   const features: PolysFC['features'] = [];
   zones.zones.forEach((z, i) => {
     if (!z.ring) return;
-    const d = (g.pop[i] ?? 0) + (g.jobs[i] ?? 0);
-    if (!d && i !== selected) return;
-    features.push({ type: 'Feature', properties: { i, v: Math.round(d / Math.max(0.2, z.areaKm2)), coarse: z.areaKm2 > 2, selected: i === selected },
+    const d = (g?.pop[i] ?? 0) + (g?.jobs[i] ?? 0);
+    const site = (building?.[i] ?? 0) > 0.25;
+    const v = Math.round(d / Math.max(0.2, z.areaKm2));
+    if (Math.abs(v) < 5 && !site && i !== selected) return; // a handful per km²: not worth a wash
+    features.push({ type: 'Feature', properties: { i, v: Math.abs(v) < 5 ? 0 : v, coarse: z.areaKm2 > 2, selected: i === selected, building: site },
       geometry: { type: 'Polygon', coordinates: [[...z.ring, z.ring[0]!]] } });
   });
   features.sort((a, b) => Number(b.properties!.coarse) - Number(a.properties!.coarse));
@@ -38,6 +45,7 @@ export function GrowthLegend({ t }: { t: Strings }) {
       <div className="lg-title-sm">{t.gr.legend}</div>
       <div className="lg-ramp-row"><span>{t.gr.legendLow}</span><span className="lg-ramp growth" /><span>{t.gr.legendHigh}</span></div>
       <div className="lg-row small"><i className="sw sw-lost" />{t.gr.legendLost}</div>
+      <div className="lg-row small"><i className="sw sw-building" />{t.gr.legendBuilding}</div>
     </div>
   );
 }

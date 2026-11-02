@@ -15,6 +15,8 @@ const ACTIVE: ProjectPhase[] = ['proposed', 'design', 'procurement', 'constructi
 const STRUCTURES: Structure[] = ['surface', 'elevated', 'tunnel'];
 /** Over the Ottawa River: a bridge or under it. */
 const CROSSING: Structure[] = ['bridge', 'tunnel'];
+/** a streetcar: in traffic, in its own lane, or under ground */
+const STREETCAR: Structure[] = ['street', 'surface', 'tunnel'];
 
 /** The Plan-mode dock while drawing a line. */
 export function LineDock({ line, t, lang, date }: { line: LineDraw; t: Strings; lang: Lang; date: string }) {
@@ -35,7 +37,7 @@ export function LineDock({ line, t, lang, date }: { line: LineDraw; t: Strings; 
         <button className="btn ghost" onClick={line.close} title={pj.undoHint}>{pj.close}</button>
       </div>
       <div className="seg wide" role="radiogroup" aria-label={pj.title}>
-        {(['lrt', 'busway', 'commuter'] as LineMode[]).map((m) => (
+        {(['lrt', 'streetcar', 'busway', 'commuter'] as LineMode[]).map((m) => (
           <button key={m} role="radio" aria-checked={d.mode === m} className={d.mode === m ? 'on' : ''} onClick={() => line.setMode(m)}>{pj.mode[m]}</button>
         ))}
       </div>
@@ -56,8 +58,9 @@ export function LineDock({ line, t, lang, date }: { line: LineDraw; t: Strings; 
               <span>{pj.stretch(d.stations[i]!.name, d.stations[i + 1]!.name, km((metres[i] ?? 0) / 1000, lang))}
                 {(d.onRail?.[i] ?? 0) >= 0.3 && <em className="on-track">{pj.onTrack(Math.round((d.onRail![i] ?? 0) * 100))}</em>}</span>
               <div className="seg mini" role="radiogroup">
-                {(d.crosses?.[i] ? CROSSING : STRUCTURES).map((x) => (
-                  <button key={x} role="radio" aria-checked={k === x} className={k === x ? 'on' : ''} onClick={() => line.setStructure(i, x)}>{pj.structure[x]}</button>
+                {(d.mode === 'streetcar' ? (d.crosses?.[i] ? [...STREETCAR, 'bridge' as const] : STREETCAR) : d.crosses?.[i] ? CROSSING : STRUCTURES).map((x) => (
+                  <button key={x} role="radio" aria-checked={k === x} className={k === x ? 'on' : ''} onClick={() => line.setStructure(i, x)}>
+                    {d.mode === 'streetcar' && x === 'surface' ? pj.ownLane : pj.structure[x]}</button>
                 ))}
               </div>
             </li>

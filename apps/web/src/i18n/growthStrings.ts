@@ -24,6 +24,7 @@ export interface GrowthStrings {
   how: string[];
   legend: string;
   legendLost: string;
+  legendBuilding: string;
   legendLow: string;
   legendHigh: string;
   /** the zone panel */
@@ -102,6 +103,7 @@ export const GROWTH_EN: GrowthStrings = {
   ],
   legend: 'New residents and jobs since 2010, per km²',
   legendLost: 'Fewer jobs (construction)',
+  legendBuilding: 'Beside construction now',
   legendLow: 'a few',
   legendHigh: 'many',
   zoneSub: (d) => `${d} · growth since December 2010`,
@@ -184,6 +186,7 @@ export const GROWTH_FR: GrowthStrings = {
   ],
   legend: 'Nouveaux résidents et emplois depuis 2010, par km²',
   legendLost: 'Moins d’emplois (chantiers)',
+  legendBuilding: 'Voisin d’un chantier en cours',
   legendLow: 'peu',
   legendHigh: 'beaucoup',
   zoneSub: (d) => `${d} · croissance depuis décembre 2010`,

@@ -4,7 +4,7 @@
 // discarding it asks first.
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import type { Lang, LineDesign, LineMode, LonLat, ProjectEstimate, ProjectForecast, Structure } from '@otc/shared';
-import { annotateDesign, estimateLine, lineEdit, newDesign, stationAt, wardsAt } from '@otc/sim';
+import { annotateDesign, estimateLine, lineEdit, newDesign, stationAt, streetPath, wardsAt, type StreetGraph } from '@otc/sim';
 import type { GameApi } from '../game/useGame';
 import type { NetworkState } from '../network/useNetwork';
 import type { PlanState } from './usePlan';
@@ -42,6 +42,20 @@ export interface LineDraw {
   discard: () => void;
 }
 
+/** A streetcar follows the streets between its stops (straight where they don't connect). */
+function withPaths(d: LineDesign, graph: StreetGraph | null): LineDesign {
+  if (d.mode !== 'streetcar' || !graph || d.stations.length < 2) return d;
+  const st = d.stations;
+  const paths = st.slice(1).map((b, i) => {
+    const a = st[i]!;
+    const old = d.paths?.[i];
+    // keep a path already found between the same two stops
+    if (old && old.length >= 2 && old[0]![0] === a.lon && old[0]![1] === a.lat && old.at(-1)![0] === b.lon && old.at(-1)![1] === b.lat) return old;
+    return streetPath(graph, [a.lon, a.lat], [b.lon, b.lat]) ?? [[a.lon, a.lat], [b.lon, b.lat]] as [number, number][];
+  });
+  return { ...d, paths };
+}
+
 function loadDraft(): LineDesign | null {
   try {
     const d = JSON.parse(localStorage.getItem(LINE_DRAFT_KEY) ?? 'null') as LineDesign | null;
@@ -73,6 +87,12 @@ export function useLineDraw(net: NetworkState | null, plan: PlanState, game: Gam
       /* storage blocked */
     }
   }, [raw]);
+  // a streetcar drawn before the street graph loaded (or a resumed draft): route it along the streets now
+  useEffect(() => {
+    if (!plan.graph || raw?.mode !== 'streetcar' || raw.stations.length < 2) return;
+    const routed = withPaths(raw, plan.graph);
+    if (routed.paths?.some((p, i) => p !== raw.paths?.[i])) setRaw(routed);
+  }, [plan.graph, raw]);
   // what each stretch runs beside: existing railways, the river
   const zones = game.world?.zones;
   const design = useMemo(() => (raw && raw.stations.length >= 2 ? annotateDesign(raw, { rail: rail ?? undefined, zones }) : raw), [raw, rail, zones]);
@@ -109,9 +129,10 @@ export function useLineDraw(net: NetworkState | null, plan: PlanState, game: Gam
     change((d) => {
       const st = stationAt(p[0], p[1], net.network.stops, `line-${n}-s${d.stations.length}`);
       if (d.stations.some((x) => x.id === st.id)) return d; // a station once
-      return { ...d, stations: [...d.stations, st], structure: d.stations.length ? [...d.structure, 'surface'] : d.structure };
+      const next = { ...d, stations: [...d.stations, st], structure: d.stations.length ? [...d.structure, d.mode === 'streetcar' ? 'street' as const : 'surface' as const] : d.structure };
+      return withPaths(next, plan.graph);
     });
-  }, [net, n, change]);
+  }, [net, n, change, plan.graph]);
   const step = useCallback((from: MutableRefObject<LineDesign[]>, to: MutableRefObject<LineDesign[]>) => {
     setRaw((d) => {
       const prev = from.current.at(-1);
@@ -168,8 +189,10 @@ export function useLineDraw(net: NetworkState | null, plan: PlanState, game: Gam
     canUndo: past.current.length > 0, canRedo: future.current.length > 0,
     start, addStation, measure, undo, redo,
     resume: () => plan.setTool('line'),
+    // switching to a streetcar puts it in traffic along the streets; switching away runs straight, on the surface
     setMode: (mode) => change((d) => (d.mode === mode ? d
-      : { ...newDesign(mode, n), name: d.name, color: d.color, stations: d.stations, structure: d.structure })),
+      : withPaths({ ...newDesign(mode, n), name: d.name, color: d.color, stations: d.stations,
+        structure: d.structure.map((k) => (mode === 'streetcar' ? (k === 'surface' || k === 'elevated' ? 'street' : k) : k === 'street' ? 'surface' : k)) }, plan.graph))),
     setStructure: (i, k) => change((d) => (d.structure[i] === k ? d : { ...d, structure: d.structure.map((x, j) => (j === i ? k : x)) })),
     setName: (name) => setRaw((d) => (d ? { ...d, name } : d)),
     setColor: (color) => change((d) => (d.color === color ? d : { ...d, color })),
