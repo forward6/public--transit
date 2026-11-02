@@ -96,6 +96,28 @@ rebuilt and republished on every push by `.github/workflows/pages.yml`.
   ride inbound in the morning and outbound in the evening) and how often the buses come, scaled to
   today's riders (season, weather, weekends).
 
+- M8 (v1) is under way: big projects. In Plan mode, draw a **light-rail line** or a **Transitway
+  busway**:
+  - tap the map to place stations (near an existing station, they share it for transfers), and
+    choose for each stretch whether it runs on the surface, elevated or in a tunnel;
+  - the estimate updates as you draw: cost (about $35M a km on the surface, $260M in a tunnel,
+    plus stations, trains and a yard), years to opening, running cost; **Forecast riders** runs
+    the demand model on it;
+  - **council votes twice**: to pay for design and the environmental assessment, then to award
+    the contract once the bids are in. In between, Ontario and the federal government decide
+    whether to pay a third each (likelier for more riders per dollar; you can ask again), and you
+    choose a **public build** (cheaper, but overruns are yours) or a **public-private
+    partnership** (dearer, but the consortium carries most of the risk);
+  - **construction** takes years: money goes out month by month (partners, development charges,
+    then 30-year borrowing that the levy must cover), neighbourhoods along the line put up with
+    detours, and setbacks happen (overruns you deal with, delays, a sinkhole in a tunnel);
+  - **opening day:** the line joins the network, riders try it (smoothly or not), and you can
+    rework the bus routes that run alongside it.
+
+![A light-rail line, drawn and estimated](docs/screenshots/m8/line-estimate.jpg)
+
+![Opening day](docs/screenshots/m8/opening.jpg)
+
 ![Council vote: the whip count on the budget](docs/screenshots/m7/vote-budget.jpg)
 
 ![Riders on board a 97 at 8 am](docs/screenshots/start/vehicle-on-board.jpg)
@@ -131,7 +153,8 @@ URL options (any option but `lang` opens straight into the game, without the sta
 - `&speed=0..5` sets the speed: pause, real time, 1 min/s, 15 min/s (the default), 2 h/s, 1 day/s
 - `&select=stop:carleton|route:oct-otrain|vehicle:oct-otrain|persona:marc|opinion:city|load:peak` opens an inspector
 - `&riders=1` turns on the Riders view (peak crowding; `&rv=daily` for riders per day); `&opinion=1` the Opinion view (`&ov=ward|service|value|trust` for wards or an axis)
-- `&select=council:term` opens the Council panel
+- `&select=council:term` opens the Council panel; `&select=project:line-1` a line's panel (`project:all` the list)
+- `&plan=1&line=lon,lat;lon,lat;…` draws a rapid-transit line (`&linemode=busway`, `&tunnel=2,3` for stretches in a tunnel, `&linename=…`)
 - `&plan=1` opens Plan mode. Add `&iso=lon,lat` for travel times from a point, or
   `&draw=lon,lat;lon,lat;…` to sketch a route.
 

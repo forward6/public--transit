@@ -131,7 +131,7 @@ function ProjectPanel({ game, p, t, lang }: { game: GameApi; p: Project; t: Stri
       <div className="ins-head"><div className="ins-icon line-badge" style={{ background: p.design.color }}>{p.design.shortName}</div>
         <div><div className="ins-title">{p.design.name}</div>
           <div className="ins-sub">{pj.mode[p.design.mode]} · {pj.stats(km(p.estimate.lengthKm, lang), p.estimate.stations, Math.round(p.estimate.runMin))}</div></div></div>
-      <div className="pill">{pj.phase[p.phase]}{p.procurement ? ` · ${pj.how[p.procurement]}` : ''}{opens ? ` · ${p.phase === 'open' ? pj.opened(fmtDate(opens, lang, 'short')) : pj.opens(fmtDate(opens, lang, 'month'))}` : ''}</div>
+      <div className="pill">{pj.phase[p.phase]}{p.procurement ? ` · ${pj.how[p.procurement]}` : ''}{opens ? ` · ${p.phase === 'open' ? pj.opened(fmtDate(opens, lang, 'short')) : pj.opens(lang === 'fr' ? fmtDate(opens, lang, 'month').toLowerCase() : fmtDate(opens, lang, 'month'))}` : ''}</div>
       {!['shelved', 'cancelled'].includes(p.phase) && (
         <ol className="stages">{phases.map((x, i) => <li key={x} className={i < at ? 'done' : i === at ? 'now' : ''}>{pj.phase[x]}</li>)}</ol>
       )}

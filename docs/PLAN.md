@@ -26,6 +26,7 @@
 | Modes | Bus and BRT (Transitway), LRT/metro, commuter and regional rail, on-demand and para-transit, and the unusual modes: ferries, gondolas and streetcars. |
 | Team | Solo hobby project. Claude writes most of the code; you direct and playtest. |
 | Languages *(assumed)* | English and French from day one. Ottawa is officially bilingual and Gatineau is francophone. |
+| Big projects (M8) | **v1: light rail and Transitway busways** (commuter rail and river crossings later). **Realistic timelines** that scale with the line (a short busway about 3 years, a tunnelled LRT about 8). **A real procurement choice:** public build or P3. **Setbacks included** (overruns, delays, a sinkhole, a rough opening), each with a response. |
 | Council (M7) | **Only the big items go to a vote:** budgets, deficit choices, large service plans, big bus orders and garages. Routine changes are yours. The 2010 council starts **split**. **Labour talks open in 2011.** STO is a **light-touch partner with its own agenda**. |
 
 ---
@@ -749,7 +750,7 @@ to keep iteration fast; it expands to the full region afterwards.
 | M5 🔶 | **Money and fleet** | Budget, fares, operating costs, garages, fleet ordering, maintenance, service-change calendar | You can run out of money in an interesting way | M |
 | M6 🔶 | **Opinion and media** | Opinion grid, rider diaries, "Follow a rider", headline generator, opinion maps | The public's reaction is visible and explainable | M |
 | M7 🔶 | **Council, elections and partners** | Councillors, whip counts, votes, Political Capital, elections, STO AI, funders, NCC, labour | A full four-year term plays out with soft consequences | L |
-| M8 | **Big projects** | LRT, commuter rail, Transitway segments, river crossings; procurement, construction disruption, opening day | You can build a rapid-transit line from proposal to opening | L |
+| M8 🔶 | **Big projects** | LRT, commuter rail, Transitway segments, river crossings; procurement, construction disruption, opening day | You can build a rapid-transit line from proposal to opening | L |
 | M9 | **Growth** | Land-use allocation, developer proposals, TOD, urban boundary debates, ward redistribution | The 2030 city looks different depending on how you played | M |
 | M10 | **Campaign and content** | Tutorial, term goals, scenarios, achievements, 2030 legacy retrospective, sandbox options | A complete campaign from 2010 to 2030 | M |
 | M11 | **Polish** | Schematic morph, seasonal effects, signature moments, audio, accessibility pass, French pass, performance (including a mobile battery and memory budget), offline PWA | The game feels finished and lovely, and plays well on a phone | L |
@@ -995,8 +996,64 @@ to keep iteration fast; it expands to the full region afterwards.
       the evening otherwise; other trips follow a midday profile, and weekends have no peaks. Scaled
       to the day's riders. Above capacity it shows full: riders left behind.
       `pnpm --filter @otc/sim onboard-demo` prints a few routes through the day.
-11. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
-12. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
+11. 🔶 **M8 (v1):** big projects ([screenshots](screenshots/m8/)). Defaults chosen for you: light rail
+    and busways first, realistic timelines, a public build or P3, setbacks on.
+    - **Drawing a line** (Plan mode): stations in order (a station within 200 m of an existing one
+      shares it); each stretch on the surface, elevated or in a tunnel; a name and a colour. The
+      line becomes a route with its own right of way: light rail (class O-Train, 2-car trains) or
+      a busway (class Transitway, buses from the fleet). Run times from distance, cruising speed
+      (55–80 km/h) and acceleration; 30 s dwells; default service every 5 min at the peaks.
+    - **Costs** (2011 $, × the cost index): guideway per km by structure (LRT $35M surface, $90M
+      elevated, $260M tunnel; busway $25M, $80M, $200M), stations ($12M / $25M / $90M for LRT),
+      $10M a train, a $120M yard, 15% engineering and land, 10% contingency. A Confederation-like
+      line (12.3 km, 3.1 km in tunnel, 3 underground stations) comes to $2.2B, against the 2012
+      budget of $2.13B. Running it: $3.5M a km and $0.6M a train a year.
+    - **Timeline:** design and environmental assessment 9–22 months (more for tunnels and length),
+      procurement 6–10 months (+4 for a P3), construction from 14 months (a short busway) to about
+      5½ years (12 km of LRT with a tunnel), testing 1–6 months.
+    - **Votes:** council funds design (weighing the city's likely share: a third of the cost, less
+      development charges), then awards the contract at the bid price (the city's actual share).
+      Councillors weigh the bill on a log scale against the riders forecast (the trips it adds to
+      transit, or a quarter of the riders it carries, whichever is more: relief for crowded
+      corridors, which the demand model doesn't price); wards with a station like it. A vote lost
+      shelves the line; you can try again. A Confederation-like line passes narrowly, with lobbying.
+    - **Partners:** at the end of design Ontario and the federal government each decide on a third
+      (up to $600M each); the chance rises with riders served or gained per million dollars (15–85%). A
+      government that said no can be asked again for 10 Political Capital, once a year. Parkway
+      and riverside alignments get NCC conditions (4% and 3 months).
+    - **Procurement:** a public build is priced at the estimate ±8%; a P3 costs 7% more and takes
+      four more months, but its consortium absorbs 85% of overruns and pays $1.5M a month of delay.
+    - **Paying for it:** month by month on an S-curve; partners pay their share as work is done,
+      development charges a quarter of the rest, then the capital reserve, then 30-year line debt
+      (debts now amortize). Each autumn's budget states the lines' committed cost increase (debt
+      service and running costs); councillors don't hold that part of a levy increase against you.
+    - **Risks** drawn when the contract is awarded: cost growth (3–40%, more with tunnels) shown as
+      two overruns (public: pay it, trim the scope for half with a likelier rough opening, or pause
+      nine months and re-tender for 40%); a delay (0–16 months); a sinkhole for tunnels; a rough
+      opening (about 40%).
+    - **Construction:** zones within 700 m of the works (stations, surface and elevated stretches)
+      get a "construction nearby" reason (up to −10 on service); the buses lose a few riders while
+      work goes on (up to 3%). Front pages cover approvals, funding, construction, overruns,
+      sinkholes, delays and opening day.
+    - **Opening day:** the line is added to the network in operation (the demand model measures
+      it; light rail counts as 3¼ busloads per train-hour when riders judge crowding), a signature
+      card, and an offer to rework the bus routes running alongside it (half the buses for routes
+      with 45–85% of their stops by the line, retirement above that).
+    - **Model fix:** journeys for mode choice now weigh transfers as the mode-choice model does
+      (10 min; route choice keeps the calibrated 2.5 min), so a fast new line never makes transit
+      look worse. The base-year calibration still passes (582,000 weekday boardings). A
+      Confederation-like line beside the Transitway forecasts about 28,000 boardings a weekday but
+      only ~650 new transit trips: in this model its case is speed downtown and, once the buses are
+      reworked, cost; capacity relief needs a capacity-constrained assignment (still to do).
+    - **Testing it:** `pnpm --filter @otc/sim projects-demo [public|p3] [pay|trim|pause]` builds a
+      Confederation-like line in Node (`MEASURE=1` forecasts it; `DUMP_DIR=` saves the key moments);
+      `apps/web/scripts/verify-projects.cjs` draws and proposes one in the browser.
+    - **Still to do:** commuter rail and river crossings, conversion of the Transitway to rail
+      (with bus detours), truncating (not just thinning) parallel routes, buses using a new busway
+      off its own route, capacity-constrained assignment (light rail's real advantage), land use
+      responding to stations (M9), and a project timeline view.
+12. Send the **data requests** in §11.3 as a fallback if no archived GTFS capture exists.
+13. Answer the remaining open questions in §14. Defaults will be used where you don't specify.
 
 ---
 

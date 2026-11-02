@@ -176,6 +176,12 @@ const decide = (s: GameState, kind: GameEvent['kind'], data: GameEvent['data']) 
 
 export const projectOf = (s: GameState, id: string) => s.projects?.find((p) => p.id === id);
 
+/**
+ * The riders a line is judged on: the trips it adds to transit, or a quarter of the riders it
+ * carries (relief for crowded corridors, which the model doesn't price), whichever is more.
+ */
+export const ridersValue = (f?: ProjectForecast) => (f ? Math.max(f.newRiders, f.boardings / 4) : 3000);
+
 /** The city's share if the partners each pay the third they usually do: what council weighs at first. */
 const likelyCityShare = (total: number) => (total / 3) * (1 - PROJECT_COSTS.devCharges);
 
@@ -214,7 +220,7 @@ export const ASK_COST = 10;
 
 /** How likely a government is to pay its third: more riders per dollar, likelier. */
 function fundingChance(p: Project): number {
-  const perM = (p.forecast?.newRiders ?? 3000) / Math.max(1, p.estimate.cost.total / 1e6);
+  const perM = ridersValue(p.forecast) / Math.max(1, p.estimate.cost.total / 1e6);
   return clamp(0.2 + 0.07 * perM, 0.15, 0.85);
 }
 
@@ -276,7 +282,7 @@ export function proposeProject(prev: GameState, design: LineDesign, forecast?: P
 
 function tableProject(s: GameState, p: Project) {
   tableInto(s, 'project', 'council', { projectId: p.id, routeName: p.design.name },
-    { project: { city: likelyCityShare(p.estimate.cost.total) / 1e6, riders: p.forecast?.newRiders ?? 0 }, wards: stationWards(p) });
+    { project: { city: likelyCityShare(p.estimate.cost.total) / 1e6, riders: ridersValue(p.forecast) }, wards: stationWards(p) });
 }
 
 /** Wards with a station like a line through them. */
@@ -329,7 +335,7 @@ function bids(s: GameState, p: Project) {
   news(s, { what: 'bids', project: p.id, name: p.design.name, price, city });
   delete p.due;
   tableInto(s, 'contract', 'council', { projectId: p.id, routeName: p.design.name, price },
-    { project: { city: city / 1e6, riders: p.forecast?.newRiders ?? 0 }, wards: stationWards(p) });
+    { project: { city: city / 1e6, riders: ridersValue(p.forecast) }, wards: stationWards(p) });
 }
 
 /** Contract awarded: construction starts; the risks of this build are drawn now (hidden). */
