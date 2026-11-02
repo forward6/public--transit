@@ -13,6 +13,8 @@ export interface Settings {
   riders: boolean;
   /** M6 Opinion view */
   opinion: boolean;
+  /** M9 Growth view */
+  growth: boolean;
 }
 
 interface HudProps {
@@ -48,6 +50,11 @@ interface HudProps {
   onMenu?: () => void;
   /** the "in service" count opens the Operations panel */
   onOpenOps?: () => void;
+  /** M9: the Growth view (its toggle opens the Growth panel), its legend, and skipping a month */
+  hasGrowth?: boolean;
+  onToggleGrowth?: (on: boolean) => void;
+  growthLegend?: ReactNode;
+  onSkipMonth?: () => void;
   /** M4 Plan mode */
   planActive: boolean;
   onTogglePlan: () => void;
@@ -148,8 +155,8 @@ function SettingsMenu({ t, settings, onChange, onMenu, phone }: { t: Strings; se
   );
 }
 
-function Controls({ t, settings, onChange, hasRiders, hasOpinion, plan, onMenu, phone }: { t: Strings; settings: Settings; onChange: HudProps['onChange'];
-  hasRiders: boolean; hasOpinion?: boolean; plan?: { active: boolean; toggle: () => void }; onMenu?: () => void; phone: boolean }) {
+function Controls({ t, settings, onChange, hasRiders, hasOpinion, plan, onMenu, phone, onGrowth }: { t: Strings; settings: Settings; onChange: HudProps['onChange'];
+  hasRiders: boolean; hasOpinion?: boolean; plan?: { active: boolean; toggle: () => void }; onMenu?: () => void; phone: boolean; onGrowth?: (on: boolean) => void }) {
   return (
     <div className="controls">
       {plan && <button className={`toggle plan-toggle ${plan.active ? 'on' : ''}`} aria-pressed={plan.active} onClick={plan.toggle}>{t.plan}</button>}
@@ -157,6 +164,8 @@ function Controls({ t, settings, onChange, hasRiders, hasOpinion, plan, onMenu, 
         onClick={() => onChange({ riders: !settings.riders })}>{t.riders}</button>}
       {hasOpinion && <button className={`toggle ${settings.opinion ? 'on' : ''}`} aria-pressed={settings.opinion}
         onClick={() => onChange({ opinion: !settings.opinion })}>{t.op.toggle}</button>}
+      {onGrowth && <button className={`toggle ${settings.growth ? 'on' : ''}`} aria-pressed={settings.growth}
+        onClick={() => onGrowth(!settings.growth)}>{t.gr.toggle}</button>}
       <SettingsMenu t={t} settings={settings} onChange={onChange} onMenu={onMenu} phone={phone} />
     </div>
   );
@@ -199,12 +208,23 @@ function SpeedControl({ t, speed, onSpeed }: { t: Strings; speed: SpeedIndex; on
   );
 }
 
+/** Play the rest of the month at once, then see what changed. */
+function SkipMonth({ t, onSkip }: { t: Strings; onSkip: () => void }) {
+  return (
+    <button className="skip-month" onClick={onSkip} title={t.gr.skipHelp} aria-label={t.gr.skip}>
+      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M3 4l7 6-7 6zM10 4l7 6-7 6z" /><path d="M17 4h2v12h-2z" /></svg>
+      <span>{t.gr.skipShort}</span>
+    </button>
+  );
+}
+
 function StatusChip({ t, status, note, onClick }: { t: Strings; status: NetworkStatus | null; note?: string; onClick?: () => void }) {
   if (!status) return null;
   return <button className={`status-chip status-${status}`} title={note} onClick={onClick}><i />{t.networkStatus[status]}</button>;
 }
 
-function Legend({ t, riders, opinion, status, ridersLegend }: { t: Strings; riders: boolean; opinion?: boolean; status?: ReactNode; ridersLegend?: ReactNode }) {
+function Legend({ t, riders, opinion, status, ridersLegend, growth }: { t: Strings; riders: boolean; opinion?: boolean; status?: ReactNode; ridersLegend?: ReactNode;
+  growth?: ReactNode }) {
   return (
     <section className="legend glass" aria-label={t.legendTitle}>
       <div className="lg-title">{t.legendTitle}</div>
@@ -214,6 +234,7 @@ function Legend({ t, riders, opinion, status, ridersLegend }: { t: Strings; ride
       <div className="lg-row"><svg viewBox="0 0 40 12"><line x1="2" y1="6" x2="38" y2="6" stroke="var(--boundary)" strokeWidth="2" strokeDasharray="6 4" /></svg>{t.legendRegion}</div>
       <div className="lg-row"><i className="sw sw-outside" />{t.legendOutside}</div>
       {riders && (ridersLegend ?? <div className="lg-riders"><span className="lg-ramp" />{t.legendRiders}</div>)}
+      {growth}
       {opinion && <div className="lg-opinion"><span>{t.op.opinionLegend[0]}</span><span className="lg-ramp op" /><span>{t.op.opinionLegend[1]}</span></div>}
       {status && <div className="lg-status">{status}</div>}
       <div className="lg-note">{t.legendNote}</div>
@@ -226,7 +247,9 @@ export function Hud(props: HudProps) {
   const lastSpeed = useRef<SpeedIndex>(1);
   if (props.speed !== 0) lastSpeed.current = props.speed;
   const { layout, t, settings, onChange, map, time, speed, onSpeed, inService, status, statusNote, inspector, onCloseInspector, onOpenCatalogue,
-    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC, ridersLegend, capital, onMenu, onOpenOps } = props;
+    boardings, ridersChip, planActive, onTogglePlan, dock, dateLabel, dateShort, dayNote, treasury, approval, hasOpinion, tempC, ridersLegend, capital, onMenu, onOpenOps,
+    hasGrowth, onToggleGrowth, growthLegend, onSkipMonth } = props;
+  const growthCtl = hasGrowth ? onToggleGrowth : undefined;
   const inServiceText = dayNote ?? (onOpenOps
     ? <button className="link ops-link" onClick={onOpenOps} title={t.ops.open}>{inService} {t.inService}</button> : `${inService} ${t.inService}`);
   // the Operations panel's way in, on every layout: vehicles in service now
@@ -257,8 +280,9 @@ export function Hud(props: HudProps) {
           ) : dock ? dock : (
             <>
               <div className="m-sheet-title">{t.mapStyle}</div>
-              <div className="m-row"><SpeedControl t={t} speed={speed} onSpeed={onSpeed} /></div>
-              <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} onMenu={onMenu} phone />
+              <div className="m-row"><SpeedControl t={t} speed={speed} onSpeed={onSpeed} />{onSkipMonth && <SkipMonth t={t} onSkip={onSkipMonth} />}</div>
+              <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} onMenu={onMenu} phone
+                onGrowth={growthCtl} />
               <div className="m-chips">{treasury}{opsChip}{approval}{capital}{ridersChip}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></div>
             </>
           )}
@@ -284,11 +308,12 @@ export function Hud(props: HudProps) {
             <span className="clock-sub">{[tempC !== undefined ? `${tempC} °C` : '', dayNote ?? (opsChip ? '' : `${inService} ${t.inService}`)]
               .filter(Boolean).join(' · ')}</span></div>
         </div>
-        <SpeedControl t={t} speed={speed} onSpeed={onSpeed} />
+        <div className="speed-wrap"><SpeedControl t={t} speed={speed} onSpeed={onSpeed} />{onSkipMonth && <SkipMonth t={t} onSkip={onSkipMonth} />}</div>
         {layout === 'desktop'
           ? <div className="chips"><div className="chip-row">{treasury}{approval}</div><div className="chip-row">{opsChip}{ridersChip}{capital}</div></div>
           : <div className="chips"><div className="chip-row">{treasury}</div><div className="chip-row">{opsChip}</div></div>}
-        <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} onMenu={onMenu} phone={false} />
+        <Controls t={t} settings={settings} onChange={onChange} hasRiders={hasRiders} hasOpinion={hasOpinion} plan={planCtl} onMenu={onMenu} phone={false}
+          onGrowth={growthCtl} />
       </header>
       <MapButtons t={t} map={map} />
       {inspector ? (
@@ -299,6 +324,7 @@ export function Hud(props: HudProps) {
       ) : null}
       {dock}
       {!dock && <Legend t={t} riders={settings.riders && hasRiders} opinion={settings.opinion && hasOpinion} ridersLegend={ridersLegend}
+        growth={settings.growth && hasGrowth ? growthLegend : undefined}
         status={<>{layout !== 'desktop' && <>{approval}{capital}{ridersChip}</>}<StatusChip t={t} status={status} note={statusNote} onClick={onOpenCatalogue} /></>} />}
     </>
   );

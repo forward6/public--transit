@@ -28,6 +28,8 @@ export interface StyleOptions {
   plan?: { draftLine: LinesFC; draftPoints: PointsFC; iso: PolysFC; isoOrigin: [number, number] | null };
   /** M6 Opinion view: zones washed by opinion (data streamed into OPINION_ZONES), the network fades back */
   opinion?: boolean;
+  /** M9 Growth view: zones washed by growth since 2010 (data streamed into GROWTH_ZONES), the network fades back */
+  growth?: boolean;
   /** M6 a followed rider: their journey and position (data streamed into RIDER_PATH / RIDER_POS), in their colour */
   rider?: string | null;
   /** absolute URL prefix where data/ and glyphs/ are served (ends with '/') */
@@ -47,11 +49,12 @@ export const PROJECTS = 'projects';
 export const PLAN_DRAFT_PTS = 'plan-draft-pts';
 export const PLAN_ISO = 'plan-iso';
 export const OPINION_ZONES = 'op-zones';
+export const GROWTH_ZONES = 'gr-zones';
 export const RIDER_PATH = 'rider-path';
 export const RIDER_POS = 'rider-pos';
 export const CLASSES: RouteClass[] = ['local', 'peak', 'rural', 'sto', 'frequent', 'transitway', 'otrain', 'commuter'];
 /** Interactive layers, top-most first (click priority). */
-export const PICKABLE = ['rider-pos', 'net-vehicles', 'net-vehicle-dots', 'proj-stations', 'proj-planned', 'proj-building', 'net-stations', 'net-stops', 'net-routes', 'net-otrain', 'net-transitway', 'op-zones'];
+export const PICKABLE = ['rider-pos', 'net-vehicles', 'net-vehicle-dots', 'proj-stations', 'proj-planned', 'proj-building', 'net-stations', 'net-stops', 'net-routes', 'net-otrain', 'net-transitway', 'op-zones', 'gr-zones'];
 export const TERRAIN = 'terrain';
 
 type Stops = number[];
@@ -195,7 +198,8 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
 
   if (o.plan) addIsoLayers(L, p);
   if (o.opinion) addOpinionLayers(L, p);
-  if (o.network) addNetworkLayers(L, p, !!o.riders && !!o.network.zones?.features.length, !!o.plan || !!o.opinion, o.loadMode === 'crowding');
+  if (o.growth) addGrowthLayers(L, p);
+  if (o.network) addNetworkLayers(L, p, !!o.riders && !!o.network.zones?.features.length, !!o.plan || !!o.opinion || !!o.growth, o.loadMode === 'crowding');
   if (o.network) addProjectLayers(L, p);
   if (o.plan) addDraftLayers(L, p);
   if (o.rider) addRiderLayers(L, p, o.rider);
@@ -260,6 +264,7 @@ export function buildStyle(o: StyleOptions): StyleSpecification {
   const empty = { type: 'geojson' as const, data: { type: 'FeatureCollection' as const, features: [] } };
   const m6Sources = {
     ...(o.opinion ? { [OPINION_ZONES]: empty } : {}),
+    ...(o.growth ? { [GROWTH_ZONES]: empty } : {}),
     ...(o.rider ? { [RIDER_PATH]: { ...empty, lineMetrics: true }, [RIDER_POS]: empty } : {}),
   };
 
@@ -443,6 +448,20 @@ function addOpinionLayers(L: (l: LayerSpecification) => void, p: Palette) {
       'fill-outline-color': p.night ? 'rgba(10,18,30,0.35)' : 'rgba(255,255,255,0.45)',
     } as never });
   L({ id: 'op-zones-selected', type: 'line', source: OPINION_ZONES, filter: ['==', ['get', 'selected'], true],
+    paint: { 'line-color': p.night ? '#FFFFFF' : '#14213A', 'line-width': 2.5 } });
+}
+
+/** M9 Growth view: new residents and jobs per km² since 2010, warm where the city grew; cool where jobs were lost. */
+export const GROWTH_RAMP: [number, string][] = [[-200, '#3E7CB1'], [-1, '#9DB9D3'], [0, 'rgba(246,227,161,0)'], [15, '#F6E3A1'], [80, '#F2B45C'], [300, '#E57A2E'],
+  [1000, '#C8432B'], [3000, '#8E1F3A']];
+function addGrowthLayers(L: (l: LayerSpecification) => void, p: Palette) {
+  L({ id: 'gr-zones', type: 'fill', source: GROWTH_ZONES, filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: {
+      'fill-color': ['interpolate', ['linear'], ['get', 'v'], ...GROWTH_RAMP.flat()],
+      'fill-opacity': ['case', ['==', ['get', 'v'], 0], 0, ['boolean', ['get', 'coarse'], false], 0.5, 0.66],
+      'fill-outline-color': p.night ? 'rgba(10,18,30,0.3)' : 'rgba(255,255,255,0.4)',
+    } as never });
+  L({ id: 'gr-zones-selected', type: 'line', source: GROWTH_ZONES, filter: ['==', ['get', 'selected'], true],
     paint: { 'line-color': p.night ? '#FFFFFF' : '#14213A', 'line-width': 2.5 } });
 }
 

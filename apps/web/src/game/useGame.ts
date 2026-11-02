@@ -7,7 +7,7 @@ import {
   answerOverrun as answerOverrunOn, askAgain as askAgainOn, cancelProject as cancelProjectOn, chooseProcurement as chooseProcurementOn,
   openingDay as openingDayOn, proposeProject, reviveProject as reviveProjectOn,
   JourneyPlanner, Playback, agencyOnly, applyEdits, buildGarage, dismissEvent, newGame, openDecision, orderBuses, resolve, schedulePlan,
-  serviceStats, setLevers, setPendingFigures, setService, stepDay, updateRoutines, withOpinion, type GameWorld, type PersonaTrips,
+  serviceStats, setLevers, setPendingFigures, setService, stepDay, updateRoutines, withOpinion, answerDeveloper, type GameWorld, type PersonaTrips,
   type Resolution, type Scorecard,
 } from '@otc/sim';
 import type { NetworkState } from '../network/useNetwork';
@@ -70,6 +70,19 @@ export interface GameApi {
   cancelProject: (projectId: string) => void;
   reviveProject: (projectId: string) => void;
   askAgain: (projectId: string, gov: 'province' | 'federal' | 'quebec') => void;
+  /** M9: back a developer's offer (council votes on the rezoning) or turn it down */
+  answerDeveloper: (eventId: string, back: boolean) => void;
+  /** play the rest of the month at once (stops at a decision); what it was before, for the review */
+  skipMonth: () => MonthSkip | null;
+}
+
+/** A month skipped: the game before and after, and how many days were played. */
+export interface MonthSkip {
+  before: GameState;
+  after: GameState;
+  days: number;
+  /** a decision is waiting (the month may have ended early) */
+  stopped: boolean;
 }
 
 /** The assignment's loads for one network, and the model's OC Transpo weekday boardings on it (to scale by). */
@@ -161,6 +174,7 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
     return {
       zones: base.zones.zones, baseLos: demand.los!, share: base.zones.zones.map((z) => demand.zones[String(z.id)]?.[1] ?? 0),
       places: base.network.stops.filter((x) => x.kind === 'station').map((x) => ({ lon: x.lon, lat: x.lat, name: x.name })),
+      ...(base.carAccess ? { carAccess: base.carAccess } : {}),
     };
   }, [base]);
   const [trips, setTrips] = useState<Record<string, PersonaTrips> | undefined>();
@@ -352,6 +366,25 @@ export function useGame(base: NetworkState | null, clock: Clock, measure: Measur
     cancelProject: (id) => setState((s) => (s ? cancelProjectOn(s, id) : s)),
     reviveProject: (id) => setState((s) => (s ? reviveProjectOn(s, id) : s)),
     askAgain: (id, gov) => setState((s) => (s ? askAgainOn(s, id, gov) : s)),
+    answerDeveloper: (eventId, back) => setState((s) => (s ? answerDeveloper(s, eventId, back) : s)),
+    skipMonth: () => {
+      const before = stateRef.current;
+      if (!before || openDecision(before)) return null;
+      const w = worldRef.current ?? EMPTY_WORLD;
+      const month = before.date.slice(0, 7);
+      let s = before;
+      let days = 0;
+      while (days < 32) {
+        const next = stepDay(s, w);
+        if (next === s) break;
+        s = next;
+        days++;
+        if (s.date.slice(0, 7) !== month || openDecision(s)) break;
+      }
+      stateRef.current = s;
+      setState(s);
+      return { before, after: s, days, stopped: !!openDecision(s) };
+    },
     restart: () => {
       if (startFigures) setState(world ? withOpinion(newGame(startFigures), world) : newGame(startFigures));
       clock.setTime(60); // 00:01

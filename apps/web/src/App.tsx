@@ -3,7 +3,8 @@ import type { MapMouseEvent, Map as MLMap } from 'maplibre-gl';
 import { LANGS, SEASONS, TIMES, parseClock, type Lang, type Season, type TimeOfDay } from '@otc/shared';
 import { MapView, type CameraPadding } from './map/MapView';
 import { palette } from './map/palettes';
-import { LOAD_COLORS, NET_LOADS, OPINION_ZONES, PICKABLE, PROJECTS, RIDER_PATH, RIDER_POS } from './map/style';
+import { GROWTH_ZONES, LOAD_COLORS, NET_LOADS, OPINION_ZONES, PICKABLE, PROJECTS, RIDER_PATH, RIDER_POS } from './map/style';
+import { GrowthLegend, GrowthPanel, GrowthZonePanel, MonthReview, growthPolys } from './game/GrowthUI';
 import { LineDock, OpeningDay, ProjectsChip, ProjectsPanel } from './game/ProjectsUI';
 import { OpsPanel } from './game/OpsUI';
 import { useLineDraw } from './plan/useLineDraw';
@@ -22,7 +23,7 @@ import { Snow } from './ui/Snow';
 import { StartScreen, startingNewGame } from './ui/StartScreen';
 import { usePlan } from './plan/usePlan';
 import { PlanDock, ScorecardPanel } from './plan/PlanUI';
-import { loadGame, useGame, type Measure } from './game/useGame';
+import { loadGame, useGame, type Measure, type MonthSkip } from './game/useGame';
 import { BudgetPanel, DailyRidersChip, DecisionCard, NewsToasts, TreasuryChip, fmtDate } from './game/GameUI';
 import { PERSONAS } from '@otc/shared';
 import { addDays, dayBoardings, journeyPosition, loadReport, monthBoardings, nextServiceChange, serviceDay, temperatureAt, weatherOn } from '@otc/sim';
@@ -49,6 +50,7 @@ function initialSettings(): Settings {
     buildings3d: params.get('3d') !== '0',
     riders: params.get('riders') === '1',
     opinion: params.get('opinion') === '1',
+    growth: params.get('growth') === '1',
   };
 }
 
@@ -215,9 +217,12 @@ export function App() {
   }, [base, !!game.state?.council]); // eslint-disable-line react-hooks/exhaustive-deps
   const opinionRef = useRef(false);
   opinionRef.current = settings.opinion;
+  const growthRef = useRef(false);
+  growthRef.current = settings.growth;
   // the Riders and Opinion views are alternatives
-  const changeSettings = (s: Partial<Settings>) => setSettings((prev) => ({ ...prev, ...s, ...(s.opinion ? { riders: false } : {}),
-    ...(s.riders ? { opinion: false } : {}) }));
+  // the map views (Riders, Opinion, Growth) are one at a time
+  const changeSettings = (s: Partial<Settings>) => setSettings((prev) => ({ ...prev, ...s, ...(s.opinion ? { riders: false, growth: false } : {}),
+    ...(s.riders ? { opinion: false, growth: false } : {}), ...(s.growth ? { riders: false, opinion: false } : {}) }));
 
   useEffect(() => {
     document.body.classList.toggle('menu-open', !!menu);
@@ -262,13 +267,14 @@ export function App() {
       if (pl.active && pl.tool === 'iso') return pl.setIsoOrigin([e.lngLat.lng, e.lngLat.lat]);
       if (pl.active && pl.tool === 'line') return lineRef.current.addStation([e.lngLat.lng, e.lngLat.lat]);
       // in the Opinion view a tap means "this neighbourhood" (routes are muted underneath)
-      const layers = (opinionRef.current ? ['rider-pos', 'net-stations', 'op-zones'] : PICKABLE).filter((l) => map.getLayer(l));
+      const layers = (opinionRef.current ? ['rider-pos', 'net-stations', 'op-zones'] : growthRef.current ? ['rider-pos', 'net-stations', 'proj-stations', 'gr-zones']
+        : PICKABLE).filter((l) => map.getLayer(l));
       const box: [[number, number], [number, number]] = [[e.point.x - 8, e.point.y - 8], [e.point.x + 8, e.point.y + 8]];
       const f = map.queryRenderedFeatures(box, { layers })[0];
       if (!f) return setSel(null);
       const p = f.properties as Record<string, string>;
       if (f.layer.id === 'rider-pos') return;
-      if (f.layer.id === 'op-zones') return setSel({ type: 'zone', id: String(p.i) });
+      if (f.layer.id === 'op-zones' || f.layer.id === 'gr-zones') return setSel({ type: 'zone', id: String(p.i) });
       if (f.layer.id.startsWith('proj-')) return p.id && p.id !== 'draft' ? setSel({ type: 'project', id: p.id }) : undefined;
       if (f.layer.id === 'net-vehicles' || f.layer.id === 'net-vehicle-dots') setSel({ type: 'vehicle', id: p.trip! });
       else if (f.layer.id === 'net-stations' || f.layer.id === 'net-stops') setSel({ type: 'stop', id: p.id! });
@@ -372,6 +378,27 @@ export function App() {
   const zoneSel = sel?.type === 'zone' ? Number(sel.id) : null;
   const opinionFc = useMemo(() => (values ? opinionPolys(base?.zones ?? null, values, zoneSel) : null), [values, base, zoneSel]);
   useStreamedSource(map, OPINION_ZONES, opinionFc);
+  // M9: the Growth view (redrawn when a month's growth is added)
+  const growthOn = settings.growth && !!game.state;
+  const growthFc = useMemo(() => (growthOn ? growthPolys(base?.zones ?? null, game.state?.growth, zoneSel) : null),
+    [growthOn, game.state?.growth?.history.length, base, zoneSel]); // eslint-disable-line react-hooks/exhaustive-deps
+  useStreamedSource(map, GROWTH_ZONES, growthFc);
+  // skip a month: play the rest of it at once, pause, and show what changed
+  const [review, setReview] = useState<MonthSkip | null>(null);
+  const speedBeforeReview = useRef<SpeedIndex>(0);
+  const skipMonth = () => {
+    if (game.decision) return;
+    const was = clock.speed();
+    const r = game.skipMonth();
+    if (!r) return;
+    if (!review) speedBeforeReview.current = was;
+    clock.setSpeed(0);
+    setReview(r);
+  };
+  const closeReview = () => {
+    setReview(null);
+    if (!game.decision && speedBeforeReview.current) clock.setSpeed(speedBeforeReview.current);
+  };
   const wx = weatherOn(date, game.state?.seed ?? 2010);
   const tempC = game.state ? temperatureAt(wx, view.time) : undefined;
   // the paper pauses the game while it's read
@@ -433,7 +460,7 @@ export function App() {
   return (
     <>
       <MapView style={{ palette: pal, lang: settings.lang, buildings3d: settings.buildings3d, terrain: true, baseUrl, history: params.has('history'), network,
-        riders: settings.riders, loadMode, plan: planLayers, opinion: opinionOn, rider: persona?.color ?? null }}
+        riders: settings.riders, loadMode, plan: planLayers, opinion: opinionOn, growth: growthOn, rider: persona?.color ?? null }}
         padding={padding} onMap={setMap} />
       <Snow active={pal.snow} night={pal.night} still={still} />
       <div className="vignette" />
@@ -452,6 +479,8 @@ export function App() {
             onSelect={(type, id) => setSel({ type, id })} />
           : sel.type === 'opinion' ? <OpinionPanel game={game} t={t} lang={settings.lang} view={opinionView} setView={(v) => { setOpinionView(v); changeSettings({ opinion: true }); }}
             onPersona={(id) => setSel({ type: 'persona', id })} />
+          : sel.type === 'growth' ? <GrowthPanel game={game} t={t} lang={settings.lang} onZone={(i) => setSel({ type: 'zone', id: String(i) })} />
+          : sel.type === 'zone' && settings.growth ? <GrowthZonePanel game={game} index={Number(sel.id)} t={t} lang={settings.lang} />
           : sel.type === 'zone' ? <ZonePanel game={game} index={Number(sel.id)} t={t} lang={settings.lang} onPersona={(id) => setSel({ type: 'persona', id })} />
           : sel.type === 'persona' ? <PersonaPanel game={game} id={sel.id} t={t} lang={settings.lang} now={view.service} />
           : <Inspector sel={sel} net={net} t={view.service} s={t} lang={settings.lang} palette={pal} onSelect={setSel} plan={plan}
@@ -467,12 +496,17 @@ export function App() {
         approval={<ApprovalChip game={game} t={t} lang={settings.lang} onClick={openOpinion} />} hasOpinion={!!game.state?.opinion} tempC={tempC}
         ridersLegend={ridersLegend} capital={<><CapitalChip game={game} t={t} onClick={() => setSel({ type: 'council', id: 'term' })} />
           <ProjectsChip game={game} t={t} onClick={() => setSel({ type: 'project', id: 'all' })} /></>}
-        onMenu={openMenu} onOpenOps={game.state ? () => setSel({ type: 'ops', id: 'now' }) : undefined} />
-      {!params.has('nodecision') && !menu && <DecisionCard game={game} t={t} lang={settings.lang} />}
+        onMenu={openMenu} onOpenOps={game.state ? () => setSel({ type: 'ops', id: 'now' }) : undefined}
+        hasGrowth={!!game.state} onToggleGrowth={(on) => { changeSettings({ growth: on }); if (on) setSel({ type: 'growth', id: 'city' }); }}
+        growthLegend={<GrowthLegend t={t} />} onSkipMonth={game.state ? skipMonth : undefined} />
+      {!params.has('nodecision') && !menu && !review && <DecisionCard game={game} t={t} lang={settings.lang} />}
+      {review && !menu && <MonthReview skip={review} game={game} t={t} lang={settings.lang} onClose={closeReview}
+        onAgain={() => { setReview(null); setTimeout(skipMonth, 0); }}
+        onGrowth={() => { closeReview(); changeSettings({ growth: true }); setSel({ type: 'growth', id: 'city' }); }} />}
       {!menu && <NewsToasts game={game} t={t} lang={settings.lang} />}
       {!params.has('nodecision') && !menu && <ElectionNight game={game} t={t} lang={settings.lang} />}
       {!params.has('nodecision') && !menu && <OpeningDay game={game} t={t} lang={settings.lang} />}
-      {!params.has('nodecision') && !menu && <FrontPageCard game={game} t={t} lang={settings.lang} onShow={pauseForPaper} onClose={resumeAfterPaper} />}
+      {!params.has('nodecision') && !menu && !review && <FrontPageCard game={game} t={t} lang={settings.lang} onShow={pauseForPaper} onClose={resumeAfterPaper} />}
       {menu && <StartScreen t={t} lang={settings.lang} onLang={(lang) => changeSettings({ lang })} time={view.time}
         campaign={menu === 'menu' || hadCampaign ? game.state : null} onContinue={closeMenu} />}
     </>

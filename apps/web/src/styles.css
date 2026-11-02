@@ -719,3 +719,47 @@ body.layout-tablet .controls { flex-wrap: nowrap; }
   body.layout-tablet .controls { gap: 6px; }
   body.layout-tablet .controls > .toggle { padding: 0 10px; }
 }
+
+/* ------------------------------------------------------------------ M9 growth and the month in review */
+.speed-wrap { display: flex; align-items: center; gap: 6px; flex: none; }
+.skip-month { display: inline-flex; align-items: center; gap: 5px; height: 36px; padding: 0 10px; border: 1px solid var(--stroke); border-radius: 11px;
+  background: var(--track); color: var(--fg2); font: 700 12px/1 var(--ui); cursor: pointer; white-space: nowrap; }
+.skip-month svg { width: 15px; height: 15px; }
+.skip-month:hover { color: var(--fg); }
+.skip-month:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body.layout-phone .m-row .speed { flex: 1; width: auto; margin-bottom: 0; }
+body.layout-phone .m-row { margin-bottom: 8px; }
+body.layout-phone .skip-month { height: 44px; }
+body.layout-phone .controls { flex-wrap: wrap; }
+body.layout-phone .controls > .toggle { min-width: calc(50% - 30px); }
+@media (max-width: 1099px) { body.layout-tablet .skip-month span { display: none; } body.layout-tablet .speed button { width: 29px; } }
+.ins-icon.growth-icon { background: linear-gradient(135deg, #F6E3A1, #E57A2E 55%, #8E1F3A); border-radius: 6px; }
+.lg-growth { margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+.lg-growth .lg-title-sm { color: var(--fg2); font-weight: 600; margin-bottom: 4px; }
+.lg-ramp-row { display: flex; align-items: center; gap: 8px; }
+.lg-ramp.growth { flex: 1; width: auto; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #F6E3A1, #F2B45C, #E57A2E, #C8432B, #8E1F3A); }
+.lg-growth .lg-row { margin-top: 4px; }
+.sw-lost { background: #6E98C2; }
+.growth-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin: 6px 0; background: var(--track); gap: 1px; }
+.growth-bar i { display: block; min-width: 0; }
+.gp-station { background: #C8432B; }
+.gp-core { background: #E57A2E; }
+.gp-suburbs { background: #F2B45C; }
+.gp-gatineau { background: #22A6B3; }
+.gp-rural { background: #9AA5B4; }
+.growth-where .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; vertical-align: -1px; }
+.growth-months { width: 100%; height: auto; display: block; margin-top: 4px; }
+.growth-months .all { fill: #F2B45C; }
+.growth-months .station { fill: #C8432B; }
+.growth-months .tick { font: 600 9px var(--ui); fill: var(--muted); }
+.periods.then-now li { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; }
+.periods.then-now li b { text-align: right; min-width: 70px; }
+.periods.then-now li b.muted { color: var(--muted); font-weight: 600; }
+.periods .up, .review .up { color: var(--good); }
+.periods .down, .review .down { color: var(--hot); }
+.decision.review { max-width: 520px; }
+.review .review-rows li { font-size: 13px; }
+.review-news { list-style: none; margin: 4px 0 0; padding: 0; font-size: 12.5px; }
+.review-news li { padding: 5px 0; border-top: 1px solid var(--divider); }
+.review-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
+.riders-line.warn-line { color: var(--amber); font-weight: 600; }

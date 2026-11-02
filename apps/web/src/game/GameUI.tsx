@@ -6,6 +6,7 @@ import type { GameApi } from './useGame';
 import { Delta, weekOnWeek } from './Ridership';
 import { COUNCIL_KINDS, CouncilDecision } from './CouncilUI';
 import { PROJECT_KINDS, ProjectDecision } from './ProjectsUI';
+import { DeveloperDecision, GROWTH_KINDS } from './GrowthUI';
 
 export function fmtDate(iso: string, lang: Lang, style: 'long' | 'short' | 'month' | 'day' | 'mon' = 'long'): string {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -98,6 +99,16 @@ export function DecisionCard({ game, t, lang }: { game: GameApi; t: Strings; lan
       </div>
     );
   }
+  if (GROWTH_KINDS.has(d.kind)) {
+    return (
+      <div className="decision-wrap" role="dialog" aria-modal="true" aria-label={t.gr.devTitle(String(d.data.station))}>
+        <section className="decision glass">
+          <div className="decision-kicker">{fmtDate(s.date, lang)} · {t.decisionKicker}</div>
+          <DeveloperDecision game={game} d={d} t={t} lang={lang} />
+        </section>
+      </div>
+    );
+  }
   if (COUNCIL_KINDS.has(d.kind)) {
     const item = d.kind === 'vote' ? s.council?.items.find((i) => i.id === d.data.item) : undefined;
     return (
@@ -161,8 +172,13 @@ export function DecisionCard({ game, t, lang }: { game: GameApi; t: Strings; lan
 }
 
 /** Brief news: deliveries, service changes, garages, retirements. */
+/** A news event's line (undefined: not news). */
+export function eventText(t: Strings, e: GameEvent, lang: Lang): ((d: GameEvent['data'], l: Lang) => string) | undefined {
+  return t.news[e.kind] ?? t.co.news[e.kind] ?? (e.kind === 'project' && t.pj.news(e.data, lang) ? (d: GameEvent['data'], l: Lang) => t.pj.news(d, l) : undefined);
+}
+
 export function NewsToasts({ game, t, lang }: { game: GameApi; t: Strings; lang: Lang }) {
-  const text = (e: GameEvent) => t.news[e.kind] ?? t.co.news[e.kind] ?? (e.kind === 'project' && t.pj.news(e.data, lang) ? (d: GameEvent['data'], l: Lang) => t.pj.news(d, l) : undefined);
+  const text = (e: GameEvent) => eventText(t, e, lang);
   const items = game.news.filter((e) => text(e));
   useEffect(() => {
     if (!items.length) return;

@@ -10,7 +10,7 @@ import { segmentNow } from '@otc/sim';
 import { crowdOf, shownRiders, type OnBoardFn } from '../game/onBoard';
 
 export type Selection = { type: 'stop' | 'route' | 'vehicle' | 'corridor' | 'catalogue' | 'ridership' | 'scorecard' | 'budget' | 'opinion' | 'zone' | 'persona'
-    | 'load' | 'council' | 'project' | 'ops';
+    | 'load' | 'council' | 'project' | 'ops' | 'growth';
   id: string } | null;
 
 interface Props {

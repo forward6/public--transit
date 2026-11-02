@@ -1,3 +1,4 @@
+import { GROWTH_EN, GROWTH_FR, type GrowthStrings } from './growthStrings';
 import { OPINION_EN, OPINION_FR, type OpinionStrings } from './opinionStrings';
 import { LOAD_EN, LOAD_FR, type LoadStrings } from './loadStrings';
 import { COUNCIL_EN, COUNCIL_FR, type CouncilStrings } from './councilStrings';
@@ -217,6 +218,7 @@ export interface Strings {
   st: StartStrings;
   // M8 — rapid-transit lines
   pj: ProjectStrings;
+  gr: GrowthStrings;
   // the Operations panel
   ops: OpsStrings;
 }
@@ -322,6 +324,7 @@ export const STRINGS: Record<Lang, Strings> = {
       serviceChange: (d) => `Service change: your plan (${d.changes} changes) is now running`,
       garageOpen: (d) => `${d.name} opens: ${d.capacity} more bus places`,
       retirement: (d) => `${d.count} old buses retired`,
+      rezoned: (d) => GROWTH_EN.rezonedNews(String(d.station), Number(d.homes).toLocaleString('en-CA'), Number(d.passed) === 1),
     },
     reserve: 'Operating reserve',
     debt: 'Debt',
@@ -382,6 +385,7 @@ export const STRINGS: Record<Lang, Strings> = {
     co: COUNCIL_EN,
     st: START_EN,
     pj: PROJECTS_EN,
+    gr: GROWTH_EN,
     ops: OPS_EN,
     plan: 'Plan',
     planTitle: 'Plan mode',
@@ -547,6 +551,7 @@ export const STRINGS: Record<Lang, Strings> = {
       serviceChange: (d) => `Changement de service : votre plan (${d.changes} changements) est en vigueur`,
       garageOpen: (d) => `${d.name} ouvre : ${d.capacity} places de plus`,
       retirement: (d) => `${d.count} vieux autobus retirés`,
+      rezoned: (d) => GROWTH_FR.rezonedNews(String(d.station), Number(d.homes).toLocaleString('fr-CA'), Number(d.passed) === 1),
     },
     reserve: 'Réserve de fonctionnement',
     debt: 'Dette',
@@ -607,6 +612,7 @@ export const STRINGS: Record<Lang, Strings> = {
     co: COUNCIL_FR,
     st: START_FR,
     pj: PROJECTS_FR,
+    gr: GROWTH_FR,
     ops: OPS_FR,
     plan: 'Planifier',
     planTitle: 'Mode planification',
